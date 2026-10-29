@@ -1,0 +1,67 @@
+body {
+  font-family: "IBM Plex Sans", sans-serif;
+  background: #15161b;
+  color: #e7e7ea;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: #c9975a;
+  color: #15161b;
+}
+
+:focus-visible {
+  outline: 2px solid #c9975a;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #2b2d35;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3a3c46;
+}
+
+[data-lucide] {
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.6;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.toggle {
+  width: 40px;
+  height: 24px;
+  border-radius: 999px;
+  position: relative;
+  background: rgba(201, 151, 90, .12);
+}
+.toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #c9975a;
+}
+
+.cell {
+  background: #1c1e25;
+  border: 1px solid #2b2d35;
+  border-radius: 1.1rem;
+  padding: 1.1rem 1.25rem;
+}

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design 5 — Minimalist Clean | CCTV &amp; Deteksi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.14"></script>
+<script src="./tailwind-config.js"></script>
+<link rel="stylesheet" href="./tokens.css">
+</head>
+<body class="min-h-screen flex">
+
+<aside class="w-[220px] shrink-0 border-r border-line px-6 py-7 flex flex-col">
+  <div class="flex items-center gap-2 mb-10">
+    <i data-lucide="shield" class="w-5 h-5 text-accent"></i>
+    <span class="font-semibold text-[14px] tracking-tight">Sigap Buronan</span>
+  </div>
+  <nav class="flex flex-col gap-0.5 text-[13.5px]">
+    <a href="index.html" class="flex items-center gap-3 px-2.5 py-2 text-muted hover:text-ink">Overview</a>
+    <a href="buronan.html" class="flex items-center gap-3 px-2.5 py-2 text-muted hover:text-ink">Database Buronan</a>
+    <a href="deteksi.html" class="flex items-center gap-3 px-2.5 py-2 text-ink font-medium border-l-2 border-accent -ml-px pl-[9px]">CCTV &amp; Deteksi</a>
+    <a href="laporan.html" class="flex items-center gap-3 px-2.5 py-2 text-muted hover:text-ink">Laporan Masyarakat</a>
+  </nav>
+  <div class="mt-auto pt-6 border-t border-line text-[12px] text-muted">
+    <div class="font-medium text-ink">Bripka Andika</div>
+    Polres Jaksel &middot; Reserse
+  </div>
+</aside>
+
+<main class="flex-1 min-w-0">
+  <header class="h-16 border-b border-line flex items-center justify-between px-9">
+    <div class="text-[13px] text-muted">Cari buronan, kamera, kasus&hellip;</div>
+    <div class="flex items-center gap-5">
+      <i data-lucide="bell" class="text-muted w-[18px] h-[18px]"></i>
+      <div class="w-8 h-8 rounded-full bg-accent-soft text-accent-ink flex items-center justify-center text-[11px] font-semibold">BA</div>
+    </div>
+  </header>
+
+  <div class="px-9 py-8 max-w-[1040px]">
+    <h1 class="text-[21px] font-semibold tracking-tight mb-1">CCTV &amp; Deteksi</h1>
+    <p class="text-muted text-[13px] mb-7">1.790 dari 1.842 kamera online</p>
+
+    <div class="grid grid-cols-3 gap-5 mb-8">
+      <div class="hairline !rounded-xl !p-0 overflow-hidden col-span-2 row-span-1">
+        <div class="relative h-[230px] bg-ink flex items-center justify-center text-white/50 text-[12px]">
+          Live &middot; Blok M Plaza
+          <span class="absolute top-3 left-3 bg-danger text-white text-[11px] font-semibold px-2 py-1 rounded-sm2">MATCH 92%</span>
+          <div class="absolute inset-0 border-2 border-danger rounded-xl pointer-events-none"></div>
+        </div>
+        <div class="px-4 py-2.5 text-[12px] text-muted border-t border-line">CAM-0192 &middot; Blok M Plaza, Jakarta Selatan</div>
+      </div>
+      <div class="hairline !rounded-xl !p-0 overflow-hidden opacity-55">
+        <div class="h-[230px] bg-ink/70 flex items-center justify-center text-white/50 text-[12px]">Offline</div>
+        <div class="px-4 py-2.5 text-[12px] text-muted border-t border-line">CAM-0871 &middot; Pasar Santa</div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-[1.2fr_1fr] gap-8 mb-8">
+      <div>
+        <h2 class="text-[14px] font-semibold mb-4">Pemeriksaan Manual</h2>
+        <div class="hairline px-6 py-7 flex flex-col items-center gap-3 text-center">
+          <i data-lucide="upload" class="w-6 h-6 text-muted"></i>
+          <div class="text-[13px] font-medium">Unggah foto atau video untuk dicek</div>
+          <div class="text-[11.5px] text-muted">JPG, PNG, MP4 &middot; maks 20MB</div>
+          <button class="bg-accent text-white text-[13px] font-medium px-4 py-2 rounded-sm2 mt-1">Pilih File</button>
+        </div>
+      </div>
+      <div>
+        <h2 class="text-[14px] font-semibold mb-4">Kamera Terdaftar</h2>
+        <div class="hairline divide-y divide-line">
+          <div class="flex items-center justify-between px-5 py-3 text-[13px]"><span>CAM-0192</span><span class="text-ok font-medium text-[12px]">Online</span></div>
+          <div class="flex items-center justify-between px-5 py-3 text-[13px]"><span>CAM-0871</span><span class="text-muted font-medium text-[12px]">Offline</span></div>
+          <div class="flex items-center justify-between px-5 py-3 text-[13px]"><span>CAM-1032</span><span class="text-ok font-medium text-[12px]">Online</span></div>
+        </div>
+      </div>
+    </div>
+
+    <h2 class="text-[14px] font-semibold mb-4">Log Deteksi</h2>
+    <div class="hairline divide-y divide-line">
+      <div class="flex items-center gap-4 px-5 py-3.5"><span class="text-[11px] font-medium px-2 py-1 rounded-full bg-danger-soft text-danger">92%</span><span class="text-[13px] flex-1">DPO #2291 &middot; Blok M Plaza</span><span class="text-[12px] text-muted">2 menit lalu</span></div>
+      <div class="flex items-center gap-4 px-5 py-3.5"><span class="text-[11px] font-medium px-2 py-1 rounded-full bg-warn-soft text-warn">78%</span><span class="text-[13px] flex-1">DPO #1187 &middot; Pasar Santa</span><span class="text-[12px] text-muted">18 menit lalu</span></div>
+      <div class="flex items-center gap-4 px-5 py-3.5"><span class="text-[11px] font-medium px-2 py-1 rounded-full bg-canvas text-muted">63%</span><span class="text-[13px] flex-1">Low-confidence &middot; Stasiun MRT</span><span class="text-[12px] text-muted">41 menit lalu</span></div>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

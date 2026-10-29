@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design 5 — Minimalist Clean | Mobile Detail</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.14"></script>
+<script src="../tailwind-config.js"></script>
+<link rel="stylesheet" href="../tokens.css">
+<style>body{background:#eceeef;}</style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-8">
+<p class="fixed top-4 left-5 text-[12px] text-muted">Design 5 — Minimalist Clean (mobile, navigasi nyata antar halaman)</p>
+
+<div class="w-[360px] h-[760px] bg-canvas rounded-[34px] border border-line shadow-xl overflow-hidden flex flex-col relative">
+  <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[120px] h-[22px] bg-ink rounded-b-2xl z-10"></div>
+  <div class="h-10 flex items-end justify-between px-6 pb-1.5 text-[11px] text-muted"><span>09:41</span><span class="font-medium text-ink">Sigap Buronan</span><span>&#9679;&#9679;&#9679;</span></div>
+
+  <div class="flex-1 overflow-y-auto px-5 pb-2">
+    <a href="home.html" class="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-muted mt-2 mb-3"><i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>Kembali</a>
+
+    <div class="hairline !p-0 overflow-hidden mb-4">
+      <div class="h-[170px] bg-ink flex items-center justify-center text-white/50 text-[12px] relative">
+        Evidence Snapshot
+        <span class="absolute top-3 left-3 bg-danger text-white text-[10.5px] font-semibold px-2 py-1 rounded-sm2">92% Confidence</span>
+      </div>
+    </div>
+
+    <div class="font-semibold text-[15px]">DPO #2291 &middot; Rangga Pratama</div>
+    <div class="text-[12px] text-muted mb-4">Blok M Plaza &middot; 09:38, hari ini</div>
+
+    <div class="grid grid-cols-2 gap-0 hairline mb-5 divide-x divide-line">
+      <div class="px-4 py-3"><div class="text-[11px] text-muted">Lokasi</div><div class="text-[13px] font-medium">Blok M Plaza</div></div>
+      <div class="px-4 py-3"><div class="text-[11px] text-muted">Status</div><div class="text-[13px] font-medium text-danger">Belum dieskalasi</div></div>
+    </div>
+
+    <div class="flex gap-2.5">
+      <button class="flex-1 border border-line text-ink font-medium text-[13px] py-3 rounded-sm2">Tandai Palsu</button>
+      <button class="flex-1 bg-danger text-white font-medium text-[13px] py-3 rounded-sm2 flex items-center justify-center gap-1.5"><i data-lucide="siren" class="w-4 h-4"></i>Eskalasi</button>
+    </div>
+  </div>
+
+  <nav class="grid grid-cols-4 border-t border-line bg-surface px-2 py-2.5">
+    <a href="home.html" class="flex flex-col items-center gap-1 text-muted"><i data-lucide="layout-grid" class="w-5 h-5"></i><span class="text-[10px]">Home</span></a>
+    <a href="lapor.html" class="flex flex-col items-center gap-1 text-muted"><i data-lucide="flag" class="w-5 h-5"></i><span class="text-[10px]">Lapor</span></a>
+    <a href="status.html" class="flex flex-col items-center gap-1 text-muted"><i data-lucide="list-checks" class="w-5 h-5"></i><span class="text-[10px]">Status</span></a>
+    <a href="profil.html" class="flex flex-col items-center gap-1 text-muted"><i data-lucide="user-round" class="w-5 h-5"></i><span class="text-[10px]">Profil</span></a>
+  </nav>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

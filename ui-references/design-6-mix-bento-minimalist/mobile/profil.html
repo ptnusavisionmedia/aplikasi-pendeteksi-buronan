@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design 6 — Mix | Mobile Profil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.14"></script>
+<script src="../tailwind-config.js"></script>
+<link rel="stylesheet" href="../tokens.css">
+<style>body{background:#0e0f13;}</style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-8">
+<p class="fixed top-4 left-5 text-[12px] text-muted">Design 6 — Mix (mobile, navigasi nyata antar halaman)</p>
+
+<div class="w-[360px] h-[760px] bg-canvas rounded-[34px] border border-line shadow-2xl overflow-hidden flex flex-col relative">
+  <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[120px] h-[22px] bg-black rounded-b-2xl z-10"></div>
+  <div class="h-10 flex items-end justify-between px-6 pb-1.5 text-[11px] text-muted"><span>09:41</span><span class="font-medium text-ink">Sigap Buronan</span><span>&#9679;&#9679;&#9679;</span></div>
+
+  <div class="flex-1 overflow-y-auto px-4 pb-2">
+    <div class="pt-3 pb-5 flex flex-col items-center">
+      <div class="w-16 h-16 rounded-full bg-amber-soft text-amber-ink flex items-center justify-center text-[18px] font-semibold mb-2.5">BA</div>
+      <div class="font-semibold text-[15px]">Bripka Andika</div>
+      <div class="text-[12px] text-muted">Polres Jaksel &middot; Shift Malam</div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3 mb-4">
+      <div class="cell !py-2.5"><div class="text-[11px] text-muted">Wilayah Tugas</div><div class="text-[13px] font-medium">Jakarta Selatan</div></div>
+      <div class="cell !py-2.5"><div class="text-[11px] text-muted">Status Akun</div><div class="text-[13px] font-medium text-sage">Terverifikasi</div></div>
+    </div>
+
+    <div class="cell !p-0 overflow-hidden mb-4">
+      <a href="#" class="flex items-center gap-3 px-4 py-3.5 border-b border-line"><i data-lucide="shield-check" class="w-[18px] h-[18px] text-muted"></i><span class="text-[13.5px] font-medium flex-1">Keamanan &amp; 2FA</span><i data-lucide="chevron-right" class="w-4 h-4 text-muted"></i></a>
+      <a href="#" class="flex items-center gap-3 px-4 py-3.5 border-b border-line"><i data-lucide="bell" class="w-[18px] h-[18px] text-muted"></i><span class="text-[13.5px] font-medium flex-1">Preferensi Notifikasi</span><i data-lucide="chevron-right" class="w-4 h-4 text-muted"></i></a>
+      <a href="#" class="flex items-center gap-3 px-4 py-3.5"><i data-lucide="circle-help" class="w-[18px] h-[18px] text-muted"></i><span class="text-[13.5px] font-medium flex-1">Bantuan &amp; Dukungan</span><i data-lucide="chevron-right" class="w-4 h-4 text-muted"></i></a>
+    </div>
+
+    <button class="w-full border border-line text-rose font-medium text-[13.5px] py-3 rounded-xl flex items-center justify-center gap-2"><i data-lucide="log-out" class="w-4 h-4"></i>Keluar</button>
+  </div>
+
+  <nav class="grid grid-cols-4 border-t border-line bg-surface px-2 py-2.5">
+    <a href="home.html" class="flex flex-col items-center gap-1 text-muted"><i data-lucide="layout-grid" class="w-5 h-5"></i><span class="text-[10px]">Home</span></a>
+    <a href="lapor.html" class="flex flex-col items-center gap-1 text-muted"><i data-lucide="flag" class="w-5 h-5"></i><span class="text-[10px]">Lapor</span></a>
+    <a href="status.html" class="flex flex-col items-center gap-1 text-muted"><i data-lucide="list-checks" class="w-5 h-5"></i><span class="text-[10px]">Status</span></a>
+    <a href="profil.html" class="flex flex-col items-center gap-1 text-amber"><i data-lucide="user-round" class="w-5 h-5"></i><span class="text-[10px] font-medium">Profil</span></a>
+  </nav>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

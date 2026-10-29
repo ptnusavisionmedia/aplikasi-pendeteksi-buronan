@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design 5 — Minimalist Clean | Database Buronan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.14"></script>
+<script src="./tailwind-config.js"></script>
+<link rel="stylesheet" href="./tokens.css">
+</head>
+<body class="min-h-screen flex">
+
+<aside class="w-[220px] shrink-0 border-r border-line px-6 py-7 flex flex-col">
+  <div class="flex items-center gap-2 mb-10">
+    <i data-lucide="shield" class="w-5 h-5 text-accent"></i>
+    <span class="font-semibold text-[14px] tracking-tight">Sigap Buronan</span>
+  </div>
+  <nav class="flex flex-col gap-0.5 text-[13.5px]">
+    <a href="index.html" class="flex items-center gap-3 px-2.5 py-2 text-muted hover:text-ink">Overview</a>
+    <a href="buronan.html" class="flex items-center gap-3 px-2.5 py-2 text-ink font-medium border-l-2 border-accent -ml-px pl-[9px]">Database Buronan</a>
+    <a href="deteksi.html" class="flex items-center gap-3 px-2.5 py-2 text-muted hover:text-ink">CCTV &amp; Deteksi</a>
+    <a href="laporan.html" class="flex items-center gap-3 px-2.5 py-2 text-muted hover:text-ink">Laporan Masyarakat</a>
+  </nav>
+  <div class="mt-auto pt-6 border-t border-line text-[12px] text-muted">
+    <div class="font-medium text-ink">Bripka Andika</div>
+    Polres Jaksel &middot; Reserse
+  </div>
+</aside>
+
+<main class="flex-1 min-w-0">
+  <header class="h-16 border-b border-line flex items-center justify-between px-9">
+    <div class="text-[13px] text-muted">Cari buronan, kamera, kasus&hellip;</div>
+    <div class="flex items-center gap-5">
+      <i data-lucide="bell" class="text-muted w-[18px] h-[18px]"></i>
+      <div class="w-8 h-8 rounded-full bg-accent-soft text-accent-ink flex items-center justify-center text-[11px] font-semibold">BA</div>
+    </div>
+  </header>
+
+  <div class="px-9 py-8 max-w-[1040px]">
+    <div class="flex items-center justify-between mb-6">
+      <div><h1 class="text-[21px] font-semibold tracking-tight mb-1">Database Buronan</h1><p class="text-muted text-[13px]">1.248 DPO aktif terdaftar</p></div>
+      <button class="bg-accent text-white text-[13px] font-medium px-4 py-2 rounded-sm2 flex items-center gap-1.5"><i data-lucide="plus" class="w-4 h-4"></i>Tambah Buronan</button>
+    </div>
+
+    <div class="flex items-center gap-2 mb-5 text-[12.5px]">
+      <button class="px-3 py-1.5 rounded-full bg-ink text-white font-medium">Semua</button>
+      <button class="px-3 py-1.5 rounded-full border border-line text-muted">DPO Aktif</button>
+      <button class="px-3 py-1.5 rounded-full border border-line text-muted">Tertangkap</button>
+      <button class="px-3 py-1.5 rounded-full border border-line text-muted">Dicabut</button>
+    </div>
+
+    <div class="hairline overflow-hidden">
+      <table class="w-full text-[13px]">
+        <thead><tr class="text-left text-[11px] uppercase tracking-wide text-muted border-b border-line"><th class="px-5 py-3 font-medium">Nama / Kasus</th><th class="px-5 py-3 font-medium">Ancaman</th><th class="px-5 py-3 font-medium">Instansi</th><th class="px-5 py-3 font-medium">Status</th><th class="px-5 py-3"></th></tr></thead>
+        <tbody class="divide-y divide-line">
+          <tr class="hover:bg-canvas">
+            <td class="px-5 py-3.5"><div class="font-medium">Rangga Pratama</div><div class="text-[11.5px] text-muted">Pembunuhan &middot; #2291</div></td>
+            <td class="px-5 py-3.5 text-danger font-medium">Tinggi</td>
+            <td class="px-5 py-3.5 text-muted">Polda Metro Jaya</td>
+            <td class="px-5 py-3.5"><span class="text-[11px] font-medium px-2 py-1 rounded-full bg-danger-soft text-danger">DPO Aktif</span></td>
+            <td class="px-5 py-3.5 text-right"><a href="buronan-detail.html" class="text-accent font-medium">Detail</a></td>
+          </tr>
+          <tr class="hover:bg-canvas">
+            <td class="px-5 py-3.5"><div class="font-medium">Yusuf Maulana</div><div class="text-[11.5px] text-muted">Penipuan &middot; #1187</div></td>
+            <td class="px-5 py-3.5 text-warn font-medium">Sedang</td>
+            <td class="px-5 py-3.5 text-muted">Polres Jaksel</td>
+            <td class="px-5 py-3.5"><span class="text-[11px] font-medium px-2 py-1 rounded-full bg-danger-soft text-danger">DPO Aktif</span></td>
+            <td class="px-5 py-3.5 text-right"><a href="buronan-detail.html" class="text-accent font-medium">Detail</a></td>
+          </tr>
+          <tr class="hover:bg-canvas">
+            <td class="px-5 py-3.5"><div class="font-medium">Dedi Kusnadi</div><div class="text-[11.5px] text-muted">Narkotika &middot; #0892</div></td>
+            <td class="px-5 py-3.5 text-danger font-medium">Tinggi</td>
+            <td class="px-5 py-3.5 text-muted">BNN Provinsi</td>
+            <td class="px-5 py-3.5"><span class="text-[11px] font-medium px-2 py-1 rounded-full bg-ok-soft text-ok">Tertangkap</span></td>
+            <td class="px-5 py-3.5 text-right"><a href="buronan-detail.html" class="text-accent font-medium">Detail</a></td>
+          </tr>
+          <tr class="hover:bg-canvas">
+            <td class="px-5 py-3.5"><div class="font-medium">Siti Marlina</div><div class="text-[11.5px] text-muted">Penggelapan &middot; #0541</div></td>
+            <td class="px-5 py-3.5 text-muted font-medium">Rendah</td>
+            <td class="px-5 py-3.5 text-muted">Polres Bekasi</td>
+            <td class="px-5 py-3.5"><span class="text-[11px] font-medium px-2 py-1 rounded-full bg-danger-soft text-danger">DPO Aktif</span></td>
+            <td class="px-5 py-3.5 text-right"><a href="buronan-detail.html" class="text-accent font-medium">Detail</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

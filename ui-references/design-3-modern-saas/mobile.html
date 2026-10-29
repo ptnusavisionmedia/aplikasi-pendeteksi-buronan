@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design 3 — Modern SaaS | Mobile</title>
+<style>
+  :root{
+    --bg:#f8fafc; --surface:#ffffff; --border:#ebeef3; --text:#0f172a; --muted:#64748b;
+    --indigo:#4f46e5; --teal:#0d9488; --red:#ef4444; --amber:#f59e0b; --green:#10b981;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:#eef1f6; color:var(--text); font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    display:flex; align-items:center; justify-content:center; min-height:100vh; padding:30px;}
+  .caption{position:fixed; top:14px; left:18px; color:#555; font-size:12px;}
+  .phone{width:360px; height:760px; background:var(--bg); border-radius:34px; border:1px solid #dfe4ee; box-shadow:0 30px 60px rgba(30,40,60,.2); overflow:hidden; display:flex; flex-direction:column; position:relative;}
+  .notch{position:absolute; top:0; left:50%; transform:translateX(-50%); width:120px; height:22px; background:#111; border-radius:0 0 14px 14px; z-index:5;}
+  .statusbar{height:40px; display:flex; align-items:flex-end; justify-content:space-between; padding:0 22px 6px; font-size:11px; color:#334;}
+
+  .screen{flex:1; display:none; flex-direction:column; overflow-y:auto; padding-bottom:6px;}
+  .screen.active{display:flex;}
+
+  .appbar{padding:16px 18px 6px;}
+  .appbar .title{font-size:19px; font-weight:800;}
+  .appbar .sub{font-size:12px; color:var(--muted); margin-top:3px;}
+
+  .hero-card{margin:14px 16px 6px; border-radius:18px; padding:18px; background:linear-gradient(135deg,var(--indigo),var(--teal)); color:#fff;}
+  .hero-card .t{font-size:13.5px; font-weight:700; opacity:.9;}
+  .hero-card .v{font-size:26px; font-weight:800; margin-top:4px;}
+  .hero-card .s{font-size:11px; opacity:.85; margin-top:4px;}
+
+  .sect-title{font-size:12px; font-weight:800; color:var(--muted); margin:14px 18px 8px;}
+  .noti-card{margin:0 16px 10px; padding:13px; border-radius:16px; background:var(--surface); border:1px solid var(--border); display:flex; gap:10px; box-shadow:0 1px 3px rgba(15,23,42,.04);}
+  .noti-thumb{width:42px;height:42px;border-radius:12px;background:#f1f3fa; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:var(--muted);}
+  .noti-title{font-size:13px; font-weight:700;}
+  .noti-meta{font-size:11px; color:var(--muted); margin-top:3px;}
+  .chip{font-size:10px; font-weight:800; padding:4px 8px; border-radius:20px; align-self:flex-start;}
+  .chip.high{background:#fde8e8; color:var(--red);}
+  .chip.mid{background:#fef3dc; color:var(--amber);}
+
+  .form-wrap{padding:14px 18px;}
+  .field{margin-bottom:14px;}
+  .field label{font-size:12px; color:var(--muted); display:block; margin-bottom:6px; font-weight:700;}
+  .field input, .field textarea{width:100%; background:#fff; border:1px solid var(--border); border-radius:12px; color:var(--text); padding:11px 13px; font-size:13px; font-family:inherit;}
+  .photo-drop{border:1.5px dashed #c7cee0; border-radius:14px; height:120px; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--muted); font-size:12px; gap:6px; margin-bottom:14px; background:#fff;}
+  .anon-toggle{display:flex; align-items:center; justify-content:space-between; padding:10px 0;}
+  .switch{width:38px;height:22px;border-radius:20px;background:#e2e6ef; position:relative;}
+  .switch.on{background:#ded6ff;}
+  .switch::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);}
+  .switch.on::after{left:18px;background:var(--indigo);}
+  .btn-primary{width:100%; background:var(--indigo); color:#fff; border:none; padding:14px; border-radius:14px; font-size:13.5px; font-weight:800;}
+
+  .detail-card{margin:14px 16px; border-radius:18px; background:var(--surface); border:1px solid var(--border); overflow:hidden; box-shadow:0 1px 3px rgba(15,23,42,.04);}
+  .evidence{aspect-ratio:4/3; background:#eef1f7; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:12.5px;}
+  .detail-row{display:flex; justify-content:space-between; padding:11px 16px; border-bottom:1px solid var(--border); font-size:12.5px;}
+  .detail-row:last-child{border-bottom:none;}
+  .detail-row .k{color:var(--muted);}
+  .actions{display:flex; gap:10px; padding:4px 16px 16px;}
+  .btn-ok{flex:1; background:#f1f3fa; color:var(--text); border:none; padding:12px; border-radius:12px; font-size:12.5px; font-weight:700;}
+  .btn-esc{flex:1; background:var(--red); color:#fff; border:none; padding:12px; border-radius:12px; font-size:12.5px; font-weight:800;}
+
+  .tabbar{display:flex; margin:8px 16px 16px; background:#fff; border-radius:20px; padding:6px; box-shadow:0 2px 10px rgba(15,23,42,.08); border:1px solid var(--border);}
+  .tab{flex:1; text-align:center; padding:9px 0; font-size:10.5px; color:var(--muted); border-radius:14px; cursor:pointer;}
+  .tab .ic{font-size:16px; display:block; margin-bottom:2px;}
+  .tab.active{background:#eef0ff; color:var(--indigo); font-weight:700;}
+</style>
+</head>
+<body>
+<div class="caption">Design 3 — Modern SaaS (klik tab di bawah untuk ganti screen)</div>
+<div class="phone">
+  <div class="notch"></div>
+  <div class="statusbar"><span>09:41</span><span>Buronan.ai</span><span>&#9679;&#9679;&#9679;</span></div>
+
+  <div class="screen active" data-screen="home">
+    <div class="appbar"><div class="title">Hai, Herman &#128075;</div><div class="sub">Area: Mall Blok M</div></div>
+    <div class="hero-card"><div class="t">CCTV Online</div><div class="v">18 / 20</div><div class="s">2 kamera butuh pengecekan</div></div>
+    <div class="sect-title">NOTIFIKASI DETEKSI</div>
+    <div class="noti-card"><div class="noti-thumb">&#9787;</div><div style="flex:1;"><div class="noti-title">Match ditemukan — DPO #2291</div><div class="noti-meta">Pintu Utara &middot; 4 menit lalu</div></div><span class="chip high">92%</span></div>
+    <div class="noti-card"><div class="noti-thumb">&#9787;</div><div style="flex:1;"><div class="noti-title">Match ditemukan — DPO #0754</div><div class="noti-meta">Parkir B2 &middot; 26 menit lalu</div></div><span class="chip mid">76%</span></div>
+  </div>
+
+  <div class="screen" data-screen="lapor">
+    <div class="appbar"><div class="title">Cek Manual</div><div class="sub">Unggah foto/video untuk dicek</div></div>
+    <div class="form-wrap">
+      <div class="photo-drop"><span style="font-size:22px;">&#128247;</span>Ambil foto / unggah dari galeri</div>
+      <div class="field"><label>Lokasi</label><input value="Pintu Utara, Lantai 2"></div>
+      <div class="field"><label>Catatan (opsional)</label><textarea rows="3" placeholder="Keterangan tambahan"></textarea></div>
+      <div class="anon-toggle"><span style="font-size:12.5px;">Kirim sebagai anonim</span><div class="switch"></div></div>
+      <button class="btn-primary">Cek Sekarang</button>
+    </div>
+  </div>
+
+  <div class="screen" data-screen="detail">
+    <div class="appbar"><div class="title">Detail Deteksi</div><div class="sub">DPO #2291 &middot; Confidence 92%</div></div>
+    <div class="detail-card">
+      <div class="evidence">Evidence Snapshot</div>
+      <div class="detail-row"><span class="k">Lokasi</span><span>Pintu Utara, Lantai 2</span></div>
+      <div class="detail-row"><span class="k">Waktu</span><span>09:38, hari ini</span></div>
+      <div class="detail-row"><span class="k">Status</span><span style="color:var(--red); font-weight:700;">Belum dieskalasi</span></div>
+      <div class="actions"><button class="btn-ok">Tandai Palsu</button><button class="btn-esc">Eskalasi</button></div>
+    </div>
+  </div>
+
+  <div class="tabbar">
+    <div class="tab active" data-tab="home"><span class="ic">&#8962;</span>Beranda</div>
+    <div class="tab" data-tab="lapor"><span class="ic">&#128247;</span>Cek Manual</div>
+    <div class="tab" data-tab="detail"><span class="ic">&#9888;</span>Detail</div>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.tab').forEach(function(tab){
+    tab.addEventListener('click', function(){
+      document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+      document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
+      tab.classList.add('active');
+      document.querySelector('.screen[data-screen="'+tab.dataset.tab+'"]').classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UI References — Aplikasi Pendeteksi Buronan</title>
+<style>
+  :root{--bg:#f5f6f9; --surface:#fff; --border:#e5e7ee; --text:#111827; --muted:#6b7280;}
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif; padding:40px 24px;}
+  .wrap{max-width:1040px; margin:0 auto;}
+  h1{font-size:24px; margin:0 0 6px;}
+  p.lead{color:var(--muted); font-size:14px; margin:0 0 32px;}
+  .group{margin-bottom:34px;}
+  .group h2{font-size:15px; margin:0 0 4px;}
+  .group p{color:var(--muted); font-size:12.5px; margin:0 0 14px;}
+  .swatches{display:flex; gap:6px; margin-bottom:14px;}
+  .sw{width:22px; height:22px; border-radius:6px; border:1px solid rgba(0,0,0,.08);}
+  .cards{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  a.card{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 18px;
+    text-decoration:none; color:var(--text); box-shadow:0 1px 2px rgba(16,24,40,.04);
+  }
+  a.card:hover{border-color:#c7cee0;}
+  .card .t{font-weight:700; font-size:13.5px;}
+  .card .s{color:var(--muted); font-size:11.5px; margin-top:3px;}
+  .arrow{color:var(--muted); font-size:16px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>UI References — Aplikasi Pendeteksi Buronan</h1>
+  <p class="lead">6 eksplorasi desain (Website + Mobile) — 3 pertama HTML/CSS/JS native tanpa framework, 3 berikutnya pakai Tailwind CSS + Lucide icons + Google Fonts via CDN dengan navigasi multi-halaman lengkap. Buka langsung di browser untuk membandingkan.</p>
+
+  <div class="group">
+    <h2>1. Command Center <span style="color:var(--muted); font-weight:400;">— dark, tactical, untuk aparat/kepolisian</span></h2>
+    <div class="swatches"><div class="sw" style="background:#0a0e14"></div><div class="sw" style="background:#22d3ee"></div><div class="sw" style="background:#ff4d6a"></div><div class="sw" style="background:#ffb020"></div><div class="sw" style="background:#3ddc97"></div></div>
+    <div class="cards">
+      <a class="card" href="design-1-command-center/website.html"><div><div class="t">Website — Command Center</div><div class="s">Dashboard dark, CCTV grid, data-dense</div></div><span class="arrow">&#8594;</span></a>
+      <a class="card" href="design-1-command-center/mobile.html"><div><div class="t">Mobile — Command Center</div><div class="s">App petugas lapangan, alert feed dark</div></div><span class="arrow">&#8594;</span></a>
+    </div>
+  </div>
+
+  <div class="group">
+    <h2>2. Civic Trust <span style="color:var(--muted); font-weight:400;">— terang, resmi, untuk masyarakat & instansi</span></h2>
+    <div class="swatches"><div class="sw" style="background:#1e3a8a"></div><div class="sw" style="background:#1d4ed8"></div><div class="sw" style="background:#dc2626"></div><div class="sw" style="background:#d97706"></div><div class="sw" style="background:#15803d"></div></div>
+    <div class="cards">
+      <a class="card" href="design-2-civic-trust/website.html"><div><div class="t">Website — Civic Trust</div><div class="s">Portal resmi, navbar atas, tabel formal</div></div><span class="arrow">&#8594;</span></a>
+      <a class="card" href="design-2-civic-trust/mobile.html"><div><div class="t">Mobile — Civic Trust</div><div class="s">App masyarakat, lapor + lacak status tiket</div></div><span class="arrow">&#8594;</span></a>
+    </div>
+  </div>
+
+  <div class="group">
+    <h2>3. Modern SaaS <span style="color:var(--muted); font-weight:400;">— soft, modern, untuk keamanan swasta/instansi umum</span></h2>
+    <div class="swatches"><div class="sw" style="background:#4f46e5"></div><div class="sw" style="background:#0d9488"></div><div class="sw" style="background:#ef4444"></div><div class="sw" style="background:#f59e0b"></div><div class="sw" style="background:#10b981"></div></div>
+    <div class="cards">
+      <a class="card" href="design-3-modern-saas/website.html"><div><div class="t">Website — Modern SaaS</div><div class="s">Dashboard rounded card, gradient, grafik mini</div></div><span class="arrow">&#8594;</span></a>
+      <a class="card" href="design-3-modern-saas/mobile.html"><div><div class="t">Mobile — Modern SaaS</div><div class="s">App friendly, rounded tabbar, cek manual</div></div><span class="arrow">&#8594;</span></a>
+    </div>
+  </div>
+
+  <p class="lead" style="margin-top:-8px; margin-bottom:24px;">Berikut 3 arah baru &mdash; CDN libraries, navigasi &amp; halaman lengkap (5 halaman website, 5 layar mobile tiap arah).</p>
+
+  <div class="group">
+    <h2>4. Bento <span style="color:var(--muted); font-weight:400;">— grid bento asimetris, warm-neutral, untuk dashboard operasional</span></h2>
+    <div class="swatches"><div class="sw" style="background:#f5f6f2"></div><div class="sw" style="background:#0c6b4f"></div><div class="sw" style="background:#e2503b"></div><div class="sw" style="background:#c6860f"></div><div class="sw" style="background:#1b2420"></div></div>
+    <div class="cards">
+      <a class="card" href="design-4-bento/index.html"><div><div class="t">Website — Bento</div><div class="s">Overview, Database Buronan, CCTV &amp; Deteksi, Laporan (5 halaman)</div></div><span class="arrow">&#8594;</span></a>
+      <a class="card" href="design-4-bento/mobile/home.html"><div><div class="t">Mobile — Bento</div><div class="s">Home, Lapor, Detail, Status, Profil (5 layar)</div></div><span class="arrow">&#8594;</span></a>
+    </div>
+  </div>
+
+  <div class="group">
+    <h2>5. Minimalist Clean <span style="color:var(--muted); font-weight:400;">— hairline, satu aksen cobalt, untuk operasional tenang</span></h2>
+    <div class="swatches"><div class="sw" style="background:#fafafa"></div><div class="sw" style="background:#2f5fa3"></div><div class="sw" style="background:#b91c1c"></div><div class="sw" style="background:#92650b"></div><div class="sw" style="background:#18181b"></div></div>
+    <div class="cards">
+      <a class="card" href="design-5-minimalist-clean/index.html"><div><div class="t">Website — Minimalist Clean</div><div class="s">Overview, Database Buronan, CCTV &amp; Deteksi, Laporan (5 halaman)</div></div><span class="arrow">&#8594;</span></a>
+      <a class="card" href="design-5-minimalist-clean/mobile/home.html"><div><div class="t">Mobile — Minimalist Clean</div><div class="s">Home, Lapor, Detail, Status, Profil (5 layar)</div></div><span class="arrow">&#8594;</span></a>
+    </div>
+  </div>
+
+  <div class="group">
+    <h2>6. Mix &mdash; Editorial Bento Dark <span style="color:var(--muted); font-weight:400;">— bento + minimalist, dark, untuk shift malam/command desk</span></h2>
+    <div class="swatches"><div class="sw" style="background:#15161b"></div><div class="sw" style="background:#c9975a"></div><div class="sw" style="background:#d9726a"></div><div class="sw" style="background:#7fae8e"></div><div class="sw" style="background:#e7e7ea"></div></div>
+    <div class="cards">
+      <a class="card" href="design-6-mix-bento-minimalist/index.html"><div><div class="t">Website — Mix</div><div class="s">Overview, Database Buronan, CCTV &amp; Deteksi, Laporan (5 halaman)</div></div><span class="arrow">&#8594;</span></a>
+      <a class="card" href="design-6-mix-bento-minimalist/mobile/home.html"><div><div class="t">Mobile — Mix</div><div class="s">Home, Lapor, Detail, Status, Profil (5 layar)</div></div><span class="arrow">&#8594;</span></a>
+    </div>
+  </div>
+</div>
+</body>
+</html>

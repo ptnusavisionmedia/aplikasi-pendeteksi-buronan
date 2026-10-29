@@ -1,0 +1,47 @@
+import { env } from "../env";
+
+async function callDetectionEngine<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${env.detectionEngineUrl}${path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Internal-Api-Key": env.detectionEngineApiKey,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Detection engine error (${res.status}): ${text}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+export interface EnrollResult {
+  qdrantPointId: string;
+}
+
+export function enrollFace(params: { buronanId: string; fotoUrl: string }) {
+  return callDetectionEngine<EnrollResult>("/internal/enroll", params);
+}
+
+export interface DetectCandidate {
+  buronanId: string;
+  confidence: number;
+}
+
+export interface DetectResult {
+  candidates: DetectCandidate[];
+}
+
+export function detectFace(params: { imageUrl: string }) {
+  return callDetectionEngine<DetectResult>("/internal/detect", params);
+}
+
+export function startCctvFeed(feedId: string, rtspUrl: string) {
+  return callDetectionEngine<{ ok: boolean }>(`/internal/cctv-feeds/${feedId}/start`, { rtspUrl });
+}
+
+export function stopCctvFeed(feedId: string) {
+  return callDetectionEngine<{ ok: boolean }>(`/internal/cctv-feeds/${feedId}/stop`, {});
+}

@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design 4 — Bento | Overview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.14"></script>
+<script src="./tailwind-config.js"></script>
+<link rel="stylesheet" href="./tokens.css">
+</head>
+<body class="min-h-screen flex">
+
+<aside class="w-[232px] shrink-0 border-r border-line bg-surface p-5 flex flex-col">
+  <div class="flex items-center gap-2.5 px-1 mb-8">
+    <div class="w-8 h-8 rounded-xl bg-primary flex items-center justify-center text-white"><i data-lucide="shield-alert" class="w-[18px] h-[18px]"></i></div>
+    <span class="font-extrabold text-[15px] tracking-tight">Sigap Buronan</span>
+  </div>
+  <nav class="flex flex-col gap-1 text-[13.5px]">
+    <a href="index.html" class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-primary-soft text-primary-ink font-semibold"><i data-lucide="layout-grid"></i>Overview</a>
+    <a href="buronan.html" class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-muted hover:bg-canvas"><i data-lucide="user-search"></i>Database Buronan</a>
+    <a href="deteksi.html" class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-muted hover:bg-canvas"><i data-lucide="camera"></i>CCTV &amp; Deteksi</a>
+    <a href="laporan.html" class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-muted hover:bg-canvas"><i data-lucide="flag"></i>Laporan Masyarakat</a>
+  </nav>
+  <div class="mt-auto pt-5 border-t border-line text-[12px] text-muted">
+    <div class="font-semibold text-ink">Bripka Andika</div>
+    Polres Jaksel &middot; Reserse
+  </div>
+</aside>
+
+<main class="flex-1 min-w-0">
+  <header class="h-16 border-b border-line bg-surface flex items-center justify-between px-7">
+    <div class="flex items-center gap-2 text-muted text-[13px] bg-canvas rounded-xl px-3 py-2 w-[320px]">
+      <i data-lucide="search" class="w-4 h-4"></i>
+      <span>Cari buronan, kamera, kasus...</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <button class="w-9 h-9 rounded-xl bg-canvas flex items-center justify-center text-muted hover:text-ink"><i data-lucide="bell"></i></button>
+      <div class="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center text-[12px] font-bold">BA</div>
+    </div>
+  </header>
+
+  <div class="p-7">
+    <div class="flex items-end justify-between mb-6">
+      <div>
+        <h1 class="text-[22px] font-extrabold tracking-tight">Ringkasan Hari Ini</h1>
+        <p class="text-muted text-[13px] mt-1">Wilayah Jakarta Selatan &middot; diperbarui 2 menit lalu</p>
+      </div>
+      <button class="flex items-center gap-2 bg-primary text-white text-[13px] font-semibold px-4 py-2.5 rounded-xl shadow-pop hover:bg-primary-ink transition-colors">
+        <i data-lucide="plus" class="w-4 h-4"></i>Tambah Buronan
+      </button>
+    </div>
+
+    <!-- Bento grid: irregular spans on purpose -->
+    <div class="grid grid-cols-4 gap-4 auto-rows-[108px]">
+
+      <div class="bento-cell col-span-1 row-span-1 flex flex-col justify-between">
+        <i data-lucide="user-x" class="text-primary"></i>
+        <div><div class="text-2xl font-extrabold tabular">1.204</div><div class="text-[12px] text-muted">DPO Aktif</div></div>
+      </div>
+
+      <div class="bento-cell col-span-1 row-span-1 flex flex-col justify-between">
+        <i data-lucide="scan-face" class="text-coral"></i>
+        <div><div class="text-2xl font-extrabold tabular">37</div><div class="text-[12px] text-muted">Deteksi hari ini</div></div>
+      </div>
+
+      <div class="bento-cell col-span-2 row-span-2 bg-primary text-white flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-[12.5px] font-semibold uppercase tracking-wide opacity-80">Tingkat Deteksi 7 Hari</span>
+          <i data-lucide="trending-up"></i>
+        </div>
+        <div class="flex items-end gap-2 h-16">
+          <div class="flex-1 bg-white/25 rounded-t-md" style="height:35%"></div>
+          <div class="flex-1 bg-white/25 rounded-t-md" style="height:55%"></div>
+          <div class="flex-1 bg-white/25 rounded-t-md" style="height:40%"></div>
+          <div class="flex-1 bg-white/25 rounded-t-md" style="height:70%"></div>
+          <div class="flex-1 bg-white rounded-t-md" style="height:95%"></div>
+          <div class="flex-1 bg-white/25 rounded-t-md" style="height:60%"></div>
+          <div class="flex-1 bg-white/25 rounded-t-md" style="height:50%"></div>
+        </div>
+        <div class="text-[12px] opacity-80">Puncak hari ini: 37 deteksi, naik dari rata-rata 24</div>
+      </div>
+
+      <div class="bento-cell col-span-1 row-span-1 flex flex-col justify-between">
+        <i data-lucide="camera" class="text-ink"></i>
+        <div><div class="text-2xl font-extrabold tabular">1.790<span class="text-[13px] text-muted font-semibold">/1.842</span></div><div class="text-[12px] text-muted">CCTV online</div></div>
+      </div>
+
+      <div class="bento-cell col-span-1 row-span-1 flex flex-col justify-between">
+        <i data-lucide="flag" class="text-amber"></i>
+        <div><div class="text-2xl font-extrabold tabular">9</div><div class="text-[12px] text-muted">Laporan menunggu</div></div>
+      </div>
+
+      <div class="bento-cell col-span-2 row-span-2 flex flex-col">
+        <div class="flex items-center justify-between mb-3">
+          <span class="font-bold text-[14px]">Deteksi Terbaru</span>
+          <a href="deteksi.html" class="text-[12.5px] font-semibold text-primary hover:underline">Lihat semua</a>
+        </div>
+        <div class="flex-1 flex flex-col gap-2.5 overflow-hidden">
+          <div class="flex items-center gap-3 rounded-xl bg-coral-soft px-3 py-2.5">
+            <div class="w-9 h-9 rounded-lg bg-white flex items-center justify-center text-coral"><i data-lucide="scan-face" class="w-4 h-4"></i></div>
+            <div class="flex-1 min-w-0"><div class="text-[13px] font-semibold truncate">DPO #2291 &middot; Blok M Plaza</div><div class="text-[11.5px] text-muted">2 menit lalu</div></div>
+            <span class="text-[11px] font-bold text-coral">92%</span>
+          </div>
+          <div class="flex items-center gap-3 rounded-xl bg-amber-soft px-3 py-2.5">
+            <div class="w-9 h-9 rounded-lg bg-white flex items-center justify-center text-amber"><i data-lucide="scan-face" class="w-4 h-4"></i></div>
+            <div class="flex-1 min-w-0"><div class="text-[13px] font-semibold truncate">DPO #1187 &middot; Pasar Santa</div><div class="text-[11.5px] text-muted">18 menit lalu</div></div>
+            <span class="text-[11px] font-bold text-amber">78%</span>
+          </div>
+          <div class="flex items-center gap-3 rounded-xl bg-canvas px-3 py-2.5">
+            <div class="w-9 h-9 rounded-lg bg-white flex items-center justify-center text-muted"><i data-lucide="scan-face" class="w-4 h-4"></i></div>
+            <div class="flex-1 min-w-0"><div class="text-[13px] font-semibold truncate">Low-confidence &middot; Stasiun MRT</div><div class="text-[11.5px] text-muted">41 menit lalu</div></div>
+            <span class="text-[11px] font-bold text-muted">63%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="bento-cell col-span-2 row-span-1 flex items-center justify-between">
+        <div>
+          <div class="font-bold text-[14px]">Eskalasi Pending</div>
+          <div class="text-[12px] text-muted">3 kasus menunggu tindak lanjut</div>
+        </div>
+        <i data-lucide="siren" class="text-coral w-6 h-6"></i>
+      </div>
+
+      <div class="bento-cell col-span-2 row-span-1 flex items-center justify-between">
+        <div>
+          <div class="font-bold text-[14px]">Akurasi Sistem</div>
+          <div class="text-[12px] text-muted">False-positive rate 1.4% minggu ini</div>
+        </div>
+        <i data-lucide="badge-check" class="text-primary w-6 h-6"></i>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

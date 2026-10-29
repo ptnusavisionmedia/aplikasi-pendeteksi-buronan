@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design 1 — Command Center | Mobile</title>
+<style>
+  :root{
+    --bg:#0a0e14; --panel:#0f1620; --panel2:#111a26; --border:#1d2a3a;
+    --text:#d6e2ef; --muted:#6c7f93; --cyan:#22d3ee; --red:#ff4d6a;
+    --amber:#ffb020; --green:#3ddc97;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:#060a0f; color:var(--text);
+    font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    display:flex; align-items:center; justify-content:center; min-height:100vh; padding:30px;
+  }
+  .caption{position:fixed; top:14px; left:18px; color:var(--muted); font-size:12px;}
+  .phone{
+    width:360px; height:760px; background:var(--bg); border-radius:34px; border:1px solid #223042;
+    box-shadow:0 30px 60px rgba(0,0,0,.5); overflow:hidden; display:flex; flex-direction:column; position:relative;
+  }
+  .notch{position:absolute; top:0; left:50%; transform:translateX(-50%); width:120px; height:22px; background:#000; border-radius:0 0 14px 14px; z-index:5;}
+  .statusbar{height:40px; display:flex; align-items:flex-end; justify-content:space-between; padding:0 22px 6px; font-size:11px; color:var(--muted);}
+
+  .screen{flex:1; display:none; flex-direction:column; overflow-y:auto;}
+  .screen.active{display:flex;}
+
+  .appbar{padding:14px 18px 10px; border-bottom:1px solid var(--border);}
+  .appbar .title{font-size:17px; font-weight:700;}
+  .appbar .sub{font-size:11.5px; color:var(--muted); margin-top:2px;}
+
+  /* Home / alerts */
+  .alert-card{margin:10px 16px 0; padding:12px; border-radius:12px; background:var(--panel); border:1px solid var(--border); display:flex; gap:10px; border-left:3px solid var(--red);}
+  .alert-card.mid{border-left-color:var(--amber);}
+  .alert-thumb{width:46px;height:46px;border-radius:8px;background:#1a2634; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:var(--muted);}
+  .alert-title{font-size:13px; font-weight:700;}
+  .alert-meta{font-size:11px; color:var(--muted); margin-top:3px;}
+  .conf-chip{font-size:10px; font-weight:700; padding:3px 7px; border-radius:20px; align-self:flex-start;}
+  .conf-chip.high{background:rgba(255,77,106,.15); color:var(--red);}
+  .conf-chip.mid{background:rgba(255,176,32,.15); color:var(--amber);}
+
+  /* Report screen */
+  .form-wrap{padding:16px 18px;}
+  .field{margin-bottom:14px;}
+  .field label{font-size:11.5px; color:var(--muted); display:block; margin-bottom:6px;}
+  .field input, .field textarea{
+    width:100%; background:var(--panel2); border:1px solid var(--border); border-radius:8px; color:var(--text);
+    padding:10px 12px; font-size:13px; font-family:inherit;
+  }
+  .photo-drop{
+    border:1.5px dashed var(--border); border-radius:10px; height:120px; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; color:var(--muted); font-size:12px; gap:6px; margin-bottom:14px;
+  }
+  .anon-toggle{display:flex; align-items:center; justify-content:space-between; padding:10px 0;}
+  .switch{width:38px;height:22px;border-radius:20px;background:var(--panel2); border:1px solid var(--border); position:relative;}
+  .switch.on{background:rgba(34,211,238,.25); border-color:var(--cyan);}
+  .switch::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--muted);transition:.2s;}
+  .switch.on::after{left:18px;background:var(--cyan);}
+  .btn-primary{width:100%; background:var(--cyan); color:#02131a; border:none; padding:13px; border-radius:10px; font-size:13.5px; font-weight:700;}
+
+  /* Detail screen */
+  .evidence{margin:14px 18px; border-radius:12px; background:#06101a; border:1px solid var(--border); aspect-ratio:4/3; position:relative; display:flex; align-items:center; justify-content:center; color:var(--muted); overflow:hidden;}
+  .evidence::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg, rgba(34,211,238,.04) 0px, rgba(34,211,238,.04) 1px, transparent 1px, transparent 3px);}
+  .detail-row{display:flex; justify-content:space-between; padding:10px 18px; border-bottom:1px solid var(--border); font-size:12.5px;}
+  .detail-row .k{color:var(--muted);}
+  .actions{display:flex; gap:10px; padding:16px 18px;}
+  .btn-esc{flex:1; background:var(--red); color:#1a0206; border:none; padding:12px; border-radius:10px; font-size:13px; font-weight:700;}
+  .btn-ok{flex:1; background:transparent; border:1px solid var(--border); color:var(--text); padding:12px; border-radius:10px; font-size:13px; font-weight:600;}
+
+  .tabbar{display:flex; border-top:1px solid var(--border); background:var(--panel);}
+  .tab{flex:1; text-align:center; padding:10px 0 14px; font-size:10.5px; color:var(--muted); cursor:pointer;}
+  .tab .ic{font-size:17px; display:block; margin-bottom:3px;}
+  .tab.active{color:var(--cyan);}
+</style>
+</head>
+<body>
+<div class="caption">Design 1 — Command Center (klik tab di bawah untuk ganti screen)</div>
+<div class="phone">
+  <div class="notch"></div>
+  <div class="statusbar"><span>09:41</span><span>SIGAP BURONAN</span><span>&#9679;&#9679;&#9679;</span></div>
+
+  <div class="screen active" data-screen="home">
+    <div class="appbar"><div class="title">Notifikasi Deteksi</div><div class="sub">Wilayah: Jakarta Selatan</div></div>
+    <div class="alert-card"><div class="alert-thumb">&#9787;</div><div style="flex:1;"><div class="alert-title">Match ditemukan — DPO #2291</div><div class="alert-meta">CCTV Blok M Plaza &middot; 2 menit lalu</div></div><div class="conf-chip high">92%</div></div>
+    <div class="alert-card mid"><div class="alert-thumb">&#9787;</div><div style="flex:1;"><div class="alert-title">Match ditemukan — DPO #1187</div><div class="alert-meta">CCTV Pasar Santa &middot; 18 menit lalu</div></div><div class="conf-chip mid">78%</div></div>
+    <div class="alert-card mid"><div class="alert-thumb">&#9787;</div><div style="flex:1;"><div class="alert-title">Low-confidence log</div><div class="alert-meta">CCTV Stasiun MRT &middot; 41 menit lalu</div></div><div class="conf-chip mid">63%</div></div>
+  </div>
+
+  <div class="screen" data-screen="lapor">
+    <div class="appbar"><div class="title">Lapor Temuan Buronan</div><div class="sub">Isi sesuai yang Anda lihat</div></div>
+    <div class="form-wrap">
+      <div class="photo-drop"><span style="font-size:22px;">&#128247;</span>Ambil foto / unggah dari galeri</div>
+      <div class="field"><label>Lokasi</label><input value="Jl. Sudirman Kav. 25, Jakarta Selatan"></div>
+      <div class="field"><label>Deskripsi singkat</label><textarea rows="3" placeholder="Ciri-ciri, waktu melihat, dll."></textarea></div>
+      <div class="anon-toggle"><span style="font-size:12.5px;">Kirim sebagai anonim</span><div class="switch on"></div></div>
+      <button class="btn-primary">Kirim Laporan</button>
+    </div>
+  </div>
+
+  <div class="screen" data-screen="detail">
+    <div class="appbar"><div class="title">Detail Deteksi</div><div class="sub">DPO #2291 &middot; Confidence 92%</div></div>
+    <div class="evidence">Evidence Snapshot</div>
+    <div class="detail-row"><span class="k">Lokasi</span><span>CCTV Blok M Plaza</span></div>
+    <div class="detail-row"><span class="k">Waktu</span><span>09:38, hari ini</span></div>
+    <div class="detail-row"><span class="k">Status</span><span style="color:var(--red); font-weight:700;">Belum dieskalasi</span></div>
+    <div class="actions"><button class="btn-ok">Tandai Palsu</button><button class="btn-esc">Eskalasi ke Polisi</button></div>
+  </div>
+
+  <div class="tabbar">
+    <div class="tab active" data-tab="home"><span class="ic">&#9888;</span>Notifikasi</div>
+    <div class="tab" data-tab="lapor"><span class="ic">&#9873;</span>Lapor</div>
+    <div class="tab" data-tab="detail"><span class="ic">&#9737;</span>Detail</div>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.tab').forEach(function(tab){
+    tab.addEventListener('click', function(){
+      document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+      document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
+      tab.classList.add('active');
+      document.querySelector('.screen[data-screen="'+tab.dataset.tab+'"]').classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

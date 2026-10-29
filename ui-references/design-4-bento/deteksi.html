@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design 4 — Bento | CCTV &amp; Deteksi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.14"></script>
+<script src="./tailwind-config.js"></script>
+<link rel="stylesheet" href="./tokens.css">
+</head>
+<body class="min-h-screen flex">
+
+<aside class="w-[232px] shrink-0 border-r border-line bg-surface p-5 flex flex-col">
+  <div class="flex items-center gap-2.5 px-1 mb-8">
+    <div class="w-8 h-8 rounded-xl bg-primary flex items-center justify-center text-white"><i data-lucide="shield-alert" class="w-[18px] h-[18px]"></i></div>
+    <span class="font-extrabold text-[15px] tracking-tight">Sigap Buronan</span>
+  </div>
+  <nav class="flex flex-col gap-1 text-[13.5px]">
+    <a href="index.html" class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-muted hover:bg-canvas"><i data-lucide="layout-grid"></i>Overview</a>
+    <a href="buronan.html" class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-muted hover:bg-canvas"><i data-lucide="user-search"></i>Database Buronan</a>
+    <a href="deteksi.html" class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-primary-soft text-primary-ink font-semibold"><i data-lucide="camera"></i>CCTV &amp; Deteksi</a>
+    <a href="laporan.html" class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-muted hover:bg-canvas"><i data-lucide="flag"></i>Laporan Masyarakat</a>
+  </nav>
+  <div class="mt-auto pt-5 border-t border-line text-[12px] text-muted">
+    <div class="font-semibold text-ink">Bripka Andika</div>
+    Polres Jaksel &middot; Reserse
+  </div>
+</aside>
+
+<main class="flex-1 min-w-0">
+  <header class="h-16 border-b border-line bg-surface flex items-center justify-between px-7">
+    <div class="flex items-center gap-2 text-muted text-[13px] bg-canvas rounded-xl px-3 py-2 w-[320px]">
+      <i data-lucide="search" class="w-4 h-4"></i><span>Cari buronan, kamera, kasus...</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <button class="w-9 h-9 rounded-xl bg-canvas flex items-center justify-center text-muted hover:text-ink"><i data-lucide="bell"></i></button>
+      <div class="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center text-[12px] font-bold">BA</div>
+    </div>
+  </header>
+
+  <div class="p-7">
+    <h1 class="text-[22px] font-extrabold tracking-tight mb-1">CCTV &amp; Deteksi</h1>
+    <p class="text-muted text-[13px] mb-6">1.842 kamera terhubung &middot; 37 deteksi hari ini</p>
+
+    <div class="grid grid-cols-4 gap-4 auto-rows-[108px]">
+
+      <div class="bento-cell col-span-2 row-span-2 relative overflow-hidden !p-0 ring-2 ring-coral">
+        <div class="absolute inset-0 bg-[repeating-linear-gradient(0deg,rgba(226,80,59,.05)_0px,rgba(226,80,59,.05)_1px,transparent_1px,transparent_4px)]"></div>
+        <span class="absolute top-3 left-3 bg-coral text-white text-[10.5px] font-bold px-2 py-1 rounded-lg">MATCH 92%</span>
+        <div class="absolute bottom-0 inset-x-0 p-3 bg-gradient-to-t from-black/60 to-transparent text-white text-[12px] flex items-center justify-between">
+          <span class="flex items-center gap-1.5"><i data-lucide="dot" class="text-coral"></i>Blok M Plaza</span>
+          <span class="font-semibold">LIVE</span>
+        </div>
+      </div>
+
+      <div class="bento-cell col-span-1 row-span-1 relative overflow-hidden !p-0 bg-canvas">
+        <div class="absolute bottom-0 inset-x-0 p-2.5 text-[11px] text-muted flex items-center justify-between"><span>Stasiun MRT</span><i data-lucide="circle" class="w-2.5 h-2.5 text-primary fill-primary"></i></div>
+      </div>
+      <div class="bento-cell col-span-1 row-span-1 relative overflow-hidden !p-0 bg-canvas">
+        <div class="absolute bottom-0 inset-x-0 p-2.5 text-[11px] text-muted flex items-center justify-between"><span>Pasar Santa</span><i data-lucide="circle" class="w-2.5 h-2.5 text-primary fill-primary"></i></div>
+      </div>
+      <div class="bento-cell col-span-1 row-span-1 relative overflow-hidden !p-0 bg-canvas">
+        <div class="absolute bottom-0 inset-x-0 p-2.5 text-[11px] text-muted flex items-center justify-between"><span>Terminal Blok M</span><i data-lucide="circle" class="w-2.5 h-2.5 text-primary fill-primary"></i></div>
+      </div>
+      <div class="bento-cell col-span-1 row-span-1 relative overflow-hidden !p-0 bg-canvas opacity-50">
+        <div class="absolute bottom-0 inset-x-0 p-2.5 text-[11px] text-muted flex items-center justify-between"><span>Halte TB Simatupang</span><i data-lucide="circle" class="w-2.5 h-2.5 text-muted fill-muted"></i></div>
+      </div>
+
+      <div class="bento-cell col-span-2 row-span-2">
+        <div class="font-bold text-[14px] mb-3">Pemeriksaan Manual</div>
+        <div class="border border-dashed border-line rounded-xl h-[72px] flex flex-col items-center justify-center gap-1 text-muted text-[12px] mb-3">
+          <i data-lucide="upload" class="w-5 h-5"></i>Unggah foto / video untuk dicek
+        </div>
+        <button class="w-full bg-primary text-white text-[13px] font-semibold py-2.5 rounded-xl hover:bg-primary-ink">Jalankan Pemeriksaan</button>
+      </div>
+
+      <div class="bento-cell col-span-4">
+        <div class="flex items-center justify-between mb-3">
+          <span class="font-bold text-[14px]">Log Deteksi</span>
+          <span class="text-[12px] text-muted">37 hari ini</span>
+        </div>
+        <div class="grid grid-cols-3 gap-3 text-[13px]">
+          <div class="flex items-center gap-2.5 rounded-xl bg-coral-soft px-3 py-2">
+            <i data-lucide="scan-face" class="text-coral w-4 h-4"></i><span class="flex-1 truncate">DPO #2291</span><span class="font-bold text-coral text-[11.5px]">92%</span>
+          </div>
+          <div class="flex items-center gap-2.5 rounded-xl bg-amber-soft px-3 py-2">
+            <i data-lucide="scan-face" class="text-amber w-4 h-4"></i><span class="flex-1 truncate">DPO #1187</span><span class="font-bold text-amber text-[11.5px]">78%</span>
+          </div>
+          <div class="flex items-center gap-2.5 rounded-xl bg-canvas px-3 py-2">
+            <i data-lucide="scan-face" class="text-muted w-4 h-4"></i><span class="flex-1 truncate">Low-confidence</span><span class="font-bold text-muted text-[11.5px]">63%</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

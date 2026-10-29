@@ -1,0 +1,22 @@
+node_modules/
+.pnpm-store/
+dist/
+build/
+.next/
+.env
+.env.local
+*.log
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Flutter
+apps/mobile/.dart_tool/
+apps/mobile/build/
+apps/mobile/.flutter-plugins
+apps/mobile/.flutter-plugins-dependencies
+
+# Infra
+infra/*.local.yml

@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design 2 — Civic Trust | Website</title>
+<style>
+  :root{
+    --bg:#f3f5f8; --surface:#ffffff; --border:#e2e6ec; --text:#1f2937; --muted:#6b7280;
+    --blue:#1d4ed8; --blue-dark:#1e3a8a; --red:#dc2626; --amber:#d97706; --green:#15803d; --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--text); font-family:"Segoe UI",-apple-system,Roboto,Arial,sans-serif;}
+
+  header.topbar{
+    background:var(--blue-dark); color:#fff; display:flex; align-items:center; justify-content:space-between;
+    padding:0 28px; height:62px;
+  }
+  .logo{display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.02em; font-size:16px;}
+  .logo .mark{width:30px;height:30px;border-radius:7px;background:#fff;color:var(--blue-dark);display:flex;align-items:center;justify-content:center;font-weight:900;}
+  .topnav{display:flex; gap:22px; font-size:13.5px;}
+  .topnav a{color:#cfe0ff; text-decoration:none; padding:6px 0; border-bottom:2px solid transparent;}
+  .topnav a.active{color:#fff; border-color:#fff; font-weight:600;}
+  .top-user{display:flex; align-items:center; gap:10px; font-size:13px;}
+  .top-avatar{width:30px;height:30px;border-radius:50%;background:#2d4fc0;display:flex;align-items:center;justify-content:center;font-size:12px; font-weight:700;}
+
+  .wrap{max-width:1180px; margin:0 auto; padding:26px 24px;}
+  .breadcrumb{font-size:12px; color:var(--muted); margin-bottom:10px;}
+  .page-head{display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:18px;}
+  .page-title{font-size:22px; font-weight:800; margin:0; color:var(--blue-dark);}
+  .page-sub{color:var(--muted); font-size:13px; margin-top:4px;}
+  .btn{background:var(--blue); color:#fff; border:none; padding:9px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;}
+  .btn.outline{background:#fff; color:var(--blue); border:1px solid var(--blue);}
+
+  .stat-row{display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:22px;}
+  .stat-card{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px; box-shadow:0 1px 2px rgba(16,24,40,.04);}
+  .stat-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;margin-bottom:10px;}
+  .stat-icon.i1{background:#e8eefc;color:var(--blue);} .stat-icon.i2{background:#fde8e8;color:var(--red);}
+  .stat-icon.i3{background:#fef3dc;color:var(--amber);} .stat-icon.i4{background:#e5f6ea;color:var(--green);}
+  .stat-value{font-size:24px; font-weight:800; color:var(--blue-dark);}
+  .stat-label{color:var(--muted); font-size:12.5px; margin-top:4px;}
+
+  .grid-2{display:grid; grid-template-columns:1.3fr 1fr; gap:18px;}
+  .card{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; box-shadow:0 1px 2px rgba(16,24,40,.04);}
+  .card-head{padding:14px 18px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;}
+  .card-head h3{margin:0; font-size:14.5px; color:var(--blue-dark);}
+  .card-body{padding:16px 18px;}
+
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  th{text-align:left; color:var(--muted); font-weight:600; padding:10px 18px; border-bottom:1px solid var(--border); font-size:11.5px; text-transform:uppercase;}
+  td{padding:12px 18px; border-bottom:1px solid var(--border);}
+  tr:last-child td{border-bottom:none;}
+  .pill{font-size:11px; padding:4px 10px; border-radius:20px; font-weight:700;}
+  .pill.active{background:#fde8e8; color:var(--red);}
+  .pill.caught{background:#e5f6ea; color:var(--green);}
+  .pill.pending{background:#fef3dc; color:var(--amber);}
+
+  .report-row{display:flex; gap:12px; padding:12px 0; border-bottom:1px solid var(--border);}
+  .report-row:last-child{border-bottom:none;}
+  .report-thumb{width:44px;height:44px;border-radius:8px;background:#eef1f6;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--muted);}
+  .report-title{font-size:13px; font-weight:700;}
+  .report-meta{font-size:11.5px; color:var(--muted); margin-top:3px;}
+
+  .map-box{height:220px; border-radius:8px; background:
+    linear-gradient(135deg,#e8eefc 25%, transparent 25%) -14px 0,
+    linear-gradient(225deg,#e8eefc 25%, transparent 25%) -14px 0,
+    linear-gradient(315deg,#e8eefc 25%, transparent 25%),
+    linear-gradient(45deg,#e8eefc 25%, transparent 25%);
+    background-size:28px 28px; background-color:#f6f8fc; border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:12.5px; position:relative;
+  }
+  .map-pin{position:absolute; width:12px; height:12px; border-radius:50%; background:var(--red); box-shadow:0 0 0 4px rgba(220,38,38,.2);}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="logo"><div class="mark">B</div>SIPANDU BURONAN</div>
+  <nav class="topnav">
+    <a class="active" href="#">Dashboard</a>
+    <a href="#">Database Buronan</a>
+    <a href="#">CCTV &amp; Deteksi</a>
+    <a href="#">Eskalasi</a>
+    <a href="#">Laporan Masyarakat</a>
+  </nav>
+  <div class="top-user"><div class="top-avatar">IH</div>Instansi Hukum</div>
+</header>
+
+<div class="wrap">
+  <div class="breadcrumb">Beranda / Dashboard</div>
+  <div class="page-head">
+    <div><h1 class="page-title">Dashboard Pemantauan</h1><p class="page-sub">Ringkasan deteksi &amp; laporan masyarakat secara nasional</p></div>
+    <button class="btn">+ Tambah Data Buronan</button>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat-card"><div class="stat-icon i1">&#9728;</div><div class="stat-value">1.204</div><div class="stat-label">Buronan DPO Aktif</div></div>
+    <div class="stat-card"><div class="stat-icon i2">&#9888;</div><div class="stat-value">37</div><div class="stat-label">Deteksi Hari Ini</div></div>
+    <div class="stat-card"><div class="stat-icon i3">&#9873;</div><div class="stat-value">9</div><div class="stat-label">Laporan Menunggu Verifikasi</div></div>
+    <div class="stat-card"><div class="stat-icon i4">&#9737;</div><div class="stat-value">1.790</div><div class="stat-label">CCTV Terhubung</div></div>
+  </div>
+
+  <div class="grid-2" style="margin-bottom:18px;">
+    <div class="card">
+      <div class="card-head"><h3>Database Buronan (DPO)</h3><a href="#" class="btn outline" style="padding:6px 12px;">Lihat semua</a></div>
+      <table>
+        <thead><tr><th>Nama / No. Kasus</th><th>Tingkat Ancaman</th><th>Instansi</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>Rangga Pratama &middot; #2291/RES</td><td>Tinggi</td><td>Polres Jaksel</td><td><span class="pill active">DPO Aktif</span></td></tr>
+          <tr><td>Dedi Kurniawan &middot; #1187/RES</td><td>Sedang</td><td>Polres Jaktim</td><td><span class="pill active">DPO Aktif</span></td></tr>
+          <tr><td>Fajar Nugroho &middot; #0932/RES</td><td>Tinggi</td><td>Polda Metro Jaya</td><td><span class="pill caught">Tertangkap</span></td></tr>
+          <tr><td>Ahmad Fauzi &middot; #0754/RES</td><td>Rendah</td><td>Polres Jaksel</td><td><span class="pill active">DPO Aktif</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>Peta Lokasi Deteksi</h3></div>
+      <div class="card-body">
+        <div class="map-box">
+          <div class="map-pin" style="top:40%; left:35%;"></div>
+          <div class="map-pin" style="top:65%; left:60%;"></div>
+          <div class="map-pin" style="top:25%; left:70%;"></div>
+          Peta wilayah Jabodetabek
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>Laporan Masyarakat Terbaru</h3><a href="#" class="btn outline" style="padding:6px 12px;">Verifikasi semua</a></div>
+    <div class="card-body">
+      <div class="report-row">
+        <div class="report-thumb">&#128247;</div>
+        <div style="flex:1;"><div class="report-title">Laporan #RPT-00231 — Match ditemukan (87%)</div><div class="report-meta">Terminal Kampung Rambutan &middot; dikirim 12 menit lalu &middot; Anonim</div></div>
+        <span class="pill pending">Menunggu Verifikasi</span>
+      </div>
+      <div class="report-row">
+        <div class="report-thumb">&#128247;</div>
+        <div style="flex:1;"><div class="report-title">Laporan #RPT-00229 — Tidak ada match</div><div class="report-meta">Pasar Minggu &middot; dikirim 1 jam lalu &middot; Budi Santoso</div></div>
+        <span class="pill pending">Menunggu Verifikasi</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.topnav a').forEach(function(a){
+    a.addEventListener('click', function(e){
+      e.preventDefault();
+      document.querySelectorAll('.topnav a').forEach(function(x){x.classList.remove('active');});
+      a.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

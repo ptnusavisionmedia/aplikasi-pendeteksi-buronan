@@ -1,0 +1,48 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: buronan
+      POSTGRES_PASSWORD: buronan_dev_password
+      POSTGRES_DB: buronan
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  # MinIO's Docker Hub / quay.io images now require a login (pull access denied for anonymous
+  # pulls as of late 2024/2025). For local dev we swap in Adobe's S3Mock — a permissive,
+  # S3-API-compatible test double that still works with the `minio` SDK client unchanged.
+  # Production should point MINIO_* env vars at a real self-hosted MinIO (installed from
+  # https://min.io/download, not Docker Hub) or a managed S3-compatible bucket.
+  minio:
+    image: adobe/s3mock:latest
+    restart: unless-stopped
+    environment:
+      initialBuckets: evidence
+    ports:
+      - "9000:9090"
+      - "9001:9191"
+
+volumes:
+  postgres_data:
+  qdrant_data:
+  redis_data:

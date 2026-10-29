@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design 5 — Minimalist Clean | Laporan Masyarakat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.14"></script>
+<script src="./tailwind-config.js"></script>
+<link rel="stylesheet" href="./tokens.css">
+</head>
+<body class="min-h-screen flex">
+
+<aside class="w-[220px] shrink-0 border-r border-line px-6 py-7 flex flex-col">
+  <div class="flex items-center gap-2 mb-10">
+    <i data-lucide="shield" class="w-5 h-5 text-accent"></i>
+    <span class="font-semibold text-[14px] tracking-tight">Sigap Buronan</span>
+  </div>
+  <nav class="flex flex-col gap-0.5 text-[13.5px]">
+    <a href="index.html" class="flex items-center gap-3 px-2.5 py-2 text-muted hover:text-ink">Overview</a>
+    <a href="buronan.html" class="flex items-center gap-3 px-2.5 py-2 text-muted hover:text-ink">Database Buronan</a>
+    <a href="deteksi.html" class="flex items-center gap-3 px-2.5 py-2 text-muted hover:text-ink">CCTV &amp; Deteksi</a>
+    <a href="laporan.html" class="flex items-center gap-3 px-2.5 py-2 text-ink font-medium border-l-2 border-accent -ml-px pl-[9px]">Laporan Masyarakat</a>
+  </nav>
+  <div class="mt-auto pt-6 border-t border-line text-[12px] text-muted">
+    <div class="font-medium text-ink">Bripka Andika</div>
+    Polres Jaksel &middot; Reserse
+  </div>
+</aside>
+
+<main class="flex-1 min-w-0">
+  <header class="h-16 border-b border-line flex items-center justify-between px-9">
+    <div class="text-[13px] text-muted">Cari buronan, kamera, kasus&hellip;</div>
+    <div class="flex items-center gap-5">
+      <i data-lucide="bell" class="text-muted w-[18px] h-[18px]"></i>
+      <div class="w-8 h-8 rounded-full bg-accent-soft text-accent-ink flex items-center justify-center text-[11px] font-semibold">BA</div>
+    </div>
+  </header>
+
+  <div class="px-9 py-8 max-w-[1040px]">
+    <h1 class="text-[21px] font-semibold tracking-tight mb-1">Laporan Masyarakat</h1>
+    <p class="text-muted text-[13px] mb-7">9 laporan menunggu verifikasi &middot; SLA 1 jam untuk confidence tinggi</p>
+
+    <div class="grid grid-cols-3 gap-0 hairline mb-8 divide-x divide-line">
+      <div class="px-6 py-5"><div class="text-[11.5px] text-muted mb-1">Menunggu verifikasi</div><div class="text-[26px] font-semibold tabular text-warn">9</div></div>
+      <div class="px-6 py-5"><div class="text-[11.5px] text-muted mb-1">Terverifikasi bulan ini</div><div class="text-[26px] font-semibold tabular">142</div></div>
+      <div class="px-6 py-5"><div class="text-[11.5px] text-muted mb-1">Rata-rata waktu verifikasi</div><div class="text-[26px] font-semibold tabular">46 mnt</div></div>
+    </div>
+
+    <div class="hairline overflow-hidden mb-8">
+      <table class="w-full text-[13px]">
+        <thead><tr class="text-left text-[11px] uppercase tracking-wide text-muted border-b border-line"><th class="px-5 py-3 font-medium">Laporan</th><th class="px-5 py-3 font-medium">Lokasi</th><th class="px-5 py-3 font-medium">Match</th><th class="px-5 py-3 font-medium">Pelapor</th><th class="px-5 py-3"></th></tr></thead>
+        <tbody class="divide-y divide-line">
+          <tr class="hover:bg-canvas">
+            <td class="px-5 py-3.5 font-medium tabular">#RPT-00231</td>
+            <td class="px-5 py-3.5 text-muted">Terminal Kp. Rambutan</td>
+            <td class="px-5 py-3.5 font-medium text-danger tabular">87%</td>
+            <td class="px-5 py-3.5 text-muted">Anonim</td>
+            <td class="px-5 py-3.5 text-right"><button class="text-[12.5px] font-medium text-accent">Verifikasi</button></td>
+          </tr>
+          <tr class="hover:bg-canvas">
+            <td class="px-5 py-3.5 font-medium tabular">#RPT-00229</td>
+            <td class="px-5 py-3.5 text-muted">Pasar Minggu</td>
+            <td class="px-5 py-3.5 font-medium text-muted">&mdash;</td>
+            <td class="px-5 py-3.5 text-muted">Budi Santoso</td>
+            <td class="px-5 py-3.5 text-right"><button class="text-[12.5px] font-medium text-accent">Verifikasi</button></td>
+          </tr>
+          <tr class="opacity-60">
+            <td class="px-5 py-3.5 font-medium tabular">#RPT-00225</td>
+            <td class="px-5 py-3.5 text-muted">Blok M &middot; sedang diproses sistem</td>
+            <td class="px-5 py-3.5 text-muted">Memproses&hellip;</td>
+            <td class="px-5 py-3.5 text-muted">Anonim</td>
+            <td class="px-5 py-3.5 text-right"><button disabled class="text-[12.5px] font-medium text-muted cursor-not-allowed">Verifikasi</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 class="text-[14px] font-semibold mb-4">Sudah Ditindaklanjuti</h2>
+    <div class="hairline flex flex-col items-center justify-center gap-2 py-10 text-center text-muted">
+      <i data-lucide="inbox" class="w-7 h-7"></i>
+      <div class="text-[13px] font-medium text-ink">Belum ada laporan selesai hari ini</div>
+      <div class="text-[12px]">Laporan yang sudah diverifikasi &amp; ditindaklanjuti akan muncul di sini</div>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

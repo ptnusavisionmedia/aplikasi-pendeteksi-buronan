@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design 4 — Bento | Laporan Masyarakat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.14"></script>
+<script src="./tailwind-config.js"></script>
+<link rel="stylesheet" href="./tokens.css">
+</head>
+<body class="min-h-screen flex">
+
+<aside class="w-[232px] shrink-0 border-r border-line bg-surface p-5 flex flex-col">
+  <div class="flex items-center gap-2.5 px-1 mb-8">
+    <div class="w-8 h-8 rounded-xl bg-primary flex items-center justify-center text-white"><i data-lucide="shield-alert" class="w-[18px] h-[18px]"></i></div>
+    <span class="font-extrabold text-[15px] tracking-tight">Sigap Buronan</span>
+  </div>
+  <nav class="flex flex-col gap-1 text-[13.5px]">
+    <a href="index.html" class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-muted hover:bg-canvas"><i data-lucide="layout-grid"></i>Overview</a>
+    <a href="buronan.html" class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-muted hover:bg-canvas"><i data-lucide="user-search"></i>Database Buronan</a>
+    <a href="deteksi.html" class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-muted hover:bg-canvas"><i data-lucide="camera"></i>CCTV &amp; Deteksi</a>
+    <a href="laporan.html" class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-primary-soft text-primary-ink font-semibold"><i data-lucide="flag"></i>Laporan Masyarakat</a>
+  </nav>
+  <div class="mt-auto pt-5 border-t border-line text-[12px] text-muted">
+    <div class="font-semibold text-ink">Bripka Andika</div>
+    Polres Jaksel &middot; Reserse
+  </div>
+</aside>
+
+<main class="flex-1 min-w-0">
+  <header class="h-16 border-b border-line bg-surface flex items-center justify-between px-7">
+    <div class="flex items-center gap-2 text-muted text-[13px] bg-canvas rounded-xl px-3 py-2 w-[320px]">
+      <i data-lucide="search" class="w-4 h-4"></i><span>Cari buronan, kamera, kasus...</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <button class="w-9 h-9 rounded-xl bg-canvas flex items-center justify-center text-muted hover:text-ink"><i data-lucide="bell"></i></button>
+      <div class="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center text-[12px] font-bold">BA</div>
+    </div>
+  </header>
+
+  <div class="p-7">
+    <h1 class="text-[22px] font-extrabold tracking-tight mb-1">Laporan Masyarakat</h1>
+    <p class="text-muted text-[13px] mb-6">9 laporan menunggu verifikasi &middot; SLA 1 jam untuk confidence tinggi</p>
+
+    <div class="grid grid-cols-3 gap-4 mb-5">
+      <div class="bento-cell flex items-center gap-3"><div class="w-10 h-10 rounded-xl bg-amber-soft text-amber flex items-center justify-center"><i data-lucide="hourglass"></i></div><div><div class="text-xl font-extrabold tabular">9</div><div class="text-[11.5px] text-muted">Menunggu verifikasi</div></div></div>
+      <div class="bento-cell flex items-center gap-3"><div class="w-10 h-10 rounded-xl bg-primary-soft text-primary-ink flex items-center justify-center"><i data-lucide="badge-check"></i></div><div><div class="text-xl font-extrabold tabular">142</div><div class="text-[11.5px] text-muted">Terverifikasi bulan ini</div></div></div>
+      <div class="bento-cell flex items-center gap-3"><div class="w-10 h-10 rounded-xl bg-coral-soft text-coral flex items-center justify-center"><i data-lucide="clock"></i></div><div><div class="text-xl font-extrabold tabular">46 mnt</div><div class="text-[11.5px] text-muted">Rata-rata waktu verifikasi</div></div></div>
+    </div>
+
+    <div class="bento-cell !p-0 overflow-hidden mb-6">
+      <table class="w-full text-[13px]">
+        <thead><tr class="text-left text-[11px] uppercase tracking-wide text-muted border-b border-line"><th class="px-5 py-3 font-semibold">Laporan</th><th class="px-5 py-3 font-semibold">Lokasi</th><th class="px-5 py-3 font-semibold">Match</th><th class="px-5 py-3 font-semibold">Pelapor</th><th class="px-5 py-3"></th></tr></thead>
+        <tbody class="divide-y divide-line">
+          <tr class="hover:bg-canvas">
+            <td class="px-5 py-3.5 font-semibold tabular">#RPT-00231</td>
+            <td class="px-5 py-3.5 text-muted">Terminal Kp. Rambutan</td>
+            <td class="px-5 py-3.5 font-semibold text-coral">87%</td>
+            <td class="px-5 py-3.5 text-muted">Anonim</td>
+            <td class="px-5 py-3.5 text-right"><button class="text-[12.5px] font-semibold text-primary hover:underline">Verifikasi</button></td>
+          </tr>
+          <tr class="hover:bg-canvas">
+            <td class="px-5 py-3.5 font-semibold tabular">#RPT-00229</td>
+            <td class="px-5 py-3.5 text-muted">Pasar Minggu</td>
+            <td class="px-5 py-3.5 font-semibold text-muted">—</td>
+            <td class="px-5 py-3.5 text-muted">Budi Santoso</td>
+            <td class="px-5 py-3.5 text-right"><button class="text-[12.5px] font-semibold text-primary hover:underline">Verifikasi</button></td>
+          </tr>
+          <tr class="hover:bg-canvas opacity-60">
+            <td class="px-5 py-3.5 font-semibold tabular">#RPT-00225</td>
+            <td class="px-5 py-3.5 text-muted">Blok M &middot; sedang diproses sistem</td>
+            <td class="px-5 py-3.5 text-muted">Memproses&hellip;</td>
+            <td class="px-5 py-3.5 text-muted">Anonim</td>
+            <td class="px-5 py-3.5 text-right"><button disabled class="text-[12.5px] font-semibold text-muted cursor-not-allowed">Verifikasi</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="font-bold text-[14px] mb-3">Sudah Ditindaklanjuti</div>
+    <div class="bento-cell flex flex-col items-center justify-center gap-2 py-10 text-center text-muted">
+      <i data-lucide="inbox" class="w-8 h-8"></i>
+      <div class="text-[13px] font-semibold text-ink">Belum ada laporan selesai hari ini</div>
+      <div class="text-[12px]">Laporan yang sudah diverifikasi &amp; ditindaklanjuti akan muncul di sini</div>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

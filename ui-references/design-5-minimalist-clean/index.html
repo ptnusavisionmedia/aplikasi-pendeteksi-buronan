@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design 5 — Minimalist Clean | Overview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.14"></script>
+<script src="./tailwind-config.js"></script>
+<link rel="stylesheet" href="./tokens.css">
+</head>
+<body class="min-h-screen flex">
+
+<aside class="w-[220px] shrink-0 border-r border-line px-6 py-7 flex flex-col">
+  <div class="flex items-center gap-2 mb-10">
+    <i data-lucide="shield" class="w-5 h-5 text-accent"></i>
+    <span class="font-semibold text-[14px] tracking-tight">Sigap Buronan</span>
+  </div>
+  <nav class="flex flex-col gap-0.5 text-[13.5px]">
+    <a href="index.html" class="flex items-center gap-3 px-2.5 py-2 text-ink font-medium border-l-2 border-accent -ml-px pl-[9px]">Overview</a>
+    <a href="buronan.html" class="flex items-center gap-3 px-2.5 py-2 text-muted hover:text-ink">Database Buronan</a>
+    <a href="deteksi.html" class="flex items-center gap-3 px-2.5 py-2 text-muted hover:text-ink">CCTV &amp; Deteksi</a>
+    <a href="laporan.html" class="flex items-center gap-3 px-2.5 py-2 text-muted hover:text-ink">Laporan Masyarakat</a>
+  </nav>
+  <div class="mt-auto pt-6 border-t border-line text-[12px] text-muted">
+    <div class="font-medium text-ink">Bripka Andika</div>
+    Polres Jaksel &middot; Reserse
+  </div>
+</aside>
+
+<main class="flex-1 min-w-0">
+  <header class="h-16 border-b border-line flex items-center justify-between px-9">
+    <div class="text-[13px] text-muted">Cari buronan, kamera, kasus&hellip;</div>
+    <div class="flex items-center gap-5">
+      <i data-lucide="bell" class="text-muted w-[18px] h-[18px]"></i>
+      <div class="w-8 h-8 rounded-full bg-accent-soft text-accent-ink flex items-center justify-center text-[11px] font-semibold">BA</div>
+    </div>
+  </header>
+
+  <div class="px-9 py-8 max-w-[1040px]">
+    <h1 class="text-[21px] font-semibold tracking-tight mb-1">Overview</h1>
+    <p class="text-muted text-[13px] mb-8">Ringkasan aktivitas deteksi hari ini, 29 Oktober 2026</p>
+
+    <div class="grid grid-cols-4 gap-0 hairline mb-9 divide-x divide-line">
+      <div class="px-6 py-5"><div class="text-[11.5px] text-muted mb-1">DPO Aktif</div><div class="text-[26px] font-semibold tabular">1.248</div></div>
+      <div class="px-6 py-5"><div class="text-[11.5px] text-muted mb-1">Deteksi Hari Ini</div><div class="text-[26px] font-semibold tabular text-accent">37</div></div>
+      <div class="px-6 py-5"><div class="text-[11.5px] text-muted mb-1">CCTV Online</div><div class="text-[26px] font-semibold tabular">1.790<span class="text-[13px] text-muted">/1.842</span></div></div>
+      <div class="px-6 py-5"><div class="text-[11.5px] text-muted mb-1">Laporan Menunggu</div><div class="text-[26px] font-semibold tabular text-warn">9</div></div>
+    </div>
+
+    <div class="grid grid-cols-[1.4fr_1fr] gap-8">
+      <div>
+        <div class="flex items-center justify-between mb-4"><h2 class="text-[14px] font-semibold">Tingkat Deteksi &middot; 7 Hari</h2><span class="text-[12px] text-muted">rata-rata 31/hari</span></div>
+        <div class="hairline px-6 py-6">
+          <div class="flex items-end gap-4 h-[140px]">
+            <div class="flex-1 flex flex-col items-center gap-2"><div class="w-full bg-accent-soft rounded-t-sm" style="height:52%"></div><span class="text-[11px] text-muted">Sen</span></div>
+            <div class="flex-1 flex flex-col items-center gap-2"><div class="w-full bg-accent-soft rounded-t-sm" style="height:68%"></div><span class="text-[11px] text-muted">Sel</span></div>
+            <div class="flex-1 flex flex-col items-center gap-2"><div class="w-full bg-accent-soft rounded-t-sm" style="height:40%"></div><span class="text-[11px] text-muted">Rab</span></div>
+            <div class="flex-1 flex flex-col items-center gap-2"><div class="w-full bg-accent rounded-t-sm" style="height:88%"></div><span class="text-[11px] text-ink font-medium">Kam</span></div>
+            <div class="flex-1 flex flex-col items-center gap-2"><div class="w-full bg-accent-soft rounded-t-sm" style="height:58%"></div><span class="text-[11px] text-muted">Jum</span></div>
+            <div class="flex-1 flex flex-col items-center gap-2"><div class="w-full bg-accent-soft rounded-t-sm" style="height:30%"></div><span class="text-[11px] text-muted">Sab</span></div>
+            <div class="flex-1 flex flex-col items-center gap-2"><div class="w-full bg-accent-soft rounded-t-sm" style="height:46%"></div><span class="text-[11px] text-muted">Min</span></div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between mb-4 mt-8"><h2 class="text-[14px] font-semibold">Deteksi Terbaru</h2><a href="deteksi.html" class="text-[12px] text-accent font-medium">Lihat semua</a></div>
+        <div class="hairline divide-y divide-line">
+          <a href="buronan-detail.html" class="flex items-center gap-4 px-5 py-3.5 hover:bg-canvas">
+            <i data-lucide="scan-face" class="text-danger w-[18px] h-[18px]"></i>
+            <div class="flex-1 min-w-0"><div class="text-[13px] font-medium">Match &mdash; DPO #2291 &middot; Rangga Pratama</div><div class="text-[11.5px] text-muted">Blok M Plaza &middot; 2 menit lalu</div></div>
+            <span class="text-[12px] font-semibold text-danger tabular">92%</span>
+          </a>
+          <a href="buronan-detail.html" class="flex items-center gap-4 px-5 py-3.5 hover:bg-canvas">
+            <i data-lucide="scan-face" class="text-warn w-[18px] h-[18px]"></i>
+            <div class="flex-1 min-w-0"><div class="text-[13px] font-medium">Match &mdash; DPO #1187 &middot; Yusuf Maulana</div><div class="text-[11.5px] text-muted">Pasar Santa &middot; 18 menit lalu</div></div>
+            <span class="text-[12px] font-semibold text-warn tabular">78%</span>
+          </a>
+          <a href="buronan-detail.html" class="flex items-center gap-4 px-5 py-3.5 hover:bg-canvas">
+            <i data-lucide="scan-face" class="text-muted w-[18px] h-[18px]"></i>
+            <div class="flex-1 min-w-0"><div class="text-[13px] font-medium">Low-confidence log</div><div class="text-[11.5px] text-muted">Stasiun MRT &middot; 41 menit lalu</div></div>
+            <span class="text-[12px] font-semibold text-muted tabular">63%</span>
+          </a>
+        </div>
+      </div>
+
+      <div>
+        <h2 class="text-[14px] font-semibold mb-4">Eskalasi Pending</h2>
+        <div class="hairline px-5 py-5 mb-6">
+          <div class="text-[30px] font-semibold tabular text-danger mb-1">4</div>
+          <div class="text-[12px] text-muted">menunggu tindak lanjut kepolisian</div>
+        </div>
+        <h2 class="text-[14px] font-semibold mb-4">Akurasi Sistem</h2>
+        <div class="hairline px-5 py-5">
+          <div class="text-[30px] font-semibold tabular text-ok mb-1">96.4%</div>
+          <div class="text-[12px] text-muted">precision 30 hari terakhir</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

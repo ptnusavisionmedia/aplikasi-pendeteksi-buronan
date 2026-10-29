@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design 3 — Modern SaaS | Website</title>
+<style>
+  :root{
+    --bg:#f8fafc; --surface:#ffffff; --border:#ebeef3; --text:#0f172a; --muted:#64748b;
+    --indigo:#4f46e5; --teal:#0d9488; --red:#ef4444; --amber:#f59e0b; --green:#10b981; --radius:16px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif; display:flex; min-height:100vh;}
+
+  aside{width:224px; background:var(--surface); border-right:1px solid var(--border); flex-shrink:0; padding:20px 16px;}
+  .brand{display:flex; align-items:center; gap:10px; font-weight:800; font-size:15px; margin-bottom:26px; padding:0 6px;}
+  .brand .mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--indigo),var(--teal)); }
+  .nav-item{display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; color:var(--muted); font-size:13.5px; margin-bottom:3px; cursor:pointer;}
+  .nav-item:hover{background:#f1f3fa;}
+  .nav-item.active{background:#eef0ff; color:var(--indigo); font-weight:700;}
+  .nav-icon{width:18px; text-align:center;}
+  .side-footer{margin-top:20px; padding:12px; border-radius:12px; background:#f6f7fb; font-size:11.5px; color:var(--muted);}
+
+  main{flex:1; min-width:0;}
+  header{height:66px; display:flex; align-items:center; justify-content:space-between; padding:0 28px; border-bottom:1px solid var(--border); background:var(--surface);}
+  .searchbar{display:flex; align-items:center; gap:8px; background:#f1f3fa; border-radius:12px; padding:9px 14px; width:360px; color:var(--muted); font-size:13px;}
+  .head-right{display:flex; align-items:center; gap:14px;}
+  .icon-btn{width:36px;height:36px;border-radius:10px;background:#f1f3fa;display:flex;align-items:center;justify-content:center;color:var(--muted);}
+  .avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--indigo),var(--teal));}
+
+  .content{padding:28px;}
+  .page-title{font-size:21px; font-weight:800; margin:0;}
+  .page-sub{color:var(--muted); font-size:13px; margin-top:4px; margin-bottom:22px;}
+
+  .stat-row{display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:22px;}
+  .stat-card{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px; box-shadow:0 1px 3px rgba(15,23,42,.04);}
+  .stat-top{display:flex; justify-content:space-between; align-items:flex-start;}
+  .stat-icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:15px;}
+  .stat-icon.i1{background:#eef0ff;color:var(--indigo);} .stat-icon.i2{background:#fde8e8;color:var(--red);}
+  .stat-icon.i3{background:#fef3dc;color:var(--amber);} .stat-icon.i4{background:#e6fbf4;color:var(--teal);}
+  .trend{font-size:11px; font-weight:700; padding:3px 7px; border-radius:20px;}
+  .trend.up{background:#e6fbf4; color:var(--green);}
+  .stat-value{font-size:25px; font-weight:800; margin-top:12px;}
+  .stat-label{color:var(--muted); font-size:12.5px; margin-top:2px;}
+  .bars{display:flex; align-items:flex-end; gap:3px; height:28px; margin-top:10px;}
+  .bars i{flex:1; background:#eef0ff; border-radius:2px;}
+  .bars i:nth-child(5){background:var(--indigo);}
+
+  .grid-2{display:grid; grid-template-columns:1.4fr 1fr; gap:18px;}
+  .card{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:0 1px 3px rgba(15,23,42,.04); overflow:hidden;}
+  .card-head{padding:16px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border);}
+  .card-head h3{margin:0; font-size:14.5px;}
+  .link{color:var(--indigo); font-size:12.5px; font-weight:700; text-decoration:none;}
+  .card-body{padding:18px 20px;}
+
+  .feed-item{display:flex; gap:12px; padding:12px 0; border-bottom:1px solid var(--border);}
+  .feed-item:last-child{border-bottom:none;}
+  .feed-dot{width:38px;height:38px;border-radius:50%;background:#f1f3fa;display:flex;align-items:center;justify-content:center;color:var(--muted); flex-shrink:0;}
+  .feed-title{font-size:13px; font-weight:700;}
+  .feed-meta{font-size:11.5px; color:var(--muted); margin-top:2px;}
+  .chip{font-size:10.5px; font-weight:700; padding:4px 9px; border-radius:20px; align-self:center; white-space:nowrap;}
+  .chip.high{background:#fde8e8; color:var(--red);}
+  .chip.mid{background:#fef3dc; color:var(--amber);}
+  .chip.ok{background:#e6fbf4; color:var(--teal);}
+
+  .cam-mini-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:10px;}
+  .cam-mini{aspect-ratio:16/10; border-radius:12px; background:#eef1f7; position:relative; display:flex; align-items:flex-end; overflow:hidden; border:1px solid var(--border);}
+  .cam-mini.match{border-color:var(--red);}
+  .cam-mini-label{width:100%; padding:7px 9px; font-size:10.5px; background:linear-gradient(transparent, rgba(15,23,42,.55)); color:#fff;}
+  .cam-badge{position:absolute; top:7px; left:7px; background:var(--red); color:#fff; font-size:9px; font-weight:800; padding:3px 6px; border-radius:6px;}
+</style>
+</head>
+<body>
+
+<aside>
+  <div class="brand"><div class="mark"></div>Buronan.ai</div>
+  <div class="nav-item active"><span class="nav-icon">&#8962;</span>Overview</div>
+  <div class="nav-item"><span class="nav-icon">&#9728;</span>Database Buronan</div>
+  <div class="nav-item"><span class="nav-icon">&#9737;</span>CCTV Saya</div>
+  <div class="nav-item"><span class="nav-icon">&#9888;</span>Deteksi</div>
+  <div class="nav-item"><span class="nav-icon">&#9742;</span>Eskalasi</div>
+  <div class="nav-item"><span class="nav-icon">&#9873;</span>Laporan</div>
+  <div class="side-footer">Pak Herman<br>Supervisor Keamanan &middot; Mall Blok M</div>
+</aside>
+
+<main>
+  <header>
+    <div class="searchbar">&#128269;&nbsp;&nbsp;Cari buronan, kamera...</div>
+    <div class="head-right"><div class="icon-btn">&#9993;</div><div class="icon-btn">&#9881;</div><div class="avatar"></div></div>
+  </header>
+
+  <div class="content">
+    <h1 class="page-title">Selamat datang, Herman &#128075;</h1>
+    <p class="page-sub">Berikut ringkasan keamanan area Anda hari ini</p>
+
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="stat-top"><div class="stat-icon i1">&#9737;</div><span class="trend up">+2</span></div>
+        <div class="stat-value">18/20</div><div class="stat-label">CCTV Online</div>
+        <div class="bars"><i style="height:40%"></i><i style="height:60%"></i><i style="height:35%"></i><i style="height:70%"></i><i style="height:90%"></i><i style="height:55%"></i><i style="height:65%"></i></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top"><div class="stat-icon i2">&#9888;</div><span class="trend up">+3</span></div>
+        <div class="stat-value">5</div><div class="stat-label">Deteksi Hari Ini</div>
+        <div class="bars"><i style="height:20%"></i><i style="height:30%"></i><i style="height:25%"></i><i style="height:50%"></i><i style="height:80%"></i><i style="height:40%"></i><i style="height:45%"></i></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top"><div class="stat-icon i3">&#9873;</div></div>
+        <div class="stat-value">2</div><div class="stat-label">Eskalasi Pending</div>
+        <div class="bars"><i style="height:10%"></i><i style="height:15%"></i><i style="height:10%"></i><i style="height:20%"></i><i style="height:30%"></i><i style="height:15%"></i><i style="height:12%"></i></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top"><div class="stat-icon i4">&#9989;</div></div>
+        <div class="stat-value">99.2%</div><div class="stat-label">Uptime Sistem</div>
+        <div class="bars"><i style="height:85%"></i><i style="height:88%"></i><i style="height:90%"></i><i style="height:92%"></i><i style="height:95%"></i><i style="height:93%"></i><i style="height:96%"></i></div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><h3>Feed Deteksi Terkini</h3><a class="link" href="#">Lihat semua</a></div>
+        <div class="card-body">
+          <div class="feed-item"><div class="feed-dot">&#9787;</div><div style="flex:1;"><div class="feed-title">Kemungkinan match — DPO #2291</div><div class="feed-meta">Lantai 2, Pintu Utara &middot; 4 menit lalu</div></div><span class="chip high">92%</span></div>
+          <div class="feed-item"><div class="feed-dot">&#9787;</div><div style="flex:1;"><div class="feed-title">Kemungkinan match — DPO #0754</div><div class="feed-meta">Area Parkir B2 &middot; 26 menit lalu</div></div><span class="chip mid">76%</span></div>
+          <div class="feed-item"><div class="feed-dot">&#9989;</div><div style="flex:1;"><div class="feed-title">Eskalasi #ESC-0091 ditindaklanjuti polisi</div><div class="feed-meta">Lantai 2, Pintu Utara &middot; 1 jam lalu</div></div><span class="chip ok">Selesai</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h3>CCTV Area Anda</h3><a class="link" href="#">Kelola</a></div>
+        <div class="card-body">
+          <div class="cam-mini-grid">
+            <div class="cam-mini match"><span class="cam-badge">MATCH</span><div class="cam-mini-label">Pintu Utara</div></div>
+            <div class="cam-mini"><div class="cam-mini-label">Lobby Lift A</div></div>
+            <div class="cam-mini"><div class="cam-mini-label">Parkir B2</div></div>
+            <div class="cam-mini"><div class="cam-mini-label">Food Court</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+  document.querySelectorAll('.nav-item').forEach(function(el){
+    el.addEventListener('click', function(){
+      document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
+      el.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

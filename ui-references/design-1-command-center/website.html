@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design 1 — Command Center | Website</title>
+<style>
+  :root{
+    --bg:#0a0e14; --panel:#0f1620; --panel2:#111a26; --border:#1d2a3a;
+    --text:#d6e2ef; --muted:#6c7f93; --cyan:#22d3ee; --red:#ff4d6a;
+    --amber:#ffb020; --green:#3ddc97; --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    display:flex; min-height:100vh;
+  }
+  code,.mono{font-family:ui-monospace,SFMono-Regular,Consolas,"Courier New",monospace;}
+
+  /* Sidebar */
+  aside{
+    width:220px; background:var(--panel); border-right:1px solid var(--border);
+    display:flex; flex-direction:column; flex-shrink:0;
+  }
+  .brand{
+    padding:20px 18px; font-weight:700; letter-spacing:.08em; font-size:14px;
+    color:var(--cyan); border-bottom:1px solid var(--border);
+    display:flex; align-items:center; gap:10px;
+  }
+  .brand .dot{width:8px;height:8px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);}
+  nav{padding:14px 10px; flex:1;}
+  .nav-item{
+    display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:8px;
+    color:var(--muted); font-size:13.5px; cursor:pointer; margin-bottom:2px;
+  }
+  .nav-item:hover{background:var(--panel2); color:var(--text);}
+  .nav-item.active{background:#102030; color:var(--cyan); border:1px solid #1a3345;}
+  .nav-icon{width:18px;text-align:center;font-size:14px;}
+  .sidebar-foot{padding:14px 18px; border-top:1px solid var(--border); font-size:11px; color:var(--muted);}
+
+  /* Main */
+  main{flex:1; min-width:0; display:flex; flex-direction:column;}
+  header{
+    height:58px; border-bottom:1px solid var(--border); display:flex; align-items:center;
+    justify-content:space-between; padding:0 24px; background:var(--panel);
+  }
+  .search{
+    background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:7px 12px;
+    color:var(--muted); font-size:12.5px; width:320px;
+  }
+  .status-pill{
+    display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--green);
+    border:1px solid #163; padding:5px 10px; border-radius:20px; background:#0c1812;
+  }
+  .status-pill .dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);}
+  .user{display:flex;align-items:center;gap:10px;}
+  .avatar{width:30px;height:30px;border-radius:50%;background:#1a2a3a;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--cyan);border:1px solid var(--border);}
+
+  .content{padding:22px 26px; overflow-y:auto;}
+  .page-title{font-size:18px; font-weight:700; margin:0 0 2px;}
+  .page-sub{color:var(--muted); font-size:12.5px; margin:0 0 20px;}
+
+  .stat-row{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:22px;}
+  .stat-card{
+    background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+    padding:16px 18px; position:relative; overflow:hidden;
+  }
+  .stat-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;}
+  .stat-card.c1::before{background:var(--cyan);}
+  .stat-card.c2::before{background:var(--red);}
+  .stat-card.c3::before{background:var(--amber);}
+  .stat-card.c4::before{background:var(--green);}
+  .stat-label{color:var(--muted); font-size:11.5px; text-transform:uppercase; letter-spacing:.05em;}
+  .stat-value{font-size:26px; font-weight:700; margin-top:6px;}
+  .stat-value.mono{font-family:ui-monospace,monospace;}
+
+  .grid-2{display:grid; grid-template-columns:1.4fr 1fr; gap:16px;}
+  .panel{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:16px 18px;}
+  .panel h3{margin:0 0 14px; font-size:13.5px; color:var(--text); display:flex; justify-content:space-between; align-items:center;}
+  .panel h3 span.sub{color:var(--muted); font-size:11px; font-weight:400;}
+
+  .cam-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px;}
+  .cam{
+    background:#060a0f; border:1px solid var(--border); border-radius:8px; aspect-ratio:4/3;
+    position:relative; overflow:hidden; display:flex; align-items:flex-end;
+  }
+  .cam::after{
+    content:""; position:absolute; inset:0;
+    background:repeating-linear-gradient(0deg, rgba(34,211,238,.035) 0px, rgba(34,211,238,.035) 1px, transparent 1px, transparent 3px);
+  }
+  .cam-label{position:relative; z-index:2; width:100%; display:flex; justify-content:space-between; align-items:center; padding:7px 8px; font-size:10.5px; background:linear-gradient(transparent, rgba(0,0,0,.7));}
+  .live{display:flex;align-items:center;gap:4px;color:var(--red);font-weight:700;letter-spacing:.04em;}
+  .live .dot{width:5px;height:5px;border-radius:50%;background:var(--red);animation:blink 1.4s infinite;}
+  @keyframes blink{50%{opacity:.25;}}
+  .cam.match{border-color:var(--red);box-shadow:0 0 0 1px var(--red), 0 0 16px rgba(255,77,106,.35);}
+  .match-badge{position:absolute; top:7px; left:7px; z-index:3; background:var(--red); color:#1a0206; font-size:9.5px; font-weight:700; padding:3px 6px; border-radius:4px;}
+
+  .det-list{display:flex; flex-direction:column; gap:10px;}
+  .det-item{display:flex; gap:10px; padding:10px; border:1px solid var(--border); border-radius:8px; background:var(--panel2);}
+  .det-thumb{width:42px;height:42px;border-radius:6px;background:#1a2634;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--muted);}
+  .det-info{flex:1; min-width:0;}
+  .det-name{font-size:13px; font-weight:600;}
+  .det-meta{font-size:11px; color:var(--muted); margin-top:2px;}
+  .conf{font-size:11px; font-weight:700; padding:3px 7px; border-radius:20px; white-space:nowrap; align-self:center;}
+  .conf.high{background:rgba(255,77,106,.15); color:var(--red); border:1px solid rgba(255,77,106,.4);}
+  .conf.mid{background:rgba(255,176,32,.15); color:var(--amber); border:1px solid rgba(255,176,32,.4);}
+
+  table{width:100%; border-collapse:collapse; font-size:12.5px;}
+  th{text-align:left; color:var(--muted); font-weight:500; padding:8px 10px; border-bottom:1px solid var(--border); font-size:11px; text-transform:uppercase; letter-spacing:.04em;}
+  td{padding:10px 10px; border-bottom:1px solid var(--border);}
+  tr:last-child td{border-bottom:none;}
+  .badge{font-size:10.5px; padding:3px 8px; border-radius:20px; font-weight:600;}
+  .badge.active{background:rgba(255,77,106,.14); color:var(--red); border:1px solid rgba(255,77,106,.35);}
+  .badge.caught{background:rgba(61,220,151,.14); color:var(--green); border:1px solid rgba(61,220,151,.35);}
+  .btn{background:var(--cyan); color:#02131a; border:none; padding:7px 13px; border-radius:7px; font-size:12px; font-weight:700; cursor:pointer;}
+  .btn.ghost{background:transparent; border:1px solid var(--border); color:var(--muted);}
+</style>
+</head>
+<body>
+
+<aside>
+  <div class="brand"><span class="dot"></span>SIGAP&nbsp;BURONAN</div>
+  <nav>
+    <div class="nav-item active"><span class="nav-icon">&#9641;</span>Dashboard</div>
+    <div class="nav-item"><span class="nav-icon">&#9728;</span>Database Buronan</div>
+    <div class="nav-item"><span class="nav-icon">&#9737;</span>CCTV Feeds</div>
+    <div class="nav-item"><span class="nav-icon">&#9888;</span>Deteksi</div>
+    <div class="nav-item"><span class="nav-icon">&#9993;</span>Notifikasi</div>
+    <div class="nav-item"><span class="nav-icon">&#9742;</span>Eskalasi</div>
+    <div class="nav-item"><span class="nav-icon">&#9873;</span>Laporan Masyarakat</div>
+  </nav>
+  <div class="sidebar-foot">Bripka Andika<br>Polres Jaksel &middot; Reserse</div>
+</aside>
+
+<main>
+  <header>
+    <input class="search" placeholder="Cari buronan, kamera, atau nomor kasus...">
+    <div style="display:flex; align-items:center; gap:14px;">
+      <div class="status-pill"><span class="dot"></span>SYSTEM ONLINE &middot; 1.842 CCTV</div>
+      <div class="user"><div class="avatar">BA</div></div>
+    </div>
+  </header>
+
+  <div class="content">
+    <h1 class="page-title">Command Center</h1>
+    <p class="page-sub">Pemantauan deteksi real-time &middot; Wilayah: Jakarta Selatan</p>
+
+    <div class="stat-row">
+      <div class="stat-card c1"><div class="stat-label">Buronan DPO Aktif</div><div class="stat-value mono">1.204</div></div>
+      <div class="stat-card c2"><div class="stat-label">Deteksi Hari Ini</div><div class="stat-value mono">37</div></div>
+      <div class="stat-card c3"><div class="stat-label">Laporan Menunggu</div><div class="stat-value mono">9</div></div>
+      <div class="stat-card c4"><div class="stat-label">CCTV Online</div><div class="stat-value mono">1.790/1.842</div></div>
+    </div>
+
+    <div class="grid-2" style="margin-bottom:16px;">
+      <div class="panel">
+        <h3>Live CCTV Grid <span class="sub">6 dari 1.842 feed</span></h3>
+        <div class="cam-grid">
+          <div class="cam match"><span class="match-badge">MATCH 92%</span><div class="cam-label"><span class="live"><span class="dot"></span>LIVE</span><span>Blok M Plaza</span></div></div>
+          <div class="cam"><div class="cam-label"><span class="live"><span class="dot"></span>LIVE</span><span>Stasiun MRT</span></div></div>
+          <div class="cam"><div class="cam-label"><span class="live"><span class="dot"></span>LIVE</span><span>Terminal Blok M</span></div></div>
+          <div class="cam"><div class="cam-label"><span class="live"><span class="dot"></span>LIVE</span><span>Pasar Santa</span></div></div>
+          <div class="cam"><div class="cam-label"><span class="live"><span class="dot"></span>LIVE</span><span>Halte TB Simatupang</span></div></div>
+          <div class="cam"><div class="cam-label"><span class="live"><span class="dot"></span>LIVE</span><span>Pos Polsek Kby Baru</span></div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Deteksi Terbaru</h3>
+        <div class="det-list">
+          <div class="det-item">
+            <div class="det-thumb">&#9787;</div>
+            <div class="det-info"><div class="det-name">Match — DPO #2291</div><div class="det-meta">Blok M Plaza &middot; 2 menit lalu</div></div>
+            <div class="conf high">92%</div>
+          </div>
+          <div class="det-item">
+            <div class="det-thumb">&#9787;</div>
+            <div class="det-info"><div class="det-name">Match — DPO #1187</div><div class="det-meta">Pasar Santa &middot; 18 menit lalu</div></div>
+            <div class="conf mid">78%</div>
+          </div>
+          <div class="det-item">
+            <div class="det-thumb">&#9787;</div>
+            <div class="det-info"><div class="det-name">Low-confidence log</div><div class="det-meta">Stasiun MRT &middot; 41 menit lalu</div></div>
+            <div class="conf mid">63%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Database Buronan (DPO) <span class="sub">menampilkan 4 dari 1.204</span></h3>
+      <table>
+        <thead><tr><th>Nama / No. Kasus</th><th>Tingkat Ancaman</th><th>Instansi Penerbit</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          <tr><td>Rangga Pratama &middot; <span class="mono">#2291/RES</span></td><td>Tinggi</td><td>Polres Jaksel</td><td><span class="badge active">DPO Aktif</span></td><td><button class="btn ghost">Detail</button></td></tr>
+          <tr><td>Dedi Kurniawan &middot; <span class="mono">#1187/RES</span></td><td>Sedang</td><td>Polres Jaktim</td><td><span class="badge active">DPO Aktif</span></td><td><button class="btn ghost">Detail</button></td></tr>
+          <tr><td>Fajar Nugroho &middot; <span class="mono">#0932/RES</span></td><td>Tinggi</td><td>Polda Metro Jaya</td><td><span class="badge caught">Tertangkap</span></td><td><button class="btn ghost">Detail</button></td></tr>
+          <tr><td>Ahmad Fauzi &middot; <span class="mono">#0754/RES</span></td><td>Rendah</td><td>Polres Jaksel</td><td><span class="badge active">DPO Aktif</span></td><td><button class="btn ghost">Detail</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script>
+  document.querySelectorAll('.nav-item').forEach(function(el){
+    el.addEventListener('click', function(){
+      document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
+      el.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,240 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  APARAT
+  KEAMANAN_SWASTA
+  INSTANSI_HUKUM
+  MASYARAKAT
+}
+
+enum BuronanStatus {
+  DPO_AKTIF
+  TERTANGKAP
+  DICABUT
+}
+
+enum DetectionStatus {
+  CONFIRMED
+  LOW_CONFIDENCE
+  MANUAL_CHECK
+}
+
+enum NotificationChannel {
+  PUSH
+  SMS
+  EMAIL
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+enum EscalationStatus {
+  PENDING
+  DITINDAKLANJUTI
+  SELESAI
+}
+
+enum ReportStatus {
+  MENUNGGU_VERIFIKASI
+  VALID
+  TIDAK_VALID
+  INVESTIGASI_LANJUTAN
+}
+
+model Instansi {
+  id               String   @id @default(uuid())
+  nama             String
+  jenis            String
+  wilayah          String
+  statusVerifikasi Boolean  @default(false)
+  createdAt        DateTime @default(now())
+
+  users              User[]
+  cctvFeeds          CCTVFeed[]
+  buronanDiterbitkan Buronan[]
+  escalationsTujuan  Escalation[]
+
+  @@map("instansi")
+}
+
+model User {
+  id               String   @id @default(uuid())
+  email            String   @unique
+  passwordHash     String
+  nama             String
+  role             Role
+  instansiId       String?
+  wilayahScope     String?
+  twoFactorSecret  String?
+  isVerified       Boolean  @default(false)
+  createdAt        DateTime @default(now())
+
+  instansi      Instansi?      @relation(fields: [instansiId], references: [id])
+  reports       Report[]
+  escalations   Escalation[]
+  auditLogs     AuditLog[]
+  notifications Notification[]
+  cctvFeeds     CCTVFeed[]
+
+  @@map("users")
+}
+
+model Buronan {
+  id                 String        @id @default(uuid())
+  nama               String
+  nik                String?
+  nomorKasus         String        @unique
+  tingkatAncaman     String
+  status             BuronanStatus @default(DPO_AKTIF)
+  instansiPenerbitId String
+  createdAt          DateTime      @default(now())
+
+  instansiPenerbit Instansi          @relation(fields: [instansiPenerbitId], references: [id])
+  fotos            FotoBuronan[]
+  detectionEvents  DetectionEvent[]
+
+  @@index([status])
+  @@map("buronan")
+}
+
+model FotoBuronan {
+  id            String  @id @default(uuid())
+  buronanId     String
+  urlFoto       String
+  qdrantPointId String?
+  isPrimary     Boolean @default(false)
+
+  buronan Buronan @relation(fields: [buronanId], references: [id])
+
+  @@map("foto_buronan")
+}
+
+model CCTVFeed {
+  id        String   @id @default(uuid())
+  nama      String
+  lokasi    String
+  urlStream String
+  ownerId   String
+  wilayah   String
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now())
+
+  owner           User             @relation(fields: [ownerId], references: [id])
+  instansi        Instansi?        @relation(fields: [instansiId], references: [id])
+  instansiId      String?
+  detectionEvents DetectionEvent[]
+
+  @@index([wilayah])
+  @@map("cctv_feeds")
+}
+
+model DetectionEvent {
+  id              String          @id @default(uuid())
+  cctvFeedId      String?
+  reportId        String?
+  buronanId       String?
+  confidenceScore Float
+  status          DetectionStatus
+  detectedAt      DateTime        @default(now())
+
+  cctvFeed      CCTVFeed?      @relation(fields: [cctvFeedId], references: [id])
+  report        Report?        @relation(fields: [reportId], references: [id])
+  buronan       Buronan?       @relation(fields: [buronanId], references: [id])
+  evidence      Evidence?
+  notifications Notification[]
+  escalations   Escalation[]
+
+  @@index([cctvFeedId, detectedAt])
+  @@index([buronanId])
+  @@map("detection_events")
+}
+
+model Evidence {
+  id               String   @id @default(uuid())
+  detectionEventId String   @unique
+  fileUrl          String
+  metadata         Json?
+  retentionUntil   DateTime
+  chainOfCustody   Json?
+  createdAt        DateTime @default(now())
+
+  detectionEvent DetectionEvent @relation(fields: [detectionEventId], references: [id])
+
+  @@map("evidence")
+}
+
+model Notification {
+  id               String              @id @default(uuid())
+  userId           String
+  detectionEventId String
+  channel          NotificationChannel
+  status           NotificationStatus  @default(PENDING)
+  sentAt           DateTime?
+  createdAt        DateTime            @default(now())
+
+  user           User           @relation(fields: [userId], references: [id])
+  detectionEvent DetectionEvent @relation(fields: [detectionEventId], references: [id])
+
+  @@map("notifications")
+}
+
+model Escalation {
+  id               String            @id @default(uuid())
+  detectionEventId String
+  dibuatOlehId     String
+  instansiTujuanId String
+  catatan          String?
+  status           EscalationStatus  @default(PENDING)
+  createdAt        DateTime          @default(now())
+
+  detectionEvent DetectionEvent @relation(fields: [detectionEventId], references: [id])
+  dibuatOleh     User           @relation(fields: [dibuatOlehId], references: [id])
+  instansiTujuan Instansi       @relation(fields: [instansiTujuanId], references: [id])
+
+  @@map("escalations")
+}
+
+model Report {
+  id          String       @id @default(uuid())
+  ticketId    String       @unique @default(cuid())
+  pelaporId   String?
+  fotoUrl     String
+  lokasi      String
+  deskripsi   String?
+  status      ReportStatus @default(MENUNGGU_VERIFIKASI)
+  verifiedById String?
+  verifiedAt  DateTime?
+  createdAt   DateTime     @default(now())
+
+  pelapor         User?            @relation(fields: [pelaporId], references: [id])
+  detectionEvents DetectionEvent[]
+
+  @@index([status])
+  @@map("reports")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  action     String
+  entityType String
+  entityId   String
+  detail     Json?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
