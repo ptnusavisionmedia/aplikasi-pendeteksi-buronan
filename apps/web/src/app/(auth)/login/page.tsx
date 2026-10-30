@@ -60,10 +60,7 @@ export default function LoginPage() {
         {loading ? "Memproses..." : "Masuk"}
       </PrimaryButton>
       <p className="text-[12.5px] text-muted text-center">
-        Belum punya akun?{" "}
-        <Link href="/register" className="font-semibold text-primary hover:underline">
-          Daftar
-        </Link>
+        Dashboard ini khusus petugas berwenang. Akun dibuat oleh operator — hubungi admin jika belum punya akun.
       </p>
     </form>
   );

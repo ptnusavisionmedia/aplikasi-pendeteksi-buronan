@@ -8,7 +8,6 @@ import { writeAuditLog } from "../services/audit-log";
 import {
   AuthError,
   authenticatePassword,
-  generateOtpSecret,
   issueJwt,
   registerUser,
   requiresTwoFactor,
@@ -23,28 +22,24 @@ const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
   nama: z.string().min(1),
-  role: z.enum(["APARAT", "KEAMANAN_SWASTA", "INSTANSI_HUKUM", "MASYARAKAT"]),
-  instansiId: z.string().uuid().optional(),
-  wilayahScope: z.string().optional(),
 });
 
+// Public self-registration always creates a MASYARAKAT account. Staff/admin
+// accounts (APARAT, KEAMANAN_SWASTA, INSTANSI_HUKUM, ADMIN) are provisioned
+// directly by the operator, not self-registered — see ACCOUNT.md.
 authRouter.post("/register", async (req, res) => {
   const parsed = registerSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
 
   try {
     const user = await registerUser(parsed.data);
-    if (requiresTwoFactor(user.role)) {
-      const secret = generateOtpSecret();
-      await prisma.user.update({ where: { id: user.id }, data: { twoFactorSecret: secret } });
-    }
     await writeAuditLog({ action: "REGISTER", entityType: "User", entityId: user.id });
     res.status(201).json({
       id: user.id,
       email: user.email,
       role: user.role,
       isVerified: user.isVerified,
-      message: user.isVerified ? "Registrasi berhasil" : "Registrasi berhasil, menunggu verifikasi admin",
+      message: "Registrasi berhasil",
     });
   } catch (err) {
     if (err instanceof AuthError) return res.status(err.status).json({ error: err.message });

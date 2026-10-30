@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
 import '../screens/auth/verify_otp_screen.dart';
+import '../screens/cctv_screen.dart';
 import '../screens/detection_detail_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/lapor_screen.dart';
@@ -34,6 +35,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
           GoRoute(path: '/lapor', builder: (context, state) => const LaporScreen()),
+          GoRoute(path: '/cctv', builder: (context, state) => const CctvScreen()),
           GoRoute(path: '/status', builder: (context, state) => const StatusScreen()),
           GoRoute(path: '/profil', builder: (context, state) => const ProfilScreen()),
         ],

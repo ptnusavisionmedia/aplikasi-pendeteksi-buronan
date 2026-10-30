@@ -4,13 +4,10 @@ import 'package:go_router/go_router.dart';
 import '../../core/api_client.dart';
 import '../../core/theme.dart';
 
-const _roleOptions = [
-  {'value': 'MASYARAKAT', 'label': 'Masyarakat Umum'},
-  {'value': 'APARAT', 'label': 'Aparat / Kepolisian'},
-  {'value': 'KEAMANAN_SWASTA', 'label': 'Petugas Keamanan Swasta'},
-  {'value': 'INSTANSI_HUKUM', 'label': 'Instansi Hukum'},
-];
-
+/// Public self-registration is Masyarakat-only — the mobile app is a
+/// read-only monitoring tool for the public. Staff/admin accounts (Aparat,
+/// Keamanan Swasta, Instansi Hukum, Admin) are provisioned directly by the
+/// operator, not self-registered here. See apps/api/prisma/seed.ts & ACCOUNT.md.
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
 
@@ -22,13 +19,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _namaController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _wilayahController = TextEditingController();
-  String _role = 'MASYARAKAT';
   String? _error;
   String? _success;
   bool _loading = false;
-
-  bool get _needsWilayah => _role != 'MASYARAKAT';
 
   Future<void> _submit() async {
     setState(() {
@@ -42,8 +35,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         'nama': _namaController.text.trim(),
         'email': _emailController.text.trim(),
         'password': _passwordController.text,
-        'role': _role,
-        if (_needsWilayah && _wilayahController.text.isNotEmpty) 'wilayahScope': _wilayahController.text.trim(),
       });
       setState(() => _success = response.data['message'] as String);
       await Future.delayed(const Duration(milliseconds: 1200));
@@ -66,7 +57,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Peran selain Masyarakat butuh verifikasi admin.',
+              const Text('Akun masyarakat untuk memantau status buronan & CCTV.',
                   style: TextStyle(color: AppColors.muted, fontSize: 12.5)),
               const SizedBox(height: 16),
               if (_error != null) ...[
@@ -100,22 +91,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 obscureText: true,
                 decoration: const InputDecoration(labelText: 'Password (min. 8 karakter)'),
               ),
-              const SizedBox(height: 14),
-              DropdownButtonFormField<String>(
-                initialValue: _role,
-                decoration: const InputDecoration(labelText: 'Peran'),
-                items: _roleOptions
-                    .map((r) => DropdownMenuItem(value: r['value'], child: Text(r['label']!)))
-                    .toList(),
-                onChanged: (value) => setState(() => _role = value ?? 'MASYARAKAT'),
-              ),
-              if (_needsWilayah) ...[
-                const SizedBox(height: 14),
-                TextField(
-                  controller: _wilayahController,
-                  decoration: const InputDecoration(labelText: 'Wilayah tugas', hintText: 'contoh: Jakarta Selatan'),
-                ),
-              ],
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,

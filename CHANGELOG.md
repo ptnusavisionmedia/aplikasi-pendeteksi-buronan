@@ -5,6 +5,35 @@ MAJOR.MINOR.PATCH — MINOR untuk fitur baru yang backward-compatible, PATCH unt
 Scope saat ini: `apps/api` (backend Express). `apps/web` dan `apps/mobile` belum diperbarui untuk
 mengkonsumsi perubahan v0.2.x — lihat "Known follow-ups" di bawah.
 
+## [Unreleased]
+
+Scope: `apps/mobile` (Flutter, build number ke `1.0.0+3`), `apps/web` (`0.2.0` → `0.3.0`), `apps/api`
+(`0.3.0` → `0.4.0`), root `0.3.0` → `0.4.0`.
+
+### Added
+- **Layar monitoring CCTV read-only di mobile.** Tab baru "CCTV" (`apps/mobile/lib/screens/cctv_screen.dart`,
+  route `/cctv`) menampilkan daftar kamera dari `GET /cctv-feeds` (badge status, nama, lokasi, wilayah,
+  tanggal terdaftar) via `cctvFeedsProvider` (Riverpod `FutureProvider.autoDispose`). Layar ini sengaja
+  tidak punya tombol tambah, edit, hapus, atau toggle status apa pun — mengelola feed CCTV (tambah/kurangi)
+  tetap eksklusif di web dashboard untuk admin, sesuai permintaan eksplisit pengguna. Model baru
+  `apps/mobile/lib/models/cctv_feed.dart` sengaja tidak menyertakan `urlStream`/`ownerId` karena mobile
+  tidak merender video dan tidak butuh metadata kepemilikan. Tidak ada perubahan backend — endpoint
+  `GET /cctv-feeds` sudah terbuka untuk semua role yang login (`requireAuth` saja, tanpa pembatasan role).
+  Lihat `vault/03-Decisions/2026-10-30 - Monitoring CCTV Read-Only di Mobile.md`.
+
+### Changed
+- **Registrasi publik sekarang Masyarakat-only di semua klien.** `apps/mobile/lib/screens/auth/register_screen.dart`
+  kehilangan dropdown "Peran" dan field "Wilayah tugas" — form hanya nama/email/password, selalu
+  mendaftar sebagai Masyarakat. Halaman registrasi publik di web (`apps/web/src/app/(auth)/register/page.tsx`)
+  **dihapus total**; dashboard web khusus petugas yang akunnya diprovisioning operator, bukan tempat
+  pendaftaran publik. `POST /auth/register` (`apps/api/src/routes/auth.ts`, `apps/api/src/services/auth.ts`)
+  tidak lagi menerima field `role` dari client sama sekali — selalu membuat akun `MASYARAKAT` dengan
+  `isVerified: true`, berlaku untuk semua klien (termasuk panggilan API langsung), menutup celah
+  privilege-escalation lewat body request. Akun petugas (Aparat/Keamanan Swasta/Instansi Hukum/Admin)
+  tetap diprovisioning lewat `apps/api/prisma/seed.ts` (lihat `ACCOUNT.md`), bukan lewat alur
+  self-register + approval admin seperti sebelumnya. Lihat
+  `vault/03-Decisions/2026-10-30 - Registrasi Publik Masyarakat-Only, Akun Petugas Lewat Provisioning Operator.md`.
+
 ## [0.3.0] - 2026-10-30
 
 Scope: `apps/web` (dashboard) & `apps/mobile` (Flutter). `apps/web` version dinaikkan ke `0.2.0`,

@@ -15,29 +15,25 @@ export class AuthError extends Error {
   }
 }
 
-export async function registerUser(params: {
-  email: string;
-  password: string;
-  nama: string;
-  role: "APARAT" | "KEAMANAN_SWASTA" | "INSTANSI_HUKUM" | "MASYARAKAT";
-  instansiId?: string;
-  wilayahScope?: string;
-}) {
+/**
+ * Public self-registration. Always creates a MASYARAKAT account — role is not
+ * a client input. Accounts for APARAT/KEAMANAN_SWASTA/INSTANSI_HUKUM/ADMIN are
+ * provisioned directly by the operator (apps/api/prisma/seed.ts, see
+ * ACCOUNT.md), never through this endpoint.
+ */
+export async function registerUser(params: { email: string; password: string; nama: string }) {
   const existing = await prisma.user.findUnique({ where: { email: params.email } });
   if (existing) throw new AuthError("Email sudah terdaftar", 409);
 
   const passwordHash = await bcrypt.hash(params.password, 12);
-  const requiresApproval = params.role !== "MASYARAKAT";
 
   const user = await prisma.user.create({
     data: {
       email: params.email,
       passwordHash,
       nama: params.nama,
-      role: params.role,
-      instansiId: params.instansiId,
-      wilayahScope: params.wilayahScope,
-      isVerified: !requiresApproval,
+      role: "MASYARAKAT",
+      isVerified: true,
     },
   });
 

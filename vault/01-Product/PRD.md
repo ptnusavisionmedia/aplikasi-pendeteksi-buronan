@@ -92,11 +92,24 @@ Lihat catatan lengkap: [[Persona - Bripka Andika]] dan [[Persona - Pak Herman]]
 
 ### Modul 1: Autentikasi & Manajemen Akun
 
-**FR-01: Registrasi Pengguna Instansi**
-- **Input:** Email instansi, password, nama, jenis instansi (Polri/Keamanan Swasta/Lembaga Hukum), dokumen verifikasi (opsional)
-- **Proses:** Validasi email unik & domain instansi (jika ada), hash password, status akun "pending verifikasi" untuk role non-masyarakat
-- **Output:** Akun terdaftar, email verifikasi terkirim, notifikasi ke admin untuk approval role aparat/instansi
-- **Aturan:** Password minimal 8 karakter; akun Aparat/Instansi Hukum wajib approval admin sebelum aktif; akun Masyarakat aktif langsung setelah verifikasi email
+**FR-01: Registrasi Mandiri (Publik, Masyarakat saja)**
+- **Input:** Nama, email, password. Tidak ada pilihan role — endpoint publik (`POST /auth/register`,
+  dipakai mobile & diuji lewat API langsung) selalu membuat akun `MASYARAKAT` dan mengabaikan field
+  `role` apa pun yang dikirim klien.
+- **Proses:** Validasi email unik, hash password, akun langsung `isVerified: true` (tidak ada status
+  pending untuk Masyarakat).
+- **Output:** Akun Masyarakat aktif langsung, bisa login tanpa 2FA.
+- **Aturan:** Password minimal 8 karakter. Lihat [[03-Decisions/2026-10-30 - Registrasi Publik Masyarakat-Only, Akun Petugas Lewat Provisioning Operator|keputusan terkait]] untuk alasan menghapus pilihan role & pending-approval dari alur registrasi publik.
+
+**FR-01b: Provisioning Akun Petugas (Aparat/Keamanan Swasta/Instansi Hukum/Admin)**
+- **Input:** Dijalankan operator lewat `apps/api/prisma/seed.ts` (lihat `ACCOUNT.md`) atau insert
+  langsung ke database — bukan lewat form publik manapun.
+- **Proses:** Operator menetapkan role, wilayah/instansi, dan status verifikasi saat pembuatan akun;
+  tidak melalui alur "daftar lalu menunggu approval admin".
+- **Output:** Akun petugas siap pakai (`isVerified: true`), 2FA otomatis untuk role Aparat/Instansi
+  Hukum (lihat FR-02).
+- **Aturan:** Tidak ada endpoint publik untuk membuat akun berperan privileged; dashboard web
+  (`apps/web`) tidak lagi punya halaman registrasi publik.
 
 **FR-02: Login & Autentikasi**
 - **Input:** Email, password, kode OTP (untuk role Aparat/Instansi)

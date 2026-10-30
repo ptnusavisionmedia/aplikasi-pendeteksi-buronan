@@ -11,6 +11,7 @@ class BottomNavShell extends StatelessWidget {
   static const _tabs = [
     {'path': '/home', 'icon': Icons.grid_view_rounded, 'label': 'Home'},
     {'path': '/lapor', 'icon': Icons.flag_outlined, 'label': 'Lapor'},
+    {'path': '/cctv', 'icon': Icons.videocam_outlined, 'label': 'CCTV'},
     {'path': '/status', 'icon': Icons.checklist_rounded, 'label': 'Status'},
     {'path': '/profil', 'icon': Icons.person_outline_rounded, 'label': 'Profil'},
   ];
