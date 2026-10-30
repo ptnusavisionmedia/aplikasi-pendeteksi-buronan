@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import clsx from "clsx";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -145,6 +145,18 @@ export default function CctvPage() {
       setFeedChecks((s) => ({ ...s, [feedId]: { loading: false, error: apiErrorMessage(err, "Gagal cek koneksi") } }));
     }
   }
+
+  // Cek koneksi tiap feed otomatis begitu daftar feed dimuat, lalu diulang tiap 30 detik, supaya
+  // status "Terhubung"/"Gagal terhubung" langsung terlihat tanpa pengguna klik "Cek Koneksi" manual.
+  useEffect(() => {
+    if (!feeds || feeds.length === 0) return;
+    feeds.forEach((feed) => onCheckFeed(feed.id));
+    const interval = setInterval(() => {
+      feeds.forEach((feed) => onCheckFeed(feed.id));
+    }, 30000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [feeds]);
 
   async function onManualCheck(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -321,11 +333,17 @@ export default function CctvPage() {
                     className="rounded-lg border border-line w-full aspect-video object-cover"
                   />
                 )}
+                {check?.loading && (
+                  <div className="text-[11.5px] font-semibold rounded-lg px-2.5 py-2 bg-canvas text-muted flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-muted animate-pulse" /> Mengecek koneksi...
+                  </div>
+                )}
                 {check && !check.loading && (
                   <div className={clsx(
-                    "text-[11.5px] font-semibold rounded-lg px-2.5 py-2",
+                    "text-[11.5px] font-semibold rounded-lg px-2.5 py-2 flex items-center gap-1.5",
                     check.result?.ok ? "bg-primary-soft text-primary-ink" : "bg-coral-soft text-coral"
                   )}>
+                    <span className={clsx("w-1.5 h-1.5 rounded-full shrink-0", check.result?.ok ? "bg-primary" : "bg-coral")} />
                     {check.result?.ok
                       ? `Terhubung${check.result.width ? ` · ${check.result.width}x${check.result.height}` : ""}${check.result.fps ? ` · ${Math.round(check.result.fps)}fps` : ""}`
                       : (check.result?.error ?? check.error ?? "Gagal terhubung")}

@@ -18,7 +18,7 @@ export default function NotifikasiPage() {
       <h1 className="text-[22px] font-extrabold tracking-tight mb-1">Notifikasi</h1>
       <p className="text-muted text-[13px] mb-6">{data?.length ?? 0} notifikasi untuk Anda</p>
 
-      <div className="flex flex-col gap-2 max-w-2xl">
+      <div className="flex flex-col gap-2">
         {isLoading && <p className="text-[13px] text-muted">Memuat...</p>}
         {!isLoading && data?.length === 0 && (
           <div className="bento-cell flex flex-col items-center justify-center py-10 text-muted">

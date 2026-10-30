@@ -51,14 +51,14 @@ export default function LoginPage() {
         <Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="nama@instansi.go.id" />
       </Field>
       <Field label="Password">
-        <div className="relative">
+        <div className="relative w-full">
           <Input
             type={showPassword ? "text" : "password"}
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
-            className="pr-10"
+            className="w-full pr-10"
           />
           <button
             type="button"
