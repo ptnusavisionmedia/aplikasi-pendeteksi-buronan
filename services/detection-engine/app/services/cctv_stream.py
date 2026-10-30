@@ -3,6 +3,7 @@
 import asyncio
 import base64
 import logging
+import threading
 import time
 
 import cv2
@@ -16,6 +17,7 @@ from app.services.storage import upload_snapshot
 logger = logging.getLogger("cctv_stream")
 
 _running_tasks: dict[str, asyncio.Task] = {}
+_grabbers: dict[str, "_FrameGrabber"] = {}
 
 # Latest face seen per feed, for the live bbox overlay (Mode Fokus) — independent of whether it
 # was confident enough to get written to the database. Cleared whenever a capture tick sees no
@@ -37,13 +39,19 @@ def get_latest_detection(feed_id: str) -> dict | None:
 async def start_feed(feed_id: str, rtsp_url: str) -> None:
     if feed_id in _running_tasks:
         return
-    _running_tasks[feed_id] = asyncio.create_task(_capture_loop(feed_id, rtsp_url))
+    grabber = _FrameGrabber(rtsp_url)
+    grabber.start()
+    _grabbers[feed_id] = grabber
+    _running_tasks[feed_id] = asyncio.create_task(_capture_loop(feed_id, grabber))
 
 
 async def stop_feed(feed_id: str) -> None:
     task = _running_tasks.pop(feed_id, None)
     if task:
         task.cancel()
+    grabber = _grabbers.pop(feed_id, None)
+    if grabber:
+        grabber.stop()
     _latest_detection.pop(feed_id, None)
 
 
@@ -94,24 +102,73 @@ async def check_feed(rtsp_url: str, timeout: float = 12.0) -> dict:
         await loop.run_in_executor(None, capture.release)
 
 
-async def _capture_loop(feed_id: str, rtsp_url: str) -> None:
-    loop = asyncio.get_running_loop()
-    capture = await loop.run_in_executor(None, cv2.VideoCapture, rtsp_url)
+class _FrameGrabber:
+    """Continuously pulls frames from the RTSP stream on a dedicated thread, keeping
+    only the most recent one.
 
-    try:
-        while True:
-            ok, frame = await loop.run_in_executor(None, capture.read)
+    cv2.VideoCapture buffers decoded frames internally. If we only call .read() once
+    every cctv_capture_interval_seconds (the detection cadence), the buffer fills up
+    faster than we drain it and every read returns an increasingly stale, queued-up
+    frame instead of the live picture — the bbox overlay then looks "stuck" on
+    wherever the subject was several seconds ago. Draining continuously here and
+    handing _capture_loop only the latest frame keeps detection on the live frame.
+    """
+
+    def __init__(self, rtsp_url: str) -> None:
+        self._rtsp_url = rtsp_url
+        self._lock = threading.Lock()
+        self._latest_frame = None
+        self._stop_event = threading.Event()
+        self._thread = threading.Thread(target=self._run, daemon=True)
+
+    def start(self) -> None:
+        self._thread.start()
+
+    def stop(self) -> None:
+        self._stop_event.set()
+        self._thread.join(timeout=5)
+
+    def take_latest_frame(self):
+        """Returns the most recent frame and clears it, so a slow detection tick
+        never reprocesses the same frame twice."""
+        with self._lock:
+            frame, self._latest_frame = self._latest_frame, None
+        return frame
+
+    def _run(self) -> None:
+        capture: cv2.VideoCapture | None = None
+        while not self._stop_event.is_set():
+            if capture is None:
+                capture = cv2.VideoCapture(self._rtsp_url)
+                if not capture.isOpened():
+                    capture.release()
+                    capture = None
+                    self._stop_event.wait(settings.cctv_capture_interval_seconds)
+                    continue
+
+            ok, frame = capture.read()
             if not ok:
-                logger.warning("Feed %s: gagal membaca frame, mencoba lagi...", feed_id)
-                await asyncio.sleep(settings.cctv_capture_interval_seconds)
+                capture.release()
+                capture = None
+                self._stop_event.wait(1.0)
                 continue
 
-            await _process_frame(feed_id, frame)
+            with self._lock:
+                self._latest_frame = frame
+
+        if capture is not None:
+            capture.release()
+
+
+async def _capture_loop(feed_id: str, grabber: "_FrameGrabber") -> None:
+    try:
+        while True:
+            frame = grabber.take_latest_frame()
+            if frame is not None:
+                await _process_frame(feed_id, frame)
             await asyncio.sleep(settings.cctv_capture_interval_seconds)
     except asyncio.CancelledError:
         pass
-    finally:
-        await loop.run_in_executor(None, capture.release)
 
 
 async def _process_frame(feed_id: str, frame) -> None:

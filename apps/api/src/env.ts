@@ -21,6 +21,12 @@ export const env = {
     apiUrl: process.env.MEDIAMTX_API_URL ?? "http://localhost:9997",
     // Browser-facing: the URL the web dashboard's <video> player fetches HLS segments from.
     hlsBaseUrl: process.env.MEDIAMTX_HLS_BASE_URL ?? "http://localhost:8888",
+    // detection-engine-facing: MediaMTX's own RTSP server. The detection loop reads a feed's
+    // stream from here instead of connecting to the camera directly, so it shares MediaMTX's
+    // single upstream camera connection with the Mode Fokus viewer rather than opening a second,
+    // competing RTSP session on the camera (which some cameras, e.g. Tapo C200, can't sustain
+    // alongside the first — the second session ends up fed stale/corrupted frames).
+    rtspUrl: process.env.MEDIAMTX_RTSP_URL ?? "rtsp://localhost:8554",
   },
   minio: {
     endpoint: process.env.MINIO_ENDPOINT ?? "localhost",

@@ -33,3 +33,9 @@ export async function ensureLivePath(feedId: string, rtspUrl: string): Promise<v
 export function liveHlsUrl(feedId: string): string {
   return `${env.mediamtx.hlsBaseUrl}/${feedId}/index.m3u8`;
 }
+
+/** The feed's stream re-published by MediaMTX, for the detection-engine capture loop to read
+ * instead of connecting to the camera directly (see env.mediamtx.rtspUrl). */
+export function liveRtspUrl(feedId: string): string {
+  return `${env.mediamtx.rtspUrl}/${feedId}`;
+}

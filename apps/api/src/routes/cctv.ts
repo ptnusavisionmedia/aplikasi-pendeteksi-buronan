@@ -5,11 +5,21 @@ import { requireRole } from "../middleware/rbac";
 import { writeAuditLog } from "../services/audit-log";
 import { computeCameraAccuracy } from "../services/camera-accuracy";
 import { checkCctvFeed, getLiveDetection, startCctvFeed, stopCctvFeed } from "../services/detection-engine-client";
-import { ensureLivePath, liveHlsUrl } from "../services/mediamtx-client";
+import { ensureLivePath, liveHlsUrl, liveRtspUrl } from "../services/mediamtx-client";
 import { env } from "../env";
 import { prisma } from "../services/prisma";
 
 export const cctvRouter = Router();
+
+/**
+ * Arms the detection-engine capture loop for a feed via MediaMTX's re-published stream rather
+ * than the camera's own URL — see env.mediamtx.rtspUrl for why. Registers the MediaMTX path
+ * first so it exists for detection-engine to pull from.
+ */
+async function startDetection(feedId: string, urlStream: string): Promise<void> {
+  await ensureLivePath(feedId, urlStream);
+  await startCctvFeed(feedId, liveRtspUrl(feedId));
+}
 
 const createFeedSchema = z.object({
   nama: z.string().min(1),
@@ -40,7 +50,7 @@ cctvRouter.post(
       data: { ...parsed.data, ownerId: req.user!.id, instansiId: req.user!.instansiId },
     });
 
-    await startCctvFeed(feed.id, feed.urlStream).catch((err) => {
+    await startDetection(feed.id, feed.urlStream).catch((err) => {
       console.error(`Gagal memulai feed ${feed.id} di detection engine:`, err);
     });
 
@@ -92,7 +102,7 @@ cctvRouter.patch(
       // actually resume producing detections, not just flip the status badge in the dashboard.
       // Also covers editing the stream URL (e.g. correcting a camera's IP) on an already-active
       // feed — the running capture loop keeps pulling the old URL otherwise.
-      await startCctvFeed(feed.id, feed.urlStream).catch((err) => console.error(`Gagal start feed ${feed.id}:`, err));
+      await startDetection(feed.id, feed.urlStream).catch((err) => console.error(`Gagal start feed ${feed.id}:`, err));
     }
 
     await writeAuditLog({
