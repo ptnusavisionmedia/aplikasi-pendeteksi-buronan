@@ -1,6 +1,7 @@
 """Per-feed background capture loop: grab frame -> detect -> search Qdrant -> callback Express on match."""
 
 import asyncio
+import base64
 import logging
 
 import cv2
@@ -26,6 +27,53 @@ async def stop_feed(feed_id: str) -> None:
     task = _running_tasks.pop(feed_id, None)
     if task:
         task.cancel()
+
+
+async def check_feed(rtsp_url: str, timeout: float = 12.0) -> dict:
+    """One-shot connectivity test: open the stream, read a single frame, release.
+
+    Separate from the long-running capture loop in _capture_loop — this is meant
+    to answer "is this URL reachable right now" for the dashboard's "Cek Koneksi"
+    button, not to start detection. Bounded by `timeout` because cv2.VideoCapture
+    on a bad RTSP URL (wrong host, closed port) can hang far longer than a human
+    waiting on a button click should.
+    """
+    loop = asyncio.get_running_loop()
+
+    try:
+        capture = await asyncio.wait_for(
+            loop.run_in_executor(None, cv2.VideoCapture, rtsp_url), timeout=timeout
+        )
+    except asyncio.TimeoutError:
+        return {"ok": False, "error": "Timeout saat membuka stream"}
+
+    try:
+        opened = await loop.run_in_executor(None, capture.isOpened)
+        if not opened:
+            return {"ok": False, "error": "Stream tidak bisa dibuka — cek URL, kredensial, atau jaringan"}
+
+        try:
+            ok, frame = await asyncio.wait_for(loop.run_in_executor(None, capture.read), timeout=timeout)
+        except asyncio.TimeoutError:
+            return {"ok": False, "error": "Timeout saat membaca frame"}
+
+        if not ok or frame is None:
+            return {"ok": False, "error": "Stream terbuka tapi gagal membaca frame"}
+
+        height, width = frame.shape[:2]
+        fps = await loop.run_in_executor(None, capture.get, cv2.CAP_PROP_FPS)
+        encode_ok, jpeg = await loop.run_in_executor(None, cv2.imencode, ".jpg", frame)
+        snapshot_base64 = base64.b64encode(jpeg.tobytes()).decode("ascii") if encode_ok else None
+
+        return {
+            "ok": True,
+            "width": int(width),
+            "height": int(height),
+            "fps": float(fps) if fps else None,
+            "snapshotBase64": snapshot_base64,
+        }
+    finally:
+        await loop.run_in_executor(None, capture.release)
 
 
 async def _capture_loop(feed_id: str, rtsp_url: str) -> None:

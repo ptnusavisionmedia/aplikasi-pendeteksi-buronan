@@ -2,11 +2,13 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
+import clsx from "clsx";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Camera, Plus, Upload, ScanFace, X } from "lucide-react";
+import { Camera, Maximize2, Plus, Upload, ScanFace, Wifi, X } from "lucide-react";
 import { apiClient, apiErrorMessage } from "@/lib/api-client";
 import { useAuthStore } from "@/store/auth-store";
 import { Field, Input, Select, PrimaryButton, GhostButton, ErrorText, Badge } from "@/components/form";
+import { Modal } from "@/components/modal";
 import type { CctvFeed, DetectionEvent } from "@/lib/types";
 
 /**
@@ -72,6 +74,15 @@ const CAMERA_PRESETS = [
   },
 ] as const;
 
+interface FeedCheckResult {
+  ok: boolean;
+  width?: number;
+  height?: number;
+  fps?: number;
+  error?: string;
+  snapshotBase64?: string;
+}
+
 export default function CctvPage() {
   const user = useAuthStore((s) => s.user);
   const canManage = user?.role === "ADMIN" || user?.role === "APARAT" || user?.role === "KEAMANAN_SWASTA";
@@ -85,6 +96,7 @@ export default function CctvPage() {
   const [checkResult, setCheckResult] = useState<{ matched: boolean; candidates: { buronanId: string; confidence: number }[] } | null>(null);
   const [checkError, setCheckError] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
+  const [feedChecks, setFeedChecks] = useState<Record<string, { loading: boolean; result?: FeedCheckResult; error?: string }>>({});
 
   const { data: feeds } = useQuery({
     queryKey: ["cctv-feeds"],
@@ -102,9 +114,7 @@ export default function CctvPage() {
     setLoading(true);
     try {
       await apiClient.post("/cctv-feeds", form);
-      setForm({ nama: "", lokasi: "", urlStream: CAMERA_PRESETS[0].stream, wilayah: "" });
-      setPreset(CAMERA_PRESETS[0].id);
-      setShowForm(false);
+      closeForm();
       queryClient.invalidateQueries({ queryKey: ["cctv-feeds"] });
     } catch (err) {
       setError(apiErrorMessage(err, "Gagal menambahkan feed CCTV"));
@@ -113,10 +123,27 @@ export default function CctvPage() {
     }
   }
 
+  function closeForm() {
+    setShowForm(false);
+    setError(null);
+    setForm({ nama: "", lokasi: "", urlStream: CAMERA_PRESETS[0].stream, wilayah: "" });
+    setPreset(CAMERA_PRESETS[0].id);
+  }
+
   async function toggleFeedStatus(feed: CctvFeed) {
     const nextStatus = feed.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
     await apiClient.patch(`/cctv-feeds/${feed.id}`, { status: nextStatus });
     queryClient.invalidateQueries({ queryKey: ["cctv-feeds"] });
+  }
+
+  async function onCheckFeed(feedId: string) {
+    setFeedChecks((s) => ({ ...s, [feedId]: { loading: true } }));
+    try {
+      const { data } = await apiClient.post<FeedCheckResult>(`/cctv-feeds/${feedId}/check`);
+      setFeedChecks((s) => ({ ...s, [feedId]: { loading: false, result: data } }));
+    } catch (err) {
+      setFeedChecks((s) => ({ ...s, [feedId]: { loading: false, error: apiErrorMessage(err, "Gagal cek koneksi") } }));
+    }
   }
 
   async function onManualCheck(e: React.ChangeEvent<HTMLInputElement>) {
@@ -156,7 +183,7 @@ export default function CctvPage() {
               {checking ? "Memeriksa..." : "Periksa Manual"}
             </GhostButton>
             {canManage && (
-              <PrimaryButton type="button" onClick={() => setShowForm((v) => !v)}>
+              <PrimaryButton type="button" onClick={() => setShowForm(true)}>
                 <Plus className="w-4 h-4" /> Tambah Feed
               </PrimaryButton>
             )}
@@ -183,72 +210,151 @@ export default function CctvPage() {
         )}
 
         {showForm && canManage && (
-          <form onSubmit={onCreateFeed} className="bento-cell grid grid-cols-2 gap-4 mb-4">
-            <ErrorText>{error}</ErrorText>
-            <Field label="Nama kamera">
-              <Input required value={form.nama} onChange={(e) => setForm({ ...form, nama: e.target.value })} />
-            </Field>
-            <Field label="Lokasi">
-              <Input required value={form.lokasi} onChange={(e) => setForm({ ...form, lokasi: e.target.value })} />
-            </Field>
-            <Field label="Merk / tipe kamera">
-              <Select
-                value={preset}
-                onChange={(e) => {
-                  const next = e.target.value;
-                  setPreset(next);
-                  const tmpl = CAMERA_PRESETS.find((p) => p.id === next)?.stream ?? "";
-                  setForm((f) => ({ ...f, urlStream: tmpl }));
-                }}
-              >
-                {CAMERA_PRESETS.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.label}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field label="URL Stream (RTSP/ONVIF)">
-              <Input
-                required
-                value={form.urlStream}
-                onChange={(e) => setForm({ ...form, urlStream: e.target.value })}
-                placeholder="rtsp://..."
-              />
-            </Field>
-            <p className="col-span-2 text-[12px] text-muted bg-canvas rounded-xl px-3 py-2.5 -mt-1">
-              {CAMERA_PRESETS.find((p) => p.id === preset)?.help} Ganti <code>{"{user}"}</code>, <code>{"{pass}"}</code> dan{" "}
-              <code>{"{ip}"}</code> dengan kredensial &amp; IP kamera Anda.
-            </p>
-            <Field label="Wilayah">
-              <Input required value={form.wilayah} onChange={(e) => setForm({ ...form, wilayah: e.target.value })} />
-            </Field>
-            <div className="col-span-2">
-              <PrimaryButton type="submit" disabled={loading}>
-                {loading ? "Menyimpan..." : "Simpan Feed"}
-              </PrimaryButton>
-            </div>
-          </form>
+          <Modal
+            title="Tambah Feed CCTV"
+            description="Satu kamera, satu feed. Bisa diuji lewat “Cek Koneksi” setelah disimpan."
+            onClose={closeForm}
+          >
+            <form onSubmit={onCreateFeed} className="flex flex-col gap-5">
+              <ErrorText>{error}</ErrorText>
+
+              <div className="flex flex-col gap-4">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-muted">Identitas</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <Field label="Nama kamera">
+                    <Input
+                      autoFocus
+                      required
+                      value={form.nama}
+                      onChange={(e) => setForm({ ...form, nama: e.target.value })}
+                      placeholder="mis. Gerbang Depan"
+                    />
+                  </Field>
+                  <Field label="Lokasi">
+                    <Input
+                      required
+                      value={form.lokasi}
+                      onChange={(e) => setForm({ ...form, lokasi: e.target.value })}
+                      placeholder="mis. Blok M Plaza"
+                    />
+                  </Field>
+                </div>
+                <Field label="Wilayah">
+                  <Input
+                    required
+                    value={form.wilayah}
+                    onChange={(e) => setForm({ ...form, wilayah: e.target.value })}
+                    placeholder="mis. Jakarta Selatan"
+                  />
+                </Field>
+              </div>
+
+              <div className="h-px bg-line" />
+
+              <div className="flex flex-col gap-4">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-muted">Koneksi stream</p>
+                <Field label="Merk / tipe kamera">
+                  <Select
+                    value={preset}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setPreset(next);
+                      const tmpl = CAMERA_PRESETS.find((p) => p.id === next)?.stream ?? "";
+                      setForm((f) => ({ ...f, urlStream: tmpl }));
+                    }}
+                  >
+                    {CAMERA_PRESETS.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.label}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+                <Field label="URL Stream (RTSP/ONVIF)">
+                  <Input
+                    required
+                    value={form.urlStream}
+                    onChange={(e) => setForm({ ...form, urlStream: e.target.value })}
+                    placeholder="rtsp://..."
+                    className="font-mono text-[12.5px]"
+                  />
+                </Field>
+                <p className="text-[12px] text-muted bg-canvas rounded-xl px-3 py-2.5">
+                  {CAMERA_PRESETS.find((p) => p.id === preset)?.help} Ganti <code>{"{user}"}</code>, <code>{"{pass}"}</code> dan{" "}
+                  <code>{"{ip}"}</code> dengan kredensial &amp; IP kamera Anda.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-1">
+                <GhostButton type="button" onClick={closeForm} disabled={loading}>
+                  Batal
+                </GhostButton>
+                <PrimaryButton type="submit" disabled={loading}>
+                  {loading ? "Menyimpan..." : "Simpan Feed"}
+                </PrimaryButton>
+              </div>
+            </form>
+          </Modal>
         )}
 
-        <div className="grid grid-cols-3 gap-4">
-          {feeds?.map((feed) => (
-            <div key={feed.id} className="bento-cell flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <div className="icon-badge bg-canvas">
-                  <Camera className="w-[18px] h-[18px] text-ink" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+          {feeds?.map((feed) => {
+            const check = feedChecks[feed.id];
+            return (
+              <div key={feed.id} className="bento-cell flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <div className="icon-badge bg-canvas">
+                    <Camera className="w-[18px] h-[18px] text-ink" />
+                  </div>
+                  <Badge tone={feed.status === "ACTIVE" ? "primary" : "muted"}>{feed.status}</Badge>
                 </div>
-                <Badge tone={feed.status === "ACTIVE" ? "primary" : "muted"}>{feed.status}</Badge>
+                <div>
+                  <div className="font-bold text-[14px] leading-tight">{feed.nama}</div>
+                  <div className="text-[12px] text-muted mt-0.5">{feed.lokasi} &middot; {feed.wilayah}</div>
+                </div>
+
+                {check?.result?.ok && check.result.snapshotBase64 && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={`data:image/jpeg;base64,${check.result.snapshotBase64}`}
+                    alt={`Snapshot ${feed.nama}`}
+                    className="rounded-lg border border-line w-full aspect-video object-cover"
+                  />
+                )}
+                {check && !check.loading && (
+                  <div className={clsx(
+                    "text-[11.5px] font-semibold rounded-lg px-2.5 py-2",
+                    check.result?.ok ? "bg-primary-soft text-primary-ink" : "bg-coral-soft text-coral"
+                  )}>
+                    {check.result?.ok
+                      ? `Terhubung${check.result.width ? ` · ${check.result.width}x${check.result.height}` : ""}${check.result.fps ? ` · ${Math.round(check.result.fps)}fps` : ""}`
+                      : (check.result?.error ?? check.error ?? "Gagal terhubung")}
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 mt-auto pt-2 border-t border-line">
+                  <button
+                    onClick={() => onCheckFeed(feed.id)}
+                    disabled={check?.loading}
+                    className="flex items-center gap-1.5 text-[12px] font-semibold text-ink bg-canvas hover:bg-line transition-colors rounded-lg px-2.5 py-1.5 disabled:opacity-50"
+                  >
+                    <Wifi className="w-3.5 h-3.5" /> {check?.loading ? "Mengecek..." : "Cek Koneksi"}
+                  </button>
+                  <Link
+                    href={`/cctv/live/${feed.id}`}
+                    className="flex items-center gap-1.5 text-[12px] font-semibold text-ink bg-canvas hover:bg-line transition-colors rounded-lg px-2.5 py-1.5"
+                  >
+                    <Maximize2 className="w-3.5 h-3.5" /> Mode Fokus
+                  </Link>
+                  {canManage && (
+                    <button onClick={() => toggleFeedStatus(feed)} className="text-[12px] font-semibold text-primary hover:underline text-left ml-auto shrink-0">
+                      {feed.status === "ACTIVE" ? "Nonaktifkan" : "Aktifkan"}
+                    </button>
+                  )}
+                </div>
               </div>
-              <div className="font-bold text-[14px]">{feed.nama}</div>
-              <div className="text-[12px] text-muted">{feed.lokasi} &middot; {feed.wilayah}</div>
-              {canManage && (
-                <button onClick={() => toggleFeedStatus(feed)} className="text-[12px] font-semibold text-primary hover:underline text-left">
-                  {feed.status === "ACTIVE" ? "Nonaktifkan" : "Aktifkan"}
-                </button>
-              )}
-            </div>
-          ))}
+            );
+          })}
           {feeds?.length === 0 && <p className="text-[12.5px] text-muted col-span-3">Belum ada feed CCTV terdaftar.</p>}
         </div>
       </div>

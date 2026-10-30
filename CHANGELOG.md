@@ -7,10 +7,22 @@ mengkonsumsi perubahan v0.2.x — lihat "Known follow-ups" di bawah.
 
 ## [Unreleased]
 
-Scope: `apps/mobile` (Flutter, build number ke `1.0.0+3`), `apps/web` (`0.2.0` → `0.3.0`), `apps/api`
-(`0.3.0` → `0.4.0`), root `0.3.0` → `0.4.0`.
+Scope: `apps/mobile` (Flutter, build number ke `1.0.0+3`), `apps/web` (`0.3.0` → `0.4.0`), `apps/api`
+(`0.4.0` → `0.5.0`), root `0.4.0` → `0.5.0`.
 
 ### Added
+- **Cek Koneksi & Mode Fokus (live streaming) untuk CCTV.** Tombol "Cek Koneksi" di setiap kartu
+  feed (dashboard web) membuka stream RTSP sekali, baca 1 frame, dan menampilkan resolusi/fps/snapshot
+  atau pesan error — lewat endpoint baru `POST /internal/cctv-feeds/check` di detection-engine
+  (`services/detection-engine/app/services/cctv_stream.py`, `app/api/internal.py`) yang diteruskan
+  oleh `apps/api` (`POST /cctv-feeds/:id/check`). OpenCV dipaksa pakai RTSP over TCP
+  (`OPENCV_FFMPEG_CAPTURE_OPTIONS`) karena default UDP tidak reliable di lingkungan dev ini.
+  "Mode Fokus" (`apps/web/src/app/(dashboard)/cctv/live/[id]/page.tsx`) memutar live video penuh
+  lewat relay RTSP→HLS **MediaMTX** baru (`infra/docker-compose.yml`, `infra/mediamtx.yml`,
+  `apps/api/src/services/mediamtx-client.ts`, endpoint `POST /cctv-feeds/:id/live`) dan hls.js di
+  browser. Lihat `vault/03-Decisions/2026-10-30 - Cek Koneksi CCTV dan Live Streaming via MediaMTX.md`.
+- **Diagram tren deteksi di dashboard.** Bar chart SVG custom (`apps/web/src/components/detections-trend-chart.tsx`,
+  tanpa library tambahan) menampilkan jumlah deteksi 7 hari terakhir di halaman Overview.
 - **Layar monitoring CCTV read-only di mobile.** Tab baru "CCTV" (`apps/mobile/lib/screens/cctv_screen.dart`,
   route `/cctv`) menampilkan daftar kamera dari `GET /cctv-feeds` (badge status, nama, lokasi, wilayah,
   tanggal terdaftar) via `cctvFeedsProvider` (Riverpod `FutureProvider.autoDispose`). Layar ini sengaja
@@ -22,6 +34,14 @@ Scope: `apps/mobile` (Flutter, build number ke `1.0.0+3`), `apps/web` (`0.2.0` �
   Lihat `vault/03-Decisions/2026-10-30 - Monitoring CCTV Read-Only di Mobile.md`.
 
 ### Changed
+- **UX form "Tambah Feed" CCTV jadi modal fokus.** Sebelumnya form inline yang mendorong layout
+  kartu lain; sekarang overlay terpusat (`apps/web/src/components/modal.tsx`, dipakai pertama kali
+  di `cctv/page.tsx`) yang meredupkan background, auto-focus field pertama, dan punya tiga cara
+  konsisten untuk batal: tombol X, tombol "Batal", atau Escape/klik area luar. Field dikelompokkan
+  jadi "Identitas" dan "Koneksi Stream". Tombol "Kembali" di Mode Fokus (`cctv/live/[id]/page.tsx`)
+  diperjelas jadi pill button dan selalu mengarah ke `/cctv` (bukan `router.back()` yang bisa nyasar
+  tergantung riwayat browser); Escape juga menutupnya. Kartu feed CCTV dirapikan jadi grid responsif
+  dan tombol aksi bergaya chip.
 - **Registrasi publik sekarang Masyarakat-only di semua klien.** `apps/mobile/lib/screens/auth/register_screen.dart`
   kehilangan dropdown "Peran" dan field "Wilayah tugas" — form hanya nama/email/password, selalu
   mendaftar sebagai Masyarakat. Halaman registrasi publik di web (`apps/web/src/app/(auth)/register/page.tsx`)

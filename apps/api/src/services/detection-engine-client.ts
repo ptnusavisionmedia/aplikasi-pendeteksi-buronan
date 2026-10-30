@@ -45,3 +45,16 @@ export function startCctvFeed(feedId: string, rtspUrl: string) {
 export function stopCctvFeed(feedId: string) {
   return callDetectionEngine<{ ok: boolean }>(`/internal/cctv-feeds/${feedId}/stop`, {});
 }
+
+export interface CctvCheckResult {
+  ok: boolean;
+  width?: number;
+  height?: number;
+  fps?: number;
+  error?: string;
+  snapshotBase64?: string;
+}
+
+export function checkCctvFeed(rtspUrl: string) {
+  return callDetectionEngine<CctvCheckResult>("/internal/cctv-feeds/check", { rtspUrl });
+}

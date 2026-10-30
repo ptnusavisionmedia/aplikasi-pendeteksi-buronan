@@ -42,6 +42,21 @@ services:
       - "9000:9090"
       - "9001:9191"
 
+  # RTSP->HLS relay for the web dashboard's "Mode Fokus" live view. apps/api registers a
+  # path per CCTV feed via the API port (9997); the web <video> player fetches HLS segments
+  # from the HLS port (8888). sourceOnDemand (set per-path, not here) means MediaMTX only
+  # pulls from the camera while someone is actually watching.
+  mediamtx:
+    image: bluenviron/mediamtx:latest
+    restart: unless-stopped
+    volumes:
+      - ./mediamtx.yml:/mediamtx.yml:ro
+    ports:
+      - "8554:8554"
+      - "8888:8888"
+      - "8889:8889"
+      - "9997:9997"
+
 volumes:
   postgres_data:
   qdrant_data:

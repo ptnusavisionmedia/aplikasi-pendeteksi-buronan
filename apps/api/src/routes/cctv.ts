@@ -4,7 +4,8 @@ import { requireAuth } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { writeAuditLog } from "../services/audit-log";
 import { computeCameraAccuracy } from "../services/camera-accuracy";
-import { startCctvFeed, stopCctvFeed } from "../services/detection-engine-client";
+import { checkCctvFeed, startCctvFeed, stopCctvFeed } from "../services/detection-engine-client";
+import { ensureLivePath, liveHlsUrl } from "../services/mediamtx-client";
 import { env } from "../env";
 import { prisma } from "../services/prisma";
 
@@ -92,6 +93,34 @@ cctvRouter.patch(
     res.json(feed);
   }
 );
+
+/** One-shot connectivity test for the "Cek Koneksi" button — does not start the detection loop. */
+cctvRouter.post("/:id/check", requireAuth, async (req, res) => {
+  const feed = await prisma.cCTVFeed.findUnique({ where: { id: req.params.id } });
+  if (!feed) return res.status(404).json({ error: "CCTV feed tidak ditemukan" });
+
+  try {
+    const result = await checkCctvFeed(feed.urlStream);
+    res.json(result);
+  } catch (err) {
+    console.error(`Gagal cek koneksi feed ${feed.id}:`, err);
+    res.status(502).json({ ok: false, error: "Gagal menghubungi detection engine" });
+  }
+});
+
+/** Mode Fokus: ensure a MediaMTX path exists for this feed and return its HLS playback URL. */
+cctvRouter.post("/:id/live", requireAuth, async (req, res) => {
+  const feed = await prisma.cCTVFeed.findUnique({ where: { id: req.params.id } });
+  if (!feed) return res.status(404).json({ error: "CCTV feed tidak ditemukan" });
+
+  try {
+    await ensureLivePath(feed.id, feed.urlStream);
+    res.json({ hlsUrl: liveHlsUrl(feed.id) });
+  } catch (err) {
+    console.error(`Gagal menyiapkan live path feed ${feed.id}:`, err);
+    res.status(502).json({ error: "Gagal menyiapkan live stream" });
+  }
+});
 
 /** FR-22: rolling false-positive rate for this camera, derived from officer confirm/reject decisions. */
 cctvRouter.get("/:id/accuracy", requireAuth, async (req, res) => {

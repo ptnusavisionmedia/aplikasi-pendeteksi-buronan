@@ -6,6 +6,7 @@ import { UserX, ScanFace, Camera, Flag, TrendingUp, Siren } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import { useAuthStore } from "@/store/auth-store";
 import { Badge } from "@/components/form";
+import { DetectionsTrendChart } from "@/components/detections-trend-chart";
 import type { Buronan, CctvFeed, DetectionEvent, Report } from "@/lib/types";
 
 export default function DashboardPage() {
@@ -139,6 +140,16 @@ export default function DashboardPage() {
                 <span className="text-[11px] font-bold text-muted">{Math.round(d.confidenceScore * 100)}%</span>
               </div>
             ))}
+          </div>
+        </div>
+
+        <div className="bento-cell col-span-2 row-span-2 flex flex-col">
+          <div className="flex items-center justify-between mb-2">
+            <span className="font-bold text-[14px]">Tren Deteksi</span>
+            <span className="text-[11.5px] text-muted">7 hari terakhir</span>
+          </div>
+          <div className="flex-1 flex items-center">
+            <DetectionsTrendChart detections={detections} />
           </div>
         </div>
 

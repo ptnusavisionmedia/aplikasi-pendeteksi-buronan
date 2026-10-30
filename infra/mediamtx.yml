@@ -1,0 +1,26 @@
+# Dev-only MediaMTX config for the web dashboard's "Mode Fokus" live CCTV view.
+# Grants the anonymous "any" user every permission, including the config/API
+# actions apps/api needs to register a per-feed RTSP->HLS path at runtime
+# (POST /v3/config/paths/add/{feedId}). Fine for local dev behind
+# docker-compose; a production deployment should set real credentials here.
+api: yes
+apiAddress: :9997
+hls: yes
+hlsAddress: :8888
+webrtc: yes
+webrtcAddress: :8889
+
+authInternalUsers:
+  - user: any
+    pass:
+    ips: []
+    permissions:
+      - action: publish
+      - action: read
+      - action: playback
+      - action: api
+      - action: metrics
+      - action: pprof
+
+paths:
+  all_others:

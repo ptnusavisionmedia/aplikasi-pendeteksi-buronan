@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from app.config import settings
 from app.core.face import LowQualityFaceError, NoFaceDetectedError, extract_embedding
-from app.services.cctv_stream import start_feed, stop_feed
+from app.services.cctv_stream import check_feed, start_feed, stop_feed
 from app.services.qdrant_client import search_face, upsert_face
 
 
@@ -93,6 +93,25 @@ async def cctv_start(feed_id: str, body: CctvFeedStartRequest):
 async def cctv_stop(feed_id: str):
     await stop_feed(feed_id)
     return {"ok": True}
+
+
+class CctvCheckRequest(BaseModel):
+    rtspUrl: str
+
+
+class CctvCheckResponse(BaseModel):
+    ok: bool
+    width: int | None = None
+    height: int | None = None
+    fps: float | None = None
+    error: str | None = None
+    snapshotBase64: str | None = None
+
+
+@router.post("/cctv-feeds/check", response_model=CctvCheckResponse)
+async def cctv_check(body: CctvCheckRequest):
+    result = await check_feed(body.rtspUrl)
+    return CctvCheckResponse(**result)
 
 
 @router.get("/health")
