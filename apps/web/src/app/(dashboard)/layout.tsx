@@ -8,6 +8,7 @@ import {
   LayoutGrid,
   UserSearch,
   Camera,
+  ScanFace,
   Flag,
   Bell,
   Siren,
@@ -27,7 +28,8 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Overview", icon: LayoutGrid },
   { href: "/buronan", label: "Database Buronan", icon: UserSearch },
-  { href: "/cctv", label: "CCTV & Deteksi", icon: Camera },
+  { href: "/cctv", label: "CCTV", icon: Camera },
+  { href: "/deteksi", label: "Deteksi", icon: ScanFace },
   { href: "/notifikasi", label: "Notifikasi", icon: Bell },
   { href: "/eskalasi", label: "Eskalasi", icon: Siren, roles: ["ADMIN", "APARAT", "KEAMANAN_SWASTA"] },
   { href: "/laporan", label: "Laporan Masyarakat", icon: Flag, roles: ["ADMIN", "APARAT", "KEAMANAN_SWASTA"] },

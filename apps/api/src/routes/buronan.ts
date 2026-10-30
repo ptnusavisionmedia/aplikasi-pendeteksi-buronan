@@ -4,7 +4,7 @@ import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { writeAuditLog } from "../services/audit-log";
-import { enrollFace } from "../services/detection-engine-client";
+import { deleteEmbeddings, enrollFace } from "../services/detection-engine-client";
 import { isEnrollmentComplete, validatePhotoQuality } from "../services/photo-quality";
 import { prisma } from "../services/prisma";
 import { uploadEvidenceFile } from "../services/storage";
@@ -85,6 +85,43 @@ buronanRouter.get("/:id", requireAuth, async (req, res) => {
   if (!buronan) return res.status(404).json({ error: "Buronan tidak ditemukan" });
   res.json(buronan);
 });
+
+buronanRouter.delete(
+  "/:id",
+  requireAuth,
+  requireRole("ADMIN", "INSTANSI_HUKUM"),
+  async (req, res) => {
+    const buronan = await prisma.buronan.findUnique({
+      where: { id: req.params.id },
+      include: { fotos: true },
+    });
+    if (!buronan) return res.status(404).json({ error: "Buronan tidak ditemukan" });
+
+    // foto_buronan.buronanId is a required FK (ON DELETE RESTRICT), so the photos have to go
+    // first — in a transaction with the buronan itself, so a failure midway leaves nothing
+    // half-deleted. detection_events.buronanId is nullable (ON DELETE SET NULL), so past
+    // detection history stays intact, just no longer attributed to this buronan.
+    await prisma.$transaction([
+      prisma.fotoBuronan.deleteMany({ where: { buronanId: buronan.id } }),
+      prisma.buronan.delete({ where: { id: buronan.id } }),
+    ]);
+
+    const pointIds = buronan.fotos.map((f) => f.qdrantPointId).filter((id): id is string => !!id);
+    await deleteEmbeddings(pointIds).catch((err) =>
+      console.error(`Gagal menghapus embedding wajah untuk buronan ${buronan.id}:`, err)
+    );
+
+    await writeAuditLog({
+      userId: req.user!.id,
+      action: "DELETE_BURONAN",
+      entityType: "Buronan",
+      entityId: buronan.id,
+      detail: { nama: buronan.nama, nomorKasus: buronan.nomorKasus },
+    });
+
+    res.status(204).end();
+  }
+);
 
 const updateStatusSchema = z.object({
   status: z.enum(["DPO_AKTIF", "TERTANGKAP", "DICABUT"]),

@@ -1,9 +1,9 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { UserSearch, Upload, ScanFace } from "lucide-react";
+import { UserSearch, Upload, ScanFace, Trash2 } from "lucide-react";
 import { apiClient, apiErrorMessage } from "@/lib/api-client";
 import { useAuthStore } from "@/store/auth-store";
 import { Badge, Select, ErrorText, GhostButton } from "@/components/form";
@@ -17,12 +17,15 @@ const STATUS_TONE: Record<BuronanStatus, "coral" | "primary" | "muted"> = {
 
 export default function BuronanDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const canManage = user?.role === "ADMIN" || user?.role === "INSTANSI_HUKUM";
   const queryClient = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const { data: buronan } = useQuery({
     queryKey: ["buronan", id],
@@ -52,6 +55,26 @@ export default function BuronanDetailPage() {
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  async function onDelete() {
+    if (!buronan) return;
+    if (
+      !window.confirm(
+        `Hapus data buronan "${buronan.nama}" (Kasus #${buronan.nomorKasus})? Semua foto wajah & pendaftarannya ikut terhapus dan tidak bisa dikembalikan. Riwayat deteksi lama tetap tersimpan sebagai arsip.`
+      )
+    ) {
+      return;
+    }
+    setDeleteError(null);
+    setDeleting(true);
+    try {
+      await apiClient.delete(`/buronan/${id}`);
+      router.push("/buronan");
+    } catch (err) {
+      setDeleteError(apiErrorMessage(err, "Gagal menghapus data buronan"));
+      setDeleting(false);
     }
   }
 
@@ -95,6 +118,18 @@ export default function BuronanDetailPage() {
               <Upload className="w-4 h-4" />
               {uploading ? "Mengunggah & mendaftarkan wajah..." : "Tambah Foto Wajah"}
             </GhostButton>
+
+            <div className="h-px bg-line" />
+            <ErrorText>{deleteError}</ErrorText>
+            <button
+              type="button"
+              onClick={onDelete}
+              disabled={deleting}
+              className="flex items-center justify-center gap-2 text-coral bg-coral-soft text-[13.5px] font-semibold px-4 py-2.5 rounded-xl hover:bg-coral hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Trash2 className="w-4 h-4" />
+              {deleting ? "Menghapus..." : "Hapus Buronan"}
+            </button>
           </>
         )}
       </div>

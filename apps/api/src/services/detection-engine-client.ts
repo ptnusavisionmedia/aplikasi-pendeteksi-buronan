@@ -38,6 +38,11 @@ export function detectFace(params: { imageUrl: string }) {
   return callDetectionEngine<DetectResult>("/internal/detect", params);
 }
 
+export function deleteEmbeddings(pointIds: string[]) {
+  if (pointIds.length === 0) return Promise.resolve({ ok: true as const });
+  return callDetectionEngine<{ ok: boolean }>("/internal/embeddings/delete", { pointIds });
+}
+
 export function startCctvFeed(feedId: string, rtspUrl: string) {
   return callDetectionEngine<{ ok: boolean }>(`/internal/cctv-feeds/${feedId}/start`, { rtspUrl });
 }

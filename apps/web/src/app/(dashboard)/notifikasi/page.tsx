@@ -29,7 +29,7 @@ export default function NotifikasiPage() {
         {data?.map((n) => (
           <Link
             key={n.id}
-            href={n.detectionEvent ? `/cctv/${n.detectionEventId}` : "#"}
+            href={n.detectionEvent ? `/deteksi/${n.detectionEventId}` : "#"}
             className="bento-cell flex items-center gap-3 hover:border-primary transition-colors"
           >
             <div className="w-9 h-9 rounded-lg bg-canvas flex items-center justify-center text-muted">

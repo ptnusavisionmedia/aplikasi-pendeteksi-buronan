@@ -121,7 +121,7 @@ export default function DashboardPage() {
         <div className="bento-cell col-span-2 row-span-2 flex flex-col">
           <div className="flex items-center justify-between mb-3">
             <span className="font-bold text-[14px]">Deteksi Terbaru</span>
-            <Link href="/cctv" className="text-[12.5px] font-semibold text-primary hover:underline">
+            <Link href="/deteksi" className="text-[12.5px] font-semibold text-primary hover:underline">
               Lihat semua
             </Link>
           </div>

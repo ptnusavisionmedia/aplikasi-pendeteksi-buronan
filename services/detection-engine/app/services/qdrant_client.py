@@ -31,3 +31,11 @@ def search_face(embedding: list[float], limit: int = 5):
         limit=limit,
         with_payload=True,
     )
+
+
+def delete_points(point_ids: list[str]) -> None:
+    """Removes enrolled face vectors, e.g. when a Buronan record is deleted — otherwise a stale
+    vector would keep matching against a person no longer in the database."""
+    if not point_ids:
+        return
+    client.delete(collection_name=settings.qdrant_collection, points_selector=point_ids)

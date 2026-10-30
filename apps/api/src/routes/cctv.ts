@@ -107,6 +107,34 @@ cctvRouter.patch(
   }
 );
 
+cctvRouter.delete(
+  "/:id",
+  requireAuth,
+  requireRole("ADMIN", "APARAT", "KEAMANAN_SWASTA"),
+  async (req, res) => {
+    const feed = await prisma.cCTVFeed.findUnique({ where: { id: req.params.id } });
+    if (!feed) return res.status(404).json({ error: "CCTV feed tidak ditemukan" });
+
+    // Stop the detection-engine capture loop before deleting the row — otherwise the in-memory
+    // loop keeps running against a feed id that no longer exists in the database.
+    await stopCctvFeed(feed.id).catch((err) => console.error(`Gagal stop feed ${feed.id} sebelum hapus:`, err));
+
+    // detection_events.cctvFeedId is nullable (ON DELETE SET NULL), so past detection history
+    // for this camera stays intact, just no longer attributed to a live feed.
+    await prisma.cCTVFeed.delete({ where: { id: feed.id } });
+
+    await writeAuditLog({
+      userId: req.user!.id,
+      action: "DELETE_CCTV_FEED",
+      entityType: "CCTVFeed",
+      entityId: feed.id,
+      detail: { nama: feed.nama, lokasi: feed.lokasi },
+    });
+
+    res.status(204).end();
+  }
+);
+
 /** One-shot connectivity test for the "Cek Koneksi" button — does not start the detection loop. */
 cctvRouter.post("/:id/check", requireAuth, async (req, res) => {
   const feed = await prisma.cCTVFeed.findUnique({ where: { id: req.params.id } });

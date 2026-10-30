@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from app.config import settings
 from app.core.face import LowQualityFaceError, NoFaceDetectedError, extract_embedding
 from app.services.cctv_stream import check_feed, get_latest_detection, start_feed, stop_feed
-from app.services.qdrant_client import search_face, upsert_face
+from app.services.qdrant_client import delete_points, search_face, upsert_face
 
 
 def require_internal_api_key(x_internal_api_key: str = Header(...)) -> None:
@@ -47,6 +47,18 @@ async def enroll(body: EnrollRequest):
     point_id = str(uuid.uuid4())
     upsert_face(point_id, face.embedding.tolist(), body.buronanId)
     return EnrollResponse(qdrantPointId=point_id)
+
+
+class DeleteEmbeddingsRequest(BaseModel):
+    pointIds: list[str]
+
+
+@router.post("/embeddings/delete")
+async def delete_embeddings(body: DeleteEmbeddingsRequest):
+    """Called when a Buronan record is deleted, so its enrolled face vectors don't linger in
+    Qdrant and keep matching against someone no longer in the database."""
+    delete_points(body.pointIds)
+    return {"ok": True}
 
 
 class DetectRequest(BaseModel):
