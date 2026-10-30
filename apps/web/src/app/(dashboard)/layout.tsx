@@ -36,13 +36,17 @@ const NAV_ITEMS: NavItem[] = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, token, logout } = useAuthStore();
+  const { user, token, logout, hydrate, hydrated } = useAuthStore();
 
   useEffect(() => {
-    if (!token || !user) router.replace("/login");
-  }, [token, user, router]);
+    hydrate();
+  }, [hydrate]);
 
-  if (!token || !user) return null;
+  useEffect(() => {
+    if (hydrated && (!token || !user)) router.replace("/login");
+  }, [hydrated, token, user, router]);
+
+  if (!hydrated || !token || !user) return null;
 
   const visibleNav = NAV_ITEMS.filter((item) => !item.roles || item.roles.includes(user.role));
   const initials = user.nama

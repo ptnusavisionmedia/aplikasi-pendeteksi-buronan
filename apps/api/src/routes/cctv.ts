@@ -4,7 +4,7 @@ import { requireAuth } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { writeAuditLog } from "../services/audit-log";
 import { computeCameraAccuracy } from "../services/camera-accuracy";
-import { checkCctvFeed, startCctvFeed, stopCctvFeed } from "../services/detection-engine-client";
+import { checkCctvFeed, getLiveDetection, startCctvFeed, stopCctvFeed } from "../services/detection-engine-client";
 import { ensureLivePath, liveHlsUrl } from "../services/mediamtx-client";
 import { env } from "../env";
 import { prisma } from "../services/prisma";
@@ -80,6 +80,11 @@ cctvRouter.patch(
 
     if (parsed.data.status === "INACTIVE" || parsed.data.status === "OFFLINE") {
       await stopCctvFeed(feed.id).catch((err) => console.error(`Gagal stop feed ${feed.id}:`, err));
+    } else if (parsed.data.status === "ACTIVE") {
+      // Re-arm the detection-engine capture loop — it only lives in that process's memory, so a
+      // feed toggled off and back on (or re-activated after the engine restarted) needs this to
+      // actually resume producing detections, not just flip the status badge in the dashboard.
+      await startCctvFeed(feed.id, feed.urlStream).catch((err) => console.error(`Gagal start feed ${feed.id}:`, err));
     }
 
     await writeAuditLog({
@@ -119,6 +124,20 @@ cctvRouter.post("/:id/live", requireAuth, async (req, res) => {
   } catch (err) {
     console.error(`Gagal menyiapkan live path feed ${feed.id}:`, err);
     res.status(502).json({ error: "Gagal menyiapkan live stream" });
+  }
+});
+
+/** Mode Fokus: polled ~1x/sec to draw the live confidence bounding box over the video. */
+cctvRouter.get("/:id/live-detection", requireAuth, async (req, res) => {
+  const feed = await prisma.cCTVFeed.findUnique({ where: { id: req.params.id } });
+  if (!feed) return res.status(404).json({ error: "CCTV feed tidak ditemukan" });
+
+  try {
+    const result = await getLiveDetection(feed.id);
+    res.json(result);
+  } catch (err) {
+    console.error(`Gagal ambil live detection feed ${feed.id}:`, err);
+    res.status(502).json({ active: false });
   }
 });
 

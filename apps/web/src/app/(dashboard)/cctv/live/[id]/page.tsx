@@ -11,6 +11,23 @@ import type { CctvFeed } from "@/lib/types";
 
 type Status = "connecting" | "live" | "error";
 
+interface LiveDetection {
+  active: boolean;
+  bbox?: [number, number, number, number];
+  confidence?: number;
+  ageSeconds?: number;
+}
+
+const STALE_DETECTION_SECONDS = 8; // a couple missed capture ticks (~2s each) — camera loop likely stopped
+
+/** Green <50%, yellow 50-90%, red >=90% — the same cutoff that decides whether apps/api
+ * auto-captures the frame into the database (CONFIDENCE_THRESHOLD in detections.ts). */
+function tierFor(confidence: number): { color: string; soft: string; label: string } {
+  if (confidence >= 0.9) return { color: "var(--color-coral)", soft: "var(--color-coral-soft)", label: "COCOK TINGGI" };
+  if (confidence >= 0.5) return { color: "var(--color-amber)", soft: "var(--color-amber-soft)", label: "MIRIP" };
+  return { color: "var(--color-safe)", soft: "var(--color-safe-soft)", label: "RENDAH" };
+}
+
 /**
  * Mode Fokus: fullscreen live view of one camera. The browser can't play RTSP
  * directly, so apps/api registers a MediaMTX path on open (POST /cctv-feeds/:id/live)
@@ -23,6 +40,7 @@ export default function CctvFocusPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [status, setStatus] = useState<Status>("connecting");
   const [error, setError] = useState<string | null>(null);
+  const [detection, setDetection] = useState<LiveDetection | null>(null);
 
   const { data: feed } = useQuery({
     queryKey: ["cctv-feeds"],
@@ -91,6 +109,32 @@ export default function CctvFocusPage() {
     };
   }, [id]);
 
+  useEffect(() => {
+    if (status !== "live" || !id) return;
+    let cancelled = false;
+
+    async function poll() {
+      try {
+        const { data } = await apiClient.get<LiveDetection>(`/cctv-feeds/${id}/live-detection`);
+        if (cancelled) return;
+        const stale = data.active && (data.ageSeconds ?? 0) > STALE_DETECTION_SECONDS;
+        setDetection(stale ? { active: false } : data);
+      } catch {
+        if (!cancelled) setDetection(null);
+      }
+    }
+
+    poll();
+    const interval = setInterval(poll, 1200);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [id, status]);
+
+  const tier = detection?.active && detection.confidence !== undefined ? tierFor(detection.confidence) : null;
+  const bbox = detection?.active ? detection.bbox : undefined;
+
   return (
     <div className="fixed inset-0 bg-ink z-50 flex flex-col">
       <div className="flex items-center justify-between px-5 py-4">
@@ -108,7 +152,30 @@ export default function CctvFocusPage() {
       </div>
 
       <div className="flex-1 flex items-center justify-center relative px-4 pb-4">
-        <video ref={videoRef} controls autoPlay playsInline muted className="max-w-full max-h-full rounded-xl" />
+        <div className="relative inline-block max-w-full max-h-full">
+          <video ref={videoRef} controls autoPlay playsInline muted className="block max-w-full max-h-full rounded-xl" />
+
+          {bbox && tier && (
+            <div
+              className="absolute border-[3px] rounded-md pointer-events-none transition-[left,top,width,height] duration-300"
+              style={{
+                left: `${bbox[0] * 100}%`,
+                top: `${bbox[1] * 100}%`,
+                width: `${(bbox[2] - bbox[0]) * 100}%`,
+                height: `${(bbox[3] - bbox[1]) * 100}%`,
+                borderColor: tier.color,
+                boxShadow: `0 0 0 9999px transparent, 0 0 16px 0 ${tier.color}66`,
+              }}
+            >
+              <span
+                className="absolute -top-6 left-0 text-[10.5px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap"
+                style={{ background: tier.color, color: "#fff" }}
+              >
+                {Math.round((detection?.confidence ?? 0) * 100)}% &middot; {tier.label}
+              </span>
+            </div>
+          )}
+        </div>
 
         {status === "connecting" && (
           <div className="absolute inset-0 flex items-center justify-center text-white text-[13.5px]">
@@ -121,6 +188,23 @@ export default function CctvFocusPage() {
           </div>
         )}
       </div>
+
+      {status === "live" && (
+        <div className="flex items-center justify-center gap-5 px-5 pb-4 text-[11.5px] font-semibold text-white/70">
+          <LegendDot color="var(--color-safe)" label="< 50% — rendah" />
+          <LegendDot color="var(--color-amber)" label="50–90% — mirip" />
+          <LegendDot color="var(--color-coral)" label="≥ 90% — otomatis tersimpan ke database" />
+        </div>
+      )}
     </div>
+  );
+}
+
+function LegendDot({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="flex items-center gap-1.5">
+      <span className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
+      {label}
+    </span>
   );
 }

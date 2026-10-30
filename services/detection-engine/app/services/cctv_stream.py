@@ -3,6 +3,7 @@
 import asyncio
 import base64
 import logging
+import time
 
 import cv2
 import httpx
@@ -16,6 +17,22 @@ logger = logging.getLogger("cctv_stream")
 
 _running_tasks: dict[str, asyncio.Task] = {}
 
+# Latest face seen per feed, for the live bbox overlay (Mode Fokus) — independent of whether it
+# was confident enough to get written to the database. Cleared whenever a capture tick sees no
+# face, so the overlay disappears instead of showing a stale box.
+_latest_detection: dict[str, dict] = {}
+
+# Last time a given (feed, buronan) pair was reported to the webhook below match_threshold, so one
+# lingering face doesn't write a new LOW_CONFIDENCE/PENDING_CONFIRMATION row every capture tick.
+_last_reported_at: dict[tuple[str, str], float] = {}
+
+
+def get_latest_detection(feed_id: str) -> dict | None:
+    detection = _latest_detection.get(feed_id)
+    if detection is None:
+        return None
+    return {**detection, "age_seconds": time.time() - detection["seen_at"]}
+
 
 async def start_feed(feed_id: str, rtsp_url: str) -> None:
     if feed_id in _running_tasks:
@@ -27,6 +44,7 @@ async def stop_feed(feed_id: str) -> None:
     task = _running_tasks.pop(feed_id, None)
     if task:
         task.cancel()
+    _latest_detection.pop(feed_id, None)
 
 
 async def check_feed(rtsp_url: str, timeout: float = 12.0) -> dict:
@@ -102,19 +120,42 @@ async def _process_frame(feed_id: str, frame) -> None:
     if not ok:
         return
     jpeg_bytes = jpeg.tobytes()
+    frame_height, frame_width = frame.shape[:2]
 
     try:
-        embedding = await loop.run_in_executor(None, extract_embedding, jpeg_bytes)
+        face = await loop.run_in_executor(None, extract_embedding, jpeg_bytes)
     except (NoFaceDetectedError, LowQualityFaceError):
+        _latest_detection.pop(feed_id, None)
         return
 
-    results = await loop.run_in_executor(None, search_face, embedding.tolist(), 1)
-    if not results:
-        return
+    results = await loop.run_in_executor(None, search_face, face.embedding.tolist(), 1)
+    best = results[0] if results else None
+    score = best.score if best else 0.0
+    buronan_id = best.payload["buronan_id"] if best else None
 
-    best = results[0]
-    if best.score < settings.match_threshold:
-        return
+    x1, y1, x2, y2 = face.bbox
+    # Live overlay (Mode Fokus): every face gets a box, regardless of match confidence — the
+    # green/yellow/red tiering happens client-side purely from this score.
+    _latest_detection[feed_id] = {
+        "bbox": [x1 / frame_width, y1 / frame_height, x2 / frame_width, y2 / frame_height],
+        "confidence": float(score),
+        "buronan_id": buronan_id,
+        "seen_at": time.time(),
+    }
+
+    if best is None or score < settings.cctv_report_threshold:
+        return  # not similar enough to any buronan on file to be worth a database row
+
+    # A confirmed-tier match (>= apps/api's 0.9 cutoff) always reports immediately; anything
+    # between the report floor and that cutoff is throttled so one lingering face doesn't spam
+    # LOW_CONFIDENCE/PENDING_CONFIRMATION rows every single capture tick.
+    report_key = (feed_id, buronan_id)
+    now = time.time()
+    if score < settings.match_threshold:
+        last = _last_reported_at.get(report_key)
+        if last is not None and now - last < settings.cctv_report_cooldown_seconds:
+            return
+    _last_reported_at[report_key] = now
 
     snapshot_url = await loop.run_in_executor(None, upload_snapshot, jpeg_bytes)
 
@@ -124,8 +165,8 @@ async def _process_frame(feed_id: str, frame) -> None:
             headers={"X-Internal-Api-Key": settings.internal_api_key},
             json={
                 "cctvFeedId": feed_id,
-                "buronanId": best.payload["buronan_id"],
-                "confidence": best.score,
+                "buronanId": buronan_id,
+                "confidence": score,
                 "snapshotUrl": snapshot_url,
             },
             timeout=10.0,

@@ -3,16 +3,18 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { LogIn } from "lucide-react";
+import { LogIn, Eye, EyeOff } from "lucide-react";
 import { apiClient, apiErrorMessage } from "@/lib/api-client";
 import { useAuthStore } from "@/store/auth-store";
-import { Field, Input, PrimaryButton, ErrorText } from "@/components/form";
+import { Field, Input, PrimaryButton, ErrorText, Checkbox } from "@/components/form";
 
 export default function LoginPage() {
   const router = useRouter();
   const setSession = useAuthStore((s) => s.setSession);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -24,11 +26,12 @@ export default function LoginPage() {
       const { data } = await apiClient.post("/auth/login", { email, password });
       if (data.requiresOtp) {
         sessionStorage.setItem("pendingToken", data.pendingToken);
+        sessionStorage.setItem("pendingRememberMe", String(rememberMe));
         router.push("/login/verify-otp");
         return;
       }
       const me = await apiClient.get("/auth/me", { headers: { Authorization: `Bearer ${data.token}` } });
-      setSession(data.token, me.data);
+      setSession(data.token, me.data, rememberMe);
       router.push("/dashboard");
     } catch (err) {
       setError(apiErrorMessage(err, "Email atau password salah"));
@@ -48,9 +51,31 @@ export default function LoginPage() {
         <Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="nama@instansi.go.id" />
       </Field>
       <Field label="Password">
-        <Input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
+        <div className="relative">
+          <Input
+            type={showPassword ? "text" : "password"}
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            className="pr-10"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-ink transition-colors"
+            aria-label={showPassword ? "Sembunyikan password" : "Lihat password"}
+            tabIndex={-1}
+          >
+            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
+        </div>
       </Field>
-      <div className="flex justify-end -mt-2">
+      <div className="flex items-center justify-between -mt-2">
+        <label className="flex items-center gap-2 text-[12.5px] font-semibold text-muted cursor-pointer">
+          <Checkbox checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
+          Ingat saya
+        </label>
         <Link href="/forgot-password" className="text-[12.5px] font-semibold text-primary hover:underline">
           Lupa password?
         </Link>

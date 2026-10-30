@@ -1,5 +1,7 @@
 """Face detection + embedding extraction, backed by InsightFace (ArcFace)."""
 
+from typing import NamedTuple
+
 import cv2
 import numpy as np
 from insightface.app import FaceAnalysis
@@ -27,7 +29,16 @@ class LowQualityFaceError(Exception):
     pass
 
 
-def extract_embedding(image_bytes: bytes) -> np.ndarray:
+class FaceMatch(NamedTuple):
+    """Embedding plus the pixel bounding box it was detected at, so callers that only need
+    the vector (enroll/detect from a static photo) can ignore `.bbox`, while the live CCTV
+    loop can use it to draw the on-screen confidence box."""
+
+    embedding: np.ndarray
+    bbox: tuple[float, float, float, float]  # x1, y1, x2, y2 in source image pixels
+
+
+def extract_embedding(image_bytes: bytes) -> FaceMatch:
     """Detects the most prominent face in the image and returns its normalized embedding.
 
     Raises NoFaceDetectedError / LowQualityFaceError when the photo doesn't meet
@@ -48,4 +59,4 @@ def extract_embedding(image_bytes: bytes) -> np.ndarray:
         raise LowQualityFaceError("Resolusi wajah terlalu kecil, mohon unggah foto yang lebih jelas")
 
     embedding = face.normed_embedding.astype(np.float32)
-    return embedding
+    return FaceMatch(embedding=embedding, bbox=tuple(float(v) for v in face.bbox))

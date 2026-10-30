@@ -32,8 +32,10 @@ export default function VerifyOtpPage() {
     try {
       const { data } = await apiClient.post("/auth/login/verify-otp", { pendingToken, otp });
       const me = await apiClient.get("/auth/me", { headers: { Authorization: `Bearer ${data.token}` } });
-      setSession(data.token, me.data);
+      const rememberMe = sessionStorage.getItem("pendingRememberMe") !== "false";
+      setSession(data.token, me.data, rememberMe);
       sessionStorage.removeItem("pendingToken");
+      sessionStorage.removeItem("pendingRememberMe");
       router.push("/dashboard");
     } catch (err) {
       setError(apiErrorMessage(err, "Kode OTP salah atau kedaluwarsa"));

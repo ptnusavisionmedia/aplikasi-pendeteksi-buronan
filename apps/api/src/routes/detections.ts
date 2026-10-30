@@ -15,7 +15,7 @@ import { evidenceRetentionDate, uploadEvidenceFile } from "../services/storage";
 export const detectionsRouter = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 
-const CONFIDENCE_THRESHOLD = 0.85;
+const CONFIDENCE_THRESHOLD = 0.9;
 const OFFICER_ROLES = ["ADMIN", "APARAT", "KEAMANAN_SWASTA"] as const;
 
 const uploadCheckRateLimit = rateLimit({

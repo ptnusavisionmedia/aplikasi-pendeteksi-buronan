@@ -27,10 +27,20 @@ buronanRouter.post(
     const parsed = createBuronanSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
 
+    // instansiPenerbitId is a required FK (every Buronan must have a publishing agency), so an
+    // account with no instansiId (e.g. a system-wide ADMIN not tied to one Instansi) can't create
+    // one here — reject clearly instead of letting Prisma's FK violation crash the request as an
+    // unhandled rejection (Express 4 doesn't catch async-handler throws on its own).
+    if (!req.user!.instansiId) {
+      return res.status(422).json({
+        error: "Akun Anda tidak terhubung ke satu instansi, jadi tidak bisa menerbitkan data buronan. Hubungi admin untuk menautkan akun ke instansi.",
+      });
+    }
+
     const buronan = await prisma.buronan.create({
       data: {
         ...parsed.data,
-        instansiPenerbitId: req.user!.instansiId ?? "",
+        instansiPenerbitId: req.user!.instansiId,
       },
     });
 

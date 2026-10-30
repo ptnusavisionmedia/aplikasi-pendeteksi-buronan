@@ -6,11 +6,16 @@ import { useAuthStore } from "@/store/auth-store";
 
 export default function Home() {
   const router = useRouter();
-  const { token, user } = useAuthStore();
+  const { token, user, hydrate, hydrated } = useAuthStore();
 
   useEffect(() => {
+    hydrate();
+  }, [hydrate]);
+
+  useEffect(() => {
+    if (!hydrated) return;
     router.replace(token && user ? "/dashboard" : "/login");
-  }, [token, user, router]);
+  }, [hydrated, token, user, router]);
 
   return null;
 }

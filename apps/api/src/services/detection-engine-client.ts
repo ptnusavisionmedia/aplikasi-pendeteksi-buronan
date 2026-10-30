@@ -58,3 +58,15 @@ export interface CctvCheckResult {
 export function checkCctvFeed(rtspUrl: string) {
   return callDetectionEngine<CctvCheckResult>("/internal/cctv-feeds/check", { rtspUrl });
 }
+
+export interface LiveDetectionResult {
+  active: boolean;
+  bbox?: [number, number, number, number];
+  confidence?: number;
+  buronanId?: string;
+  ageSeconds?: number;
+}
+
+export function getLiveDetection(feedId: string) {
+  return callDetectionEngine<LiveDetectionResult>(`/internal/cctv-feeds/${feedId}/live-detection`, {});
+}
