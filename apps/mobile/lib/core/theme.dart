@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
-/// Design 4 — Bento tokens, replicated from ui-references/design-4-bento/tokens.css
+/// Design 4 — Bento tokens, replicated from apps/web/src/app/globals.css
+/// (font Figtree -> Poppins dan aksen primary emerald -> biru, lihat
+/// vault/03-Decisions/2026-10-30 - Migrasi Font Poppins dan Preset Multi-Merk CCTV.md)
 class AppColors {
   static const ink = Color(0xFF1B2420);
   static const muted = Color(0xFF5B6B63);
@@ -8,9 +10,9 @@ class AppColors {
   static const surface = Color(0xFFFFFFFF);
   static const line = Color(0xFFE4E6E0);
 
-  static const primary = Color(0xFF0C6B4F);
-  static const primarySoft = Color(0xFFE3F1EA);
-  static const primaryInk = Color(0xFF07402F);
+  static const primary = Color(0xFF1D5FD1);
+  static const primarySoft = Color(0xFFE4ECFB);
+  static const primaryInk = Color(0xFF123D94);
 
   static const coral = Color(0xFFE2503B);
   static const coralSoft = Color(0xFFFBE6E2);
@@ -29,11 +31,11 @@ ThemeData buildAppTheme() {
       surface: AppColors.surface,
     ),
     textTheme: Typography.material2021().black.apply(
-      fontFamily: 'Figtree',
+      fontFamily: 'Poppins',
       bodyColor: AppColors.ink,
       displayColor: AppColors.ink,
     ),
-    fontFamily: 'Figtree',
+    fontFamily: 'Poppins',
     appBarTheme: const AppBarTheme(
       backgroundColor: AppColors.surface,
       foregroundColor: AppColors.ink,

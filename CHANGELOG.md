@@ -5,6 +5,60 @@ MAJOR.MINOR.PATCH — MINOR untuk fitur baru yang backward-compatible, PATCH unt
 Scope saat ini: `apps/api` (backend Express). `apps/web` dan `apps/mobile` belum diperbarui untuk
 mengkonsumsi perubahan v0.2.x — lihat "Known follow-ups" di bawah.
 
+## [0.3.0] - 2026-10-30
+
+Scope: `apps/web` (dashboard) & `apps/mobile` (Flutter). `apps/web` version dinaikkan ke `0.2.0`,
+`apps/mobile` build number ke `1.0.0+2`.
+
+### Added
+- **Dukungan preset merk kamera di form "Tambah Feed" CCTV.** `apps/web/src/app/(dashboard)/cctv/page.tsx`
+  menambahkan daftar `CAMERA_PRESETS` (TP-Link Tapo C200 & seri Tapo lain, Hikvision, Dahua, Ezviz,
+  Imou, Xiaomi/Mi Home, generik ONVIF/RTSP, manual) yang otomatis mengisi template URL RTSP dan
+  menampilkan catatan cara mengaktifkan RTSP per merk. Backend (`apps/api/src/routes/cctv.ts`,
+  `services/detection-engine/app/services/cctv_stream.py`) tidak berubah — sudah generik berbasis
+  RTSP/OpenCV `VideoCapture`, jadi semua merk di atas (termasuk Tapo C200) sudah didukung begitu
+  URL stream-nya benar.
+
+### Changed
+- **Penyempurnaan visual dashboard web**, melanjutkan perubahan yang sudah berjalan sebelum sesi ini
+  (font Figtree → **Poppins**, aksen glassmorphism pada sidebar & header di
+  `apps/web/src/app/(dashboard)/layout.tsx`): `bento-cell` sekarang punya `box-shadow` + hover-lift,
+  dan kartu statistik/feed memakai badge ikon bertinta (`.icon-badge`) agar lebih hidup. Lihat
+  `vault/03-Decisions/2026-10-30 - Migrasi Font Poppins dan Preset Multi-Merk CCTV.md`.
+- **Aksen warna diganti dari emerald (`#0c6b4f`) ke biru (`#1d5fd1`)** atas permintaan pengguna
+  ("lebih enak dilihat"). Diterapkan lewat token tema (`--color-primary*` di `globals.css`) sehingga
+  seluruh pemakaian `bg-primary`/`text-primary`/`.glass-primary`/blob latar ikut berubah tanpa
+  menyentuh komponen satu per satu.
+- **Layout halaman Overview (`/dashboard`) ditata ulang**: kartu "Total Deteksi Tercatat" sekarang
+  jadi banner hero penuh di baris paling atas (bukan kotak 2×2 di tengah grid), diikuti baris 4 kartu
+  statistik ringkas, lalu panel detail (Deteksi Terbaru + Eskalasi/Status Anda) di bawahnya — alurnya
+  jadi ringkasan → detail dari atas ke bawah.
+- **`apps/mobile` (Flutter) disinkronkan dengan tema web baru** di `lib/core/theme.dart`: font
+  Figtree → **Poppins** (file TTF di `assets/fonts/` diganti, bobot 400/500/600/700/800 sama seperti
+  sebelumnya; `Figtree-*.ttf` lama dihapus karena tidak terpakai lagi) dan `AppColors.primary*`
+  diganti emerald → biru (`#1D5FD1`) mengikuti token `--color-primary` di web. `BentoCell` dan warna
+  sekunder (coral/amber) tidak berubah. Diverifikasi via `flutter analyze` (bersih) dan
+  `flutter run -d web-server`: alur Lapor → Login → Home berjalan normal dengan tampilan baru.
+
+### Fixed
+- **Bug: seluruh font web dashboard diam-diam fallback ke serif browser (Times New Roman), bukan
+  Poppins.** `apps/web/src/app/layout.tsx` menaruh `poppins.variable` (yang berisi custom property
+  `--font-poppins`) pada elemen `<body>`, sementara `globals.css` mereferensikan `var(--font-poppins)`
+  di dalam `--font-sans` yang didefinisikan pada `:root`/`<html>` — custom property anak (`<body>`)
+  tidak mengalir ke induknya (`<html>`), jadi `--font-poppins` tidak pernah terlihat di titik
+  `--font-sans` dihitung, membuat seluruh rantai font jadi *guaranteed-invalid* dan browser diam-diam
+  memakai default serif-nya. Perbaikan: pindahkan `poppins.variable` ke elemen `<html>`. Bug ini sudah
+  ada sejak font Figtree (pola yang sama), ditemukan saat menguji perubahan font Poppins di sesi ini.
+- **Bug: utility Tailwind (`bg-primary`, `text-white`, dll) kalah total saat dipasangkan dengan kelas
+  kustom (`.bento-cell`, dsb) dari `globals.css`.** Kelas kustom ditulis sebagai CSS polos di luar
+  `@layer`, dan menurut spesifikasi cascade layers, style di luar layer SELALU menang atas style di
+  dalam layer manapun — terlepas dari urutan penulisan atau spesifisitas. Tailwind v4 membungkus semua
+  utility-nya dalam `@layer theme, base, components, utilities;`, jadi `.bento-cell { background: ... }`
+  (tanpa layer) selalu mengalahkan `.bg-primary { background-color: ... }` (dalam layer `utilities`)
+  pada elemen yang sama — kartu "Total Deteksi Tercatat" di dashboard jadi putih kosong tanpa teks
+  terlihat (teks putih di atas latar putih). Perbaikan: bungkus seluruh kelas kustom di `globals.css`
+  dalam `@layer base`/`@layer components` sesuai konvensi Tailwind v4.
+
 ## [0.2.1] - 2026-10-30
 
 ### Fixed

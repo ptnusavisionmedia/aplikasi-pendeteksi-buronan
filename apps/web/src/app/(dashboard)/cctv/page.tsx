@@ -6,8 +6,71 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Camera, Plus, Upload, ScanFace, X } from "lucide-react";
 import { apiClient, apiErrorMessage } from "@/lib/api-client";
 import { useAuthStore } from "@/store/auth-store";
-import { Field, Input, PrimaryButton, GhostButton, ErrorText, Badge } from "@/components/form";
+import { Field, Input, Select, PrimaryButton, GhostButton, ErrorText, Badge } from "@/components/form";
 import type { CctvFeed, DetectionEvent } from "@/lib/types";
+
+/**
+ * Template RTSP per merk kamera. "stream" dipakai untuk men-generate placeholder/urlStream
+ * saat merk dipilih — pengguna cukup mengisi {user}/{pass}/{ip} sendiri. Semua merk di bawah
+ * sudah ONVIF/RTSP-compatible sehingga langsung didukung oleh detection-engine yang ada
+ * (OpenCV VideoCapture generik), tanpa perlu integrasi khusus per vendor.
+ */
+const CAMERA_PRESETS = [
+  {
+    id: "tapo-c200",
+    label: "TP-Link Tapo C200",
+    stream: "rtsp://{user}:{pass}@{ip}:554/stream1",
+    help: "Aktifkan \"Camera Account\" di app Tapo (Advanced Settings > Camera Account), lalu pakai kredensial itu (bukan akun TP-Link). stream1 = resolusi penuh, stream2 = hemat bandwidth.",
+  },
+  {
+    id: "tapo-lainnya",
+    label: "TP-Link Tapo (seri lain: C210/C225/dst)",
+    stream: "rtsp://{user}:{pass}@{ip}:554/stream1",
+    help: "Pola RTSP sama dengan C200 di sebagian besar seri Tapo.",
+  },
+  {
+    id: "hikvision",
+    label: "Hikvision",
+    stream: "rtsp://{user}:{pass}@{ip}:554/Streaming/Channels/101",
+    help: "Channel 101 = kamera 1 stream utama. Ganti ke 102 untuk sub-stream.",
+  },
+  {
+    id: "dahua",
+    label: "Dahua",
+    stream: "rtsp://{user}:{pass}@{ip}:554/cam/realmonitor?channel=1&subtype=0",
+    help: "subtype=0 stream utama, subtype=1 sub-stream hemat bandwidth.",
+  },
+  {
+    id: "ezviz",
+    label: "Ezviz",
+    stream: "rtsp://{user}:{pass}@{ip}:554/h264/ch1/main/av_stream",
+    help: "Aktifkan akses RTSP di app EZVIZ (Device Settings > Advanced > Local RTSP).",
+  },
+  {
+    id: "imou",
+    label: "Imou",
+    stream: "rtsp://{user}:{pass}@{ip}:554/cam/realmonitor?channel=1&subtype=0",
+    help: "Imou berbasis platform Dahua, pola URL RTSP sama.",
+  },
+  {
+    id: "xiaomi",
+    label: "Xiaomi / Mi Home",
+    stream: "rtsp://{user}:{pass}@{ip}:8554/live/ch00_0",
+    help: "Butuh firmware custom (mis. Xiaomi Hack) agar RTSP aktif — firmware resmi menutup akses RTSP.",
+  },
+  {
+    id: "onvif",
+    label: "Generik ONVIF / RTSP lain",
+    stream: "rtsp://{user}:{pass}@{ip}:554/",
+    help: "Untuk merk lain yang mendukung ONVIF/RTSP standar — cek manual kamera untuk path stream yang tepat.",
+  },
+  {
+    id: "manual",
+    label: "Isi URL manual",
+    stream: "",
+    help: "Masukkan URL RTSP/HTTP stream sepenuhnya sendiri.",
+  },
+] as const;
 
 export default function CctvPage() {
   const user = useAuthStore((s) => s.user);
@@ -15,7 +78,8 @@ export default function CctvPage() {
   const queryClient = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ nama: "", lokasi: "", urlStream: "", wilayah: "" });
+  const [preset, setPreset] = useState<string>(CAMERA_PRESETS[0].id);
+  const [form, setForm] = useState({ nama: "", lokasi: "", urlStream: CAMERA_PRESETS[0].stream as string, wilayah: "" });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [checkResult, setCheckResult] = useState<{ matched: boolean; candidates: { buronanId: string; confidence: number }[] } | null>(null);
@@ -38,7 +102,8 @@ export default function CctvPage() {
     setLoading(true);
     try {
       await apiClient.post("/cctv-feeds", form);
-      setForm({ nama: "", lokasi: "", urlStream: "", wilayah: "" });
+      setForm({ nama: "", lokasi: "", urlStream: CAMERA_PRESETS[0].stream, wilayah: "" });
+      setPreset(CAMERA_PRESETS[0].id);
       setShowForm(false);
       queryClient.invalidateQueries({ queryKey: ["cctv-feeds"] });
     } catch (err) {
@@ -126,9 +191,35 @@ export default function CctvPage() {
             <Field label="Lokasi">
               <Input required value={form.lokasi} onChange={(e) => setForm({ ...form, lokasi: e.target.value })} />
             </Field>
-            <Field label="URL Stream (RTSP)">
-              <Input required value={form.urlStream} onChange={(e) => setForm({ ...form, urlStream: e.target.value })} placeholder="rtsp://..." />
+            <Field label="Merk / tipe kamera">
+              <Select
+                value={preset}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setPreset(next);
+                  const tmpl = CAMERA_PRESETS.find((p) => p.id === next)?.stream ?? "";
+                  setForm((f) => ({ ...f, urlStream: tmpl }));
+                }}
+              >
+                {CAMERA_PRESETS.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.label}
+                  </option>
+                ))}
+              </Select>
             </Field>
+            <Field label="URL Stream (RTSP/ONVIF)">
+              <Input
+                required
+                value={form.urlStream}
+                onChange={(e) => setForm({ ...form, urlStream: e.target.value })}
+                placeholder="rtsp://..."
+              />
+            </Field>
+            <p className="col-span-2 text-[12px] text-muted bg-canvas rounded-xl px-3 py-2.5 -mt-1">
+              {CAMERA_PRESETS.find((p) => p.id === preset)?.help} Ganti <code>{"{user}"}</code>, <code>{"{pass}"}</code> dan{" "}
+              <code>{"{ip}"}</code> dengan kredensial &amp; IP kamera Anda.
+            </p>
             <Field label="Wilayah">
               <Input required value={form.wilayah} onChange={(e) => setForm({ ...form, wilayah: e.target.value })} />
             </Field>
@@ -144,7 +235,9 @@ export default function CctvPage() {
           {feeds?.map((feed) => (
             <div key={feed.id} className="bento-cell flex flex-col gap-2">
               <div className="flex items-center justify-between">
-                <Camera className="w-[18px] h-[18px] text-ink" />
+                <div className="icon-badge bg-canvas">
+                  <Camera className="w-[18px] h-[18px] text-ink" />
+                </div>
                 <Badge tone={feed.status === "ACTIVE" ? "primary" : "muted"}>{feed.status}</Badge>
               </div>
               <div className="font-bold text-[14px]">{feed.nama}</div>

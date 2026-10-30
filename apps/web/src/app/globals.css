@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
 
   --color-ink: #1b2420;
   --color-muted: #5b6b63;
@@ -9,9 +9,9 @@
   --color-surface: #ffffff;
   --color-line: #e4e6e0;
 
-  --color-primary: #0c6b4f;
-  --color-primary-soft: #e3f1ea;
-  --color-primary-ink: #07402f;
+  --color-primary: #1d5fd1;
+  --color-primary-soft: #e4ecfb;
+  --color-primary-ink: #123d94;
 
   --color-coral: #e2503b;
   --color-coral-soft: #fbe6e2;
@@ -22,86 +22,149 @@
   --radius-xl2: 1.25rem;
 
   --shadow-card: 0 1px 2px rgba(27, 36, 32, .04), 0 10px 24px -14px rgba(27, 36, 32, .18);
-  --shadow-pop: 0 2px 4px rgba(27, 36, 32, .05), 0 18px 34px -16px rgba(12, 107, 79, .28);
+  --shadow-pop: 0 2px 4px rgba(27, 36, 32, .05), 0 18px 34px -16px rgba(29, 95, 209, .28);
 }
 
-html {
-  font-family: var(--font-sans);
+/*
+ * Custom classes below are wrapped in Tailwind's cascade layers (@layer base/components)
+ * on purpose: unlayered plain CSS always beats @layer'd styles regardless of source order
+ * or specificity (per the CSS cascade-layers spec), which silently broke utilities like
+ * `bg-primary`/`text-white` combined with `.bento-cell` (the utility lost every time).
+ * Putting our classes in `components` keeps Tailwind's `utilities` layer (which comes later
+ * in `@layer theme, base, components, utilities;`) able to override them, same as any
+ * Tailwind utility class is meant to.
+ */
+@layer base {
+  html {
+    font-family: var(--font-sans);
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    /* Soft color blobs so the glassmorphism panels below have something to blur. */
+    background-image:
+      radial-gradient(640px circle at 6% -8%, rgba(29, 95, 209, 0.16), transparent 60%),
+      radial-gradient(540px circle at 97% 6%, rgba(226, 80, 59, 0.1), transparent 55%),
+      radial-gradient(560px circle at 45% 105%, rgba(198, 134, 15, 0.1), transparent 55%);
+    background-attachment: fixed;
+    color: var(--color-ink);
+  }
+
+  ::selection {
+    background: var(--color-primary);
+    color: #fff;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #cfd4ca;
+    border-radius: 10px;
+    border: 2px solid var(--color-canvas);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #b7bdb0;
+  }
 }
 
-body {
-  background: var(--color-canvas);
-  color: var(--color-ink);
-}
+@layer components {
+  /* Glassmorphism variants — pick the one that fits the surface:
+     .glass for chrome (sidebar/header), .glass-strong for overlays/modals,
+     .glass-primary for a tinted call-to-action panel. */
+  .glass {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: var(--shadow-card);
+  }
 
-::selection {
-  background: var(--color-primary);
-  color: #fff;
-}
+  .glass-strong {
+    background: rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(26px) saturate(160%);
+    -webkit-backdrop-filter: blur(26px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    box-shadow: var(--shadow-pop);
+  }
 
-:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
+  .glass-primary {
+    background: linear-gradient(135deg, rgba(29, 95, 209, 0.22), rgba(29, 95, 209, 0.07));
+    backdrop-filter: blur(18px) saturate(150%);
+    -webkit-backdrop-filter: blur(18px) saturate(150%);
+    border: 1px solid rgba(29, 95, 209, 0.25);
+  }
 
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+  .lucide {
+    stroke-width: 1.75;
+  }
 
-::-webkit-scrollbar-thumb {
-  background: #cfd4ca;
-  border-radius: 10px;
-  border: 2px solid var(--color-canvas);
-}
+  .bento-cell {
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-xl2);
+    padding: 1.1rem 1.25rem;
+    box-shadow: var(--shadow-card);
+    transition: box-shadow 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #b7bdb0;
-}
+  a.bento-cell:hover,
+  button.bento-cell:hover {
+    box-shadow: var(--shadow-pop);
+    transform: translateY(-1px);
+  }
 
-.tabular {
-  font-variant-numeric: tabular-nums;
-}
+  .icon-badge {
+    width: 34px;
+    height: 34px;
+    border-radius: 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
 
-.lucide {
-  stroke-width: 1.75;
-}
+  .toggle {
+    width: 40px;
+    height: 24px;
+    border-radius: 999px;
+    position: relative;
+    background: var(--color-primary-soft);
+    cursor: pointer;
+    border: none;
+    flex-shrink: 0;
+  }
 
-.bento-cell {
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-xl2);
-  padding: 1.1rem 1.25rem;
-}
+  .toggle::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    background: var(--color-primary);
+    transition: transform 0.15s ease;
+  }
 
-.toggle {
-  width: 40px;
-  height: 24px;
-  border-radius: 999px;
-  position: relative;
-  background: var(--color-primary-soft);
-  cursor: pointer;
-  border: none;
-  flex-shrink: 0;
-}
-
-.toggle::after {
-  content: "";
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 18px;
-  height: 18px;
-  border-radius: 999px;
-  background: var(--color-primary);
-  transition: transform 0.15s ease;
-}
-
-.toggle[data-on="true"]::after {
-  transform: translateX(16px);
+  .toggle[data-on="true"]::after {
+    transform: translateX(16px);
+  }
 }

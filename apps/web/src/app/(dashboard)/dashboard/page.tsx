@@ -54,34 +54,44 @@ export default function DashboardPage() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-4 gap-4 auto-rows-[108px]">
-        <div className="bento-cell col-span-1 row-span-1 flex flex-col justify-between">
-          <UserX className="text-primary w-[18px] h-[18px]" />
+      {/* Hero: ringkasan total deteksi paling menonjol, baris sendiri di atas */}
+      <div className="bento-cell bg-primary text-white flex items-center justify-between gap-6 mb-4">
+        <div>
+          <span className="text-[12.5px] font-semibold uppercase tracking-wide opacity-80">Total Deteksi Tercatat</span>
+          <div className="text-4xl font-extrabold tabular mt-1">{detections?.length ?? "–"}</div>
+          <div className="text-[12px] opacity-80 mt-1">{detectionsToday.length} deteksi hari ini</div>
+        </div>
+        <div className="icon-badge bg-white/15 w-12 h-12">
+          <TrendingUp className="w-5 h-5" />
+        </div>
+      </div>
+
+      {/* Statistik ringkas, selalu dalam satu baris agar mudah di-scan */}
+      <div className="grid grid-cols-4 gap-4 mb-4">
+        <div className="bento-cell flex flex-col justify-between gap-3">
+          <div className="icon-badge bg-primary-soft">
+            <UserX className="text-primary w-[18px] h-[18px]" />
+          </div>
           <div>
             <div className="text-2xl font-extrabold tabular">{buronanList?.length ?? "–"}</div>
             <div className="text-[12px] text-muted">DPO Aktif</div>
           </div>
         </div>
 
-        <div className="bento-cell col-span-1 row-span-1 flex flex-col justify-between">
-          <ScanFace className="text-coral w-[18px] h-[18px]" />
+        <div className="bento-cell flex flex-col justify-between gap-3">
+          <div className="icon-badge bg-coral-soft">
+            <ScanFace className="text-coral w-[18px] h-[18px]" />
+          </div>
           <div>
             <div className="text-2xl font-extrabold tabular">{detectionsToday.length}</div>
             <div className="text-[12px] text-muted">Deteksi hari ini</div>
           </div>
         </div>
 
-        <div className="bento-cell col-span-2 row-span-2 bg-primary text-white flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[12.5px] font-semibold uppercase tracking-wide opacity-80">Total Deteksi Tercatat</span>
-            <TrendingUp className="w-[18px] h-[18px]" />
+        <div className="bento-cell flex flex-col justify-between gap-3">
+          <div className="icon-badge bg-canvas">
+            <Camera className="text-ink w-[18px] h-[18px]" />
           </div>
-          <div className="text-4xl font-extrabold tabular">{detections?.length ?? "–"}</div>
-          <div className="text-[12px] opacity-80">{detectionsToday.length} deteksi hari ini</div>
-        </div>
-
-        <div className="bento-cell col-span-1 row-span-1 flex flex-col justify-between">
-          <Camera className="text-ink w-[18px] h-[18px]" />
           <div>
             <div className="text-2xl font-extrabold tabular">
               {feedsOnline}
@@ -91,8 +101,10 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="bento-cell col-span-1 row-span-1 flex flex-col justify-between">
-          <Flag className="text-amber w-[18px] h-[18px]" />
+        <div className="bento-cell flex flex-col justify-between gap-3">
+          <div className="icon-badge bg-amber-soft">
+            <Flag className="text-amber w-[18px] h-[18px]" />
+          </div>
           <div>
             <div className="text-2xl font-extrabold tabular">
               {reports?.filter((r) => r.status === "MENUNGGU_VERIFIKASI").length ?? "–"}
@@ -100,7 +112,10 @@ export default function DashboardPage() {
             <div className="text-[12px] text-muted">Laporan menunggu</div>
           </div>
         </div>
+      </div>
 
+      {/* Detail: deteksi terbaru di kiri (lebih luas), ringkasan aksi cepat di kanan */}
+      <div className="grid grid-cols-4 gap-4 auto-rows-[108px]">
         <div className="bento-cell col-span-2 row-span-2 flex flex-col">
           <div className="flex items-center justify-between mb-3">
             <span className="font-bold text-[14px]">Deteksi Terbaru</span>

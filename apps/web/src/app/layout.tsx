@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { Figtree } from "next/font/google";
+import { Poppins } from "next/font/google";
 import { QueryProvider } from "@/lib/query-provider";
 import "./globals.css";
 
-const figtree = Figtree({
-  variable: "--font-figtree",
+const poppins = Poppins({
+  variable: "--font-poppins",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
 });
@@ -20,8 +20,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id">
-      <body className={`${figtree.variable} font-sans antialiased`}>
+    <html lang="id" className={poppins.variable}>
+      <body className="font-sans antialiased">
         <QueryProvider>{children}</QueryProvider>
       </body>
     </html>

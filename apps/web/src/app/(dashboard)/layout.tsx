@@ -54,7 +54,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen flex">
-      <aside className="w-[232px] shrink-0 border-r border-line bg-surface p-5 flex flex-col">
+      <aside className="glass w-[232px] shrink-0 p-5 flex flex-col rounded-none">
         <div className="flex items-center gap-2.5 px-1 mb-8">
           <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center text-white">
             <ShieldAlert className="w-[18px] h-[18px]" />
@@ -71,8 +71,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 href={item.href}
                 className={
                   active
-                    ? "flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-primary-soft text-primary-ink font-semibold"
-                    : "flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-muted hover:bg-canvas"
+                    ? "glass-primary flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-primary-ink font-semibold"
+                    : "flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-muted hover:bg-canvas/60"
                 }
               >
                 <Icon className="w-[18px] h-[18px]" />
@@ -97,8 +97,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       <main className="flex-1 min-w-0">
-        <header className="h-16 border-b border-line bg-surface flex items-center justify-between px-7">
-          <div className="flex items-center gap-2 text-muted text-[13px] bg-canvas rounded-xl px-3 py-2 w-[320px]">
+        <header className="glass-strong h-16 rounded-none flex items-center justify-between px-7">
+          <div className="flex items-center gap-2 text-muted text-[13px] bg-canvas/70 rounded-xl px-3 py-2 w-[320px]">
             <Search className="w-4 h-4" />
             <span>Cari buronan, kamera, kasus...</span>
           </div>
