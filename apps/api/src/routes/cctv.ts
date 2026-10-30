@@ -3,7 +3,9 @@ import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { writeAuditLog } from "../services/audit-log";
+import { computeCameraAccuracy } from "../services/camera-accuracy";
 import { startCctvFeed, stopCctvFeed } from "../services/detection-engine-client";
+import { env } from "../env";
 import { prisma } from "../services/prisma";
 
 export const cctvRouter = Router();
@@ -13,6 +15,8 @@ const createFeedSchema = z.object({
   lokasi: z.string().min(1),
   urlStream: z.string().url(),
   wilayah: z.string().min(1),
+  // FR-24: webcam-as-simulated-feed for dev/staging only, never production.
+  sourceType: z.enum(["PRODUCTION", "DEV_SIMULATION"]).optional(),
 });
 
 cctvRouter.post(
@@ -22,6 +26,12 @@ cctvRouter.post(
   async (req, res) => {
     const parsed = createFeedSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+
+    if (parsed.data.sourceType === "DEV_SIMULATION" && env.isProduction) {
+      return res.status(403).json({
+        error: "Feed simulasi (webcam dev) tidak dapat didaftarkan di environment production",
+      });
+    }
 
     const feed = await prisma.cCTVFeed.create({
       data: { ...parsed.data, ownerId: req.user!.id, instansiId: req.user!.instansiId },
@@ -82,3 +92,16 @@ cctvRouter.patch(
     res.json(feed);
   }
 );
+
+/** FR-22: rolling false-positive rate for this camera, derived from officer confirm/reject decisions. */
+cctvRouter.get("/:id/accuracy", requireAuth, async (req, res) => {
+  const feed = await prisma.cCTVFeed.findUnique({ where: { id: req.params.id } });
+  if (!feed) return res.status(404).json({ error: "CCTV feed tidak ditemukan" });
+
+  const [confirmedCount, rejectedCount] = await Promise.all([
+    prisma.detectionEvent.count({ where: { cctvFeedId: feed.id, status: "CONFIRMED_BY_OFFICER" } }),
+    prisma.detectionEvent.count({ where: { cctvFeedId: feed.id, status: "REJECTED_FALSE_POSITIVE" } }),
+  ]);
+
+  res.json(computeCameraAccuracy({ confirmedCount, rejectedCount }));
+});

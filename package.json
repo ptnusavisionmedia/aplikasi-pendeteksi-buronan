@@ -1,7 +1,7 @@
 {
   "name": "aplikasi-pendeteksi-buronan",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.1",
   "scripts": {
     "dev:web": "pnpm --filter web dev",
     "dev:api": "pnpm --filter api dev",

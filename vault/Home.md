@@ -16,7 +16,8 @@ Platform deteksi wajah berbasis AI yang menghubungkan jaringan CCTV publik/swast
 ## 📚 Peta Konten (Map of Content)
 
 ### Produk
-- [[PRD]] — Product Requirement Document (status: **selesai, 6/6 bagian**)
+- [[01-Product/PRD|PRD]] — Product Requirement Document v1 (status: **selesai, 6/6 bagian**, sudah terimplementasi penuh)
+- [[01-Product/PRD-v2|PRD v2]] — lanjutan v1 (status: **draft**). Fokus: anti-salah-identifikasi (verifikasi berlapis sebelum eskalasi, anti-spoofing, kanal sanggahan) + mode simulasi webcam untuk development
 - [[Persona - Bripka Andika]]
 - [[Persona - Pak Herman]]
 
@@ -49,6 +50,7 @@ Platform deteksi wajah berbasis AI yang menghubungkan jaringan CCTV publik/swast
 - [x] Mobile Flutter selesai (T-44–T-50): `apps/mobile`, Riverpod + Dio + go_router, mengikuti sistem desain Bento, diverifikasi via `flutter run -d chrome` terhubung ke backend asli. APK Android belum di-build (perlu Android SDK, lihat [[07-Guides/Panduan Install Flutter|Panduan Install Flutter]]).
 - [x] Testing komprehensif selesai: seluruh endpoint backend (auth/2FA, RBAC, CRUD, notifikasi, eskalasi, laporan, rate limit, lockout) **dan ML pipeline asli** (enroll → embedding → Qdrant → detect, confidence 0.9999 pada test) teruji end-to-end lewat endpoint publik sungguhan. `flutter analyze` & `next build`/`tsc` bersih. Bug `uploadEvidenceFile()` (URL evidence tidak lengkap) ditemukan & diperbaiki.
 - [ ] Riset awal: regulasi UU PDP untuk data wajah, opsi engine face-recognition (open-source vs vendor), ketersediaan API data DPO resmi
+- [x] **v0.2.1** — [[01-Product/PRD-v2|PRD v2]] diimplementasi di backend (`apps/api`): verifikasi berlapis sebelum eskalasi, anti-spoofing gate, quality gate multi-angle, metrik akurasi per kamera, kanal sanggahan, mode simulasi webcam dev (FR-19–FR-25). Detail per-fitur & bug yang ditemukan+diperbaiki saat testing ada di [[../CHANGELOG|CHANGELOG]]. Web & mobile, serta model liveness asli di `services/detection-engine`, belum mengikuti — lihat "Known follow-ups" di CHANGELOG.
 
 ## 🧠 Catatan untuk Claude
 Saat membantu proyek ini di sesi berikutnya, baca dulu `vault/Home.md` lalu [[PRD]] dan catatan di `03-Decisions/` sebelum mengusulkan sesuatu — supaya keputusan yang sudah diambil tidak diulang/dibantah tanpa alasan baru.

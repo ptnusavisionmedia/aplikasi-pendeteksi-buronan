@@ -5,6 +5,7 @@ import { requireAuth } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { writeAuditLog } from "../services/audit-log";
 import { enrollFace } from "../services/detection-engine-client";
+import { isEnrollmentComplete, validatePhotoQuality } from "../services/photo-quality";
 import { prisma } from "../services/prisma";
 import { uploadEvidenceFile } from "../services/storage";
 
@@ -104,6 +105,13 @@ buronanRouter.patch(
   }
 );
 
+const fotoMetadataSchema = z.object({
+  isPrimary: z.coerce.boolean().optional(),
+  angle: z.enum(["FRONTAL", "SAMPING_KIRI", "SAMPING_KANAN"]).default("FRONTAL"),
+  width: z.coerce.number().int().positive(),
+  height: z.coerce.number().int().positive(),
+});
+
 buronanRouter.post(
   "/:id/foto",
   requireAuth,
@@ -111,6 +119,13 @@ buronanRouter.post(
   upload.single("foto"),
   async (req, res) => {
     if (!req.file) return res.status(400).json({ error: "File foto wajib diunggah" });
+
+    const parsedMeta = fotoMetadataSchema.safeParse(req.body);
+    if (!parsedMeta.success) return res.status(400).json({ error: parsedMeta.error.flatten() });
+
+    // FR-21: quality gate — resolusi minimum sebelum foto dipakai untuk vector embedding.
+    const quality = validatePhotoQuality(parsedMeta.data);
+    if (!quality.valid) return res.status(422).json({ error: quality.reason });
 
     const buronan = await prisma.buronan.findUnique({ where: { id: req.params.id } });
     if (!buronan) return res.status(404).json({ error: "Buronan tidak ditemukan" });
@@ -130,17 +145,31 @@ buronanRouter.post(
         buronanId: buronan.id,
         urlFoto: fotoUrl,
         qdrantPointId,
-        isPrimary: req.body.isPrimary === "true",
+        isPrimary: parsedMeta.data.isPrimary ?? false,
+        angle: parsedMeta.data.angle,
+        width: parsedMeta.data.width,
+        height: parsedMeta.data.height,
       },
     });
+
+    // FR-21: mandatory multi-angle — mark enrollment complete once >= 2 distinct angles are on file.
+    const allFotos = await prisma.fotoBuronan.findMany({
+      where: { buronanId: buronan.id },
+      select: { angle: true },
+    });
+    const enrollmentComplete = isEnrollmentComplete(allFotos);
+    if (enrollmentComplete !== buronan.enrollmentComplete) {
+      await prisma.buronan.update({ where: { id: buronan.id }, data: { enrollmentComplete } });
+    }
 
     await writeAuditLog({
       userId: req.user!.id,
       action: "ADD_BURONAN_FOTO",
       entityType: "Buronan",
       entityId: buronan.id,
+      detail: { angle: parsedMeta.data.angle, enrollmentComplete },
     });
 
-    res.status(201).json(foto);
+    res.status(201).json({ ...foto, enrollmentComplete });
   }
 );

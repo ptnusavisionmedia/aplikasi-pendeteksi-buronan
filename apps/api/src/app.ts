@@ -1,6 +1,7 @@
 import cors from "cors";
 import express from "express";
 import { adminRouter } from "./routes/admin";
+import { appealsRouter } from "./routes/appeals";
 import { authRouter } from "./routes/auth";
 import { buronanRouter } from "./routes/buronan";
 import { cctvRouter } from "./routes/cctv";
@@ -26,6 +27,7 @@ app.use("/detections", detectionsRouter);
 app.use("/notifications", notificationsRouter);
 app.use("/escalations", escalationsRouter);
 app.use("/reports", reportsRouter);
+app.use("/appeals", appealsRouter);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);

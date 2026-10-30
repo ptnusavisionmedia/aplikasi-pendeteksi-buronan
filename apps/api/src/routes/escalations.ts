@@ -29,6 +29,12 @@ escalationsRouter.post(
     if (!event.evidence) {
       return res.status(422).json({ error: "Eskalasi wajib memiliki evidence terlampir" });
     }
+    // FR-19: no eskalasi boleh terkirim tanpa konfirmasi manusia, berapa pun confidence-nya.
+    if (event.status !== "CONFIRMED_BY_OFFICER") {
+      return res.status(422).json({
+        error: "Match wajib dikonfirmasi petugas (PATCH /detections/:id/confirm) sebelum eskalasi",
+      });
+    }
 
     const escalation = await prisma.escalation.create({
       data: { ...parsed.data, dibuatOlehId: req.user!.id },

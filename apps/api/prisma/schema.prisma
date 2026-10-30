@@ -25,6 +25,26 @@ enum DetectionStatus {
   CONFIRMED
   LOW_CONFIDENCE
   MANUAL_CHECK
+  PENDING_CONFIRMATION
+  CONFIRMED_BY_OFFICER
+  REJECTED_FALSE_POSITIVE
+}
+
+enum CCTVFeedSourceType {
+  PRODUCTION
+  DEV_SIMULATION
+}
+
+enum AppealStatus {
+  MENUNGGU
+  DITERIMA
+  DITOLAK
+}
+
+enum FotoAngle {
+  FRONTAL
+  SAMPING_KIRI
+  SAMPING_KANAN
 }
 
 enum NotificationChannel {
@@ -80,12 +100,14 @@ model User {
   isVerified       Boolean  @default(false)
   createdAt        DateTime @default(now())
 
-  instansi      Instansi?      @relation(fields: [instansiId], references: [id])
-  reports       Report[]
-  escalations   Escalation[]
-  auditLogs     AuditLog[]
-  notifications Notification[]
-  cctvFeeds     CCTVFeed[]
+  instansi          Instansi?        @relation(fields: [instansiId], references: [id])
+  reports           Report[]
+  escalations       Escalation[]
+  auditLogs         AuditLog[]
+  notifications     Notification[]
+  cctvFeeds         CCTVFeed[]
+  confirmedDetections DetectionEvent[] @relation("DetectionConfirmedBy")
+  reviewedAppeals   Appeal[]         @relation("AppealReviewedBy")
 
   @@map("users")
 }
@@ -98,6 +120,7 @@ model Buronan {
   tingkatAncaman     String
   status             BuronanStatus @default(DPO_AKTIF)
   instansiPenerbitId String
+  enrollmentComplete Boolean       @default(false)
   createdAt          DateTime      @default(now())
 
   instansiPenerbit Instansi          @relation(fields: [instansiPenerbitId], references: [id])
@@ -109,11 +132,14 @@ model Buronan {
 }
 
 model FotoBuronan {
-  id            String  @id @default(uuid())
+  id            String    @id @default(uuid())
   buronanId     String
   urlFoto       String
   qdrantPointId String?
-  isPrimary     Boolean @default(false)
+  isPrimary     Boolean   @default(false)
+  angle         FotoAngle @default(FRONTAL)
+  width         Int?
+  height        Int?
 
   buronan Buronan @relation(fields: [buronanId], references: [id])
 
@@ -121,14 +147,15 @@ model FotoBuronan {
 }
 
 model CCTVFeed {
-  id        String   @id @default(uuid())
-  nama      String
-  lokasi    String
-  urlStream String
-  ownerId   String
-  wilayah   String
-  status    String   @default("ACTIVE")
-  createdAt DateTime @default(now())
+  id         String              @id @default(uuid())
+  nama       String
+  lokasi     String
+  urlStream  String
+  ownerId    String
+  wilayah    String
+  status     String              @default("ACTIVE")
+  sourceType CCTVFeedSourceType  @default(PRODUCTION)
+  createdAt  DateTime            @default(now())
 
   owner           User             @relation(fields: [ownerId], references: [id])
   instansi        Instansi?        @relation(fields: [instansiId], references: [id])
@@ -140,24 +167,50 @@ model CCTVFeed {
 }
 
 model DetectionEvent {
-  id              String          @id @default(uuid())
-  cctvFeedId      String?
-  reportId        String?
-  buronanId       String?
-  confidenceScore Float
-  status          DetectionStatus
-  detectedAt      DateTime        @default(now())
+  id               String          @id @default(uuid())
+  cctvFeedId       String?
+  reportId         String?
+  buronanId        String?
+  confidenceScore  Float
+  status           DetectionStatus
+  isLive           Boolean?
+  confirmedById    String?
+  confirmedAt      DateTime?
+  rejectionReason  String?
+  detectedAt       DateTime        @default(now())
 
   cctvFeed      CCTVFeed?      @relation(fields: [cctvFeedId], references: [id])
   report        Report?        @relation(fields: [reportId], references: [id])
   buronan       Buronan?       @relation(fields: [buronanId], references: [id])
+  confirmedBy   User?          @relation("DetectionConfirmedBy", fields: [confirmedById], references: [id])
   evidence      Evidence?
   notifications Notification[]
   escalations   Escalation[]
+  appeals       Appeal[]
 
   @@index([cctvFeedId, detectedAt])
   @@index([buronanId])
   @@map("detection_events")
+}
+
+model Appeal {
+  id               String       @id @default(uuid())
+  detectionEventId String
+  namaPengaju      String
+  kontakPengaju    String
+  buktiUrl         String?
+  deskripsi        String
+  status           AppealStatus @default(MENUNGGU)
+  reviewedById     String?
+  reviewedAt       DateTime?
+  catatanReview    String?
+  createdAt        DateTime     @default(now())
+
+  detectionEvent DetectionEvent @relation(fields: [detectionEventId], references: [id])
+  reviewedBy     User?          @relation("AppealReviewedBy", fields: [reviewedById], references: [id])
+
+  @@index([status])
+  @@map("appeals")
 }
 
 model Evidence {

@@ -7,6 +7,8 @@ function required(name: string): string {
 }
 
 export const env = {
+  nodeEnv: process.env.NODE_ENV ?? "development",
+  isProduction: process.env.NODE_ENV === "production",
   port: Number(process.env.PORT ?? 4000),
   databaseUrl: required("DATABASE_URL"),
   redisUrl: process.env.REDIS_URL ?? "redis://localhost:6379",
