@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "cctv_feeds" ADD COLUMN     "lat" DOUBLE PRECISION,
+ADD COLUMN     "lng" DOUBLE PRECISION;

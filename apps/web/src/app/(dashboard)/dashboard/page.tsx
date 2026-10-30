@@ -7,6 +7,7 @@ import { apiClient } from "@/lib/api-client";
 import { useAuthStore } from "@/store/auth-store";
 import { Badge } from "@/components/form";
 import { DetectionsTrendChart } from "@/components/detections-trend-chart";
+import { DetectionStatusChart } from "@/components/detection-status-chart";
 import type { Buronan, CctvFeed, DetectionEvent, Report } from "@/lib/types";
 
 export default function DashboardPage() {
@@ -161,12 +162,13 @@ export default function DashboardPage() {
           <Siren className="text-coral w-6 h-6" />
         </Link>
 
-        <div className="bento-cell col-span-2 row-span-1 flex items-center justify-between">
-          <div>
-            <div className="font-bold text-[14px]">Status Anda</div>
-            <div className="text-[12px] text-muted">
-              Peran: <Badge tone="primary">{user?.role}</Badge>
-            </div>
+        <div className="bento-cell col-span-2 row-span-1 flex flex-col">
+          <div className="flex items-center justify-between mb-1">
+            <span className="font-bold text-[14px]">Distribusi Status Deteksi</span>
+            <Badge tone="primary">{user?.role}</Badge>
+          </div>
+          <div className="flex-1">
+            <DetectionStatusChart detections={detections} />
           </div>
         </div>
       </div>

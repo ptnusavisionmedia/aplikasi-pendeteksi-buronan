@@ -150,6 +150,8 @@ model CCTVFeed {
   id         String              @id @default(uuid())
   nama       String
   lokasi     String
+  lat        Float?
+  lng        Float?
   urlStream  String
   ownerId    String
   wilayah    String

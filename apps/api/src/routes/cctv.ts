@@ -14,6 +14,8 @@ export const cctvRouter = Router();
 const createFeedSchema = z.object({
   nama: z.string().min(1),
   lokasi: z.string().min(1),
+  lat: z.number().min(-90).max(90).optional(),
+  lng: z.number().min(-180).max(180).optional(),
   urlStream: z.string().url(),
   wilayah: z.string().min(1),
   // FR-24: webcam-as-simulated-feed for dev/staging only, never production.
@@ -64,7 +66,11 @@ cctvRouter.get("/", requireAuth, async (req, res) => {
 
 const updateFeedSchema = z.object({
   status: z.enum(["ACTIVE", "INACTIVE", "OFFLINE"]).optional(),
-  nama: z.string().optional(),
+  nama: z.string().min(1).optional(),
+  lokasi: z.string().min(1).optional(),
+  wilayah: z.string().min(1).optional(),
+  lat: z.number().min(-90).max(90).optional(),
+  lng: z.number().min(-180).max(180).optional(),
   urlStream: z.string().url().optional(),
 });
 
@@ -80,10 +86,12 @@ cctvRouter.patch(
 
     if (parsed.data.status === "INACTIVE" || parsed.data.status === "OFFLINE") {
       await stopCctvFeed(feed.id).catch((err) => console.error(`Gagal stop feed ${feed.id}:`, err));
-    } else if (parsed.data.status === "ACTIVE") {
+    } else if (feed.status === "ACTIVE" && (parsed.data.status === "ACTIVE" || parsed.data.urlStream)) {
       // Re-arm the detection-engine capture loop — it only lives in that process's memory, so a
       // feed toggled off and back on (or re-activated after the engine restarted) needs this to
       // actually resume producing detections, not just flip the status badge in the dashboard.
+      // Also covers editing the stream URL (e.g. correcting a camera's IP) on an already-active
+      // feed — the running capture loop keeps pulling the old URL otherwise.
       await startCctvFeed(feed.id, feed.urlStream).catch((err) => console.error(`Gagal start feed ${feed.id}:`, err));
     }
 

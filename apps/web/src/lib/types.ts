@@ -42,6 +42,8 @@ export interface CctvFeed {
   id: string;
   nama: string;
   lokasi: string;
+  lat?: number | null;
+  lng?: number | null;
   urlStream: string;
   ownerId: string;
   wilayah: string;

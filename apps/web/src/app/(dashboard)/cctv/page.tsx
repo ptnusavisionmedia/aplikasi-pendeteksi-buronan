@@ -2,14 +2,22 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import clsx from "clsx";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Camera, Maximize2, Plus, Upload, ScanFace, Wifi, X } from "lucide-react";
+import { Camera, Maximize2, Pencil, Plus, Upload, ScanFace, Wifi, X } from "lucide-react";
 import { apiClient, apiErrorMessage } from "@/lib/api-client";
 import { useAuthStore } from "@/store/auth-store";
 import { Field, Input, Select, PrimaryButton, GhostButton, ErrorText, Badge } from "@/components/form";
 import { Modal } from "@/components/modal";
 import type { CctvFeed, DetectionEvent } from "@/lib/types";
+
+// Leaflet touches `window` at module load time, so it can't be evaluated during Next.js's
+// server render — load it only in the browser, once the form modal actually needs it.
+const MapPicker = dynamic(() => import("@/components/map-picker"), {
+  ssr: false,
+  loading: () => <div className="rounded-xl bg-canvas animate-pulse" style={{ height: 220 }} />,
+});
 
 /**
  * Template RTSP per merk kamera. "stream" dipakai untuk men-generate placeholder/urlStream
@@ -89,8 +97,16 @@ export default function CctvPage() {
   const queryClient = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const [showForm, setShowForm] = useState(false);
+  const [editingFeed, setEditingFeed] = useState<CctvFeed | null>(null);
   const [preset, setPreset] = useState<string>(CAMERA_PRESETS[0].id);
-  const [form, setForm] = useState({ nama: "", lokasi: "", urlStream: CAMERA_PRESETS[0].stream as string, wilayah: "" });
+  const [form, setForm] = useState({
+    nama: "",
+    lokasi: "",
+    urlStream: CAMERA_PRESETS[0].stream as string,
+    wilayah: "",
+    lat: null as number | null,
+    lng: null as number | null,
+  });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [checkResult, setCheckResult] = useState<{ matched: boolean; candidates: { buronanId: string; confidence: number }[] } | null>(null);
@@ -108,25 +124,58 @@ export default function CctvPage() {
     queryFn: async () => (await apiClient.get<DetectionEvent[]>("/detections")).data,
   });
 
-  async function onCreateFeed(e: React.FormEvent) {
+  async function onSubmitFeed(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
     try {
-      await apiClient.post("/cctv-feeds", form);
+      const payload = {
+        nama: form.nama,
+        lokasi: form.lokasi,
+        wilayah: form.wilayah,
+        urlStream: form.urlStream,
+        ...(form.lat != null && form.lng != null ? { lat: form.lat, lng: form.lng } : {}),
+      };
+      if (editingFeed) {
+        await apiClient.patch(`/cctv-feeds/${editingFeed.id}`, payload);
+      } else {
+        await apiClient.post("/cctv-feeds", payload);
+      }
       closeForm();
       queryClient.invalidateQueries({ queryKey: ["cctv-feeds"] });
     } catch (err) {
-      setError(apiErrorMessage(err, "Gagal menambahkan feed CCTV"));
+      setError(apiErrorMessage(err, editingFeed ? "Gagal menyimpan perubahan feed" : "Gagal menambahkan feed CCTV"));
     } finally {
       setLoading(false);
     }
   }
 
+  function openCreateForm() {
+    setEditingFeed(null);
+    setForm({ nama: "", lokasi: "", urlStream: CAMERA_PRESETS[0].stream, wilayah: "", lat: null, lng: null });
+    setPreset(CAMERA_PRESETS[0].id);
+    setShowForm(true);
+  }
+
+  function openEditForm(feed: CctvFeed) {
+    setEditingFeed(feed);
+    setForm({
+      nama: feed.nama,
+      lokasi: feed.lokasi,
+      urlStream: feed.urlStream,
+      wilayah: feed.wilayah,
+      lat: feed.lat ?? null,
+      lng: feed.lng ?? null,
+    });
+    setPreset("manual");
+    setShowForm(true);
+  }
+
   function closeForm() {
     setShowForm(false);
+    setEditingFeed(null);
     setError(null);
-    setForm({ nama: "", lokasi: "", urlStream: CAMERA_PRESETS[0].stream, wilayah: "" });
+    setForm({ nama: "", lokasi: "", urlStream: CAMERA_PRESETS[0].stream, wilayah: "", lat: null, lng: null });
     setPreset(CAMERA_PRESETS[0].id);
   }
 
@@ -195,7 +244,7 @@ export default function CctvPage() {
               {checking ? "Memeriksa..." : "Periksa Manual"}
             </GhostButton>
             {canManage && (
-              <PrimaryButton type="button" onClick={() => setShowForm(true)}>
+              <PrimaryButton type="button" onClick={openCreateForm}>
                 <Plus className="w-4 h-4" /> Tambah Feed
               </PrimaryButton>
             )}
@@ -223,11 +272,15 @@ export default function CctvPage() {
 
         {showForm && canManage && (
           <Modal
-            title="Tambah Feed CCTV"
-            description="Satu kamera, satu feed. Bisa diuji lewat “Cek Koneksi” setelah disimpan."
+            title={editingFeed ? `Edit Feed — ${editingFeed.nama}` : "Tambah Feed CCTV"}
+            description={
+              editingFeed
+                ? "Ubah konfigurasi kamera ini. Menyimpan perubahan URL stream akan otomatis memulai ulang koneksi jika feed sedang aktif."
+                : "Satu kamera, satu feed. Bisa diuji lewat “Cek Koneksi” setelah disimpan."
+            }
             onClose={closeForm}
           >
-            <form onSubmit={onCreateFeed} className="flex flex-col gap-5">
+            <form onSubmit={onSubmitFeed} className="flex flex-col gap-5">
               <ErrorText>{error}</ErrorText>
 
               <div className="flex flex-col gap-4">
@@ -257,6 +310,13 @@ export default function CctvPage() {
                     value={form.wilayah}
                     onChange={(e) => setForm({ ...form, wilayah: e.target.value })}
                     placeholder="mis. Jakarta Selatan"
+                  />
+                </Field>
+                <Field label="Titik lokasi di peta">
+                  <MapPicker
+                    lat={form.lat}
+                    lng={form.lng}
+                    onChange={(lat, lng) => setForm((f) => ({ ...f, lat, lng }))}
                   />
                 </Field>
               </div>
@@ -302,7 +362,7 @@ export default function CctvPage() {
                   Batal
                 </GhostButton>
                 <PrimaryButton type="submit" disabled={loading}>
-                  {loading ? "Menyimpan..." : "Simpan Feed"}
+                  {loading ? "Menyimpan..." : editingFeed ? "Simpan Perubahan" : "Simpan Feed"}
                 </PrimaryButton>
               </div>
             </form>
@@ -350,7 +410,7 @@ export default function CctvPage() {
                   </div>
                 )}
 
-                <div className="flex items-center gap-2 mt-auto pt-2 border-t border-line">
+                <div className="flex items-center flex-wrap gap-2 mt-auto pt-2 border-t border-line">
                   <button
                     onClick={() => onCheckFeed(feed.id)}
                     disabled={check?.loading}
@@ -364,6 +424,14 @@ export default function CctvPage() {
                   >
                     <Maximize2 className="w-3.5 h-3.5" /> Mode Fokus
                   </Link>
+                  {canManage && (
+                    <button
+                      onClick={() => openEditForm(feed)}
+                      className="flex items-center gap-1.5 text-[12px] font-semibold text-ink bg-canvas hover:bg-line transition-colors rounded-lg px-2.5 py-1.5"
+                    >
+                      <Pencil className="w-3.5 h-3.5" /> Edit
+                    </button>
+                  )}
                   {canManage && (
                     <button onClick={() => toggleFeedStatus(feed)} className="text-[12px] font-semibold text-primary hover:underline text-left ml-auto shrink-0">
                       {feed.status === "ACTIVE" ? "Nonaktifkan" : "Aktifkan"}
