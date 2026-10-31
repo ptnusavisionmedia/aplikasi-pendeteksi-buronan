@@ -265,7 +265,9 @@ export default function CctvFocusPage() {
       </div>
 
       <div ref={stageRef} className="flex-1 flex items-center justify-center relative px-4 pb-4">
-        <div className="relative inline-block max-w-full max-h-full">
+        {/* Mirrors video + bbox overlays together so detection boxes stay aligned with the
+            corrected picture — the label span counter-mirrors itself so its text stays readable. */}
+        <div className="relative inline-block max-w-full max-h-full" style={feed?.mirror ? { transform: "scaleX(-1)" } : undefined}>
           <video ref={videoRef} controls autoPlay playsInline muted className="block max-w-full max-h-full rounded-xl" />
 
           {faces.map((face, i) => {
@@ -285,7 +287,7 @@ export default function CctvFocusPage() {
               >
                 <span
                   className="absolute -top-6 left-0 text-[10.5px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap"
-                  style={{ background: tier.color, color: "#fff" }}
+                  style={{ background: tier.color, color: "#fff", transform: feed?.mirror ? "scaleX(-1)" : undefined }}
                 >
                   {Math.round(face.confidence * 100)}% &middot; {tier.label}
                 </span>

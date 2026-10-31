@@ -10,6 +10,7 @@ import { apiClient, apiErrorMessage } from "@/lib/api-client";
 import { useAuthStore } from "@/store/auth-store";
 import { Field, Input, Select, Checkbox, PrimaryButton, GhostButton, ErrorText, Badge } from "@/components/form";
 import { Modal } from "@/components/modal";
+import { LiveFeedVideo } from "@/components/live-feed-video";
 import type { CctvFeed } from "@/lib/types";
 
 // Leaflet touches `window` at module load time, so it can't be evaluated during Next.js's
@@ -132,6 +133,7 @@ export default function CctvPage() {
     lng: null as number | null,
     ptzSupported: CAMERA_PRESETS[0].ptzSupported as boolean,
     onvifPort: CAMERA_PRESETS[0].onvifPort as number,
+    mirror: false,
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -154,6 +156,7 @@ export default function CctvPage() {
         urlStream: form.urlStream,
         ptzSupported: form.ptzSupported,
         onvifPort: form.onvifPort,
+        mirror: form.mirror,
         ...(form.lat != null && form.lng != null ? { lat: form.lat, lng: form.lng } : {}),
       };
       if (editingFeed) {
@@ -181,6 +184,7 @@ export default function CctvPage() {
       lng: null,
       ptzSupported: CAMERA_PRESETS[0].ptzSupported,
       onvifPort: CAMERA_PRESETS[0].onvifPort,
+      mirror: false,
     });
     setPreset(CAMERA_PRESETS[0].id);
     setShowForm(true);
@@ -197,6 +201,7 @@ export default function CctvPage() {
       lng: feed.lng ?? null,
       ptzSupported: feed.ptzSupported,
       onvifPort: feed.onvifPort,
+      mirror: feed.mirror,
     });
     setPreset("manual");
     setShowForm(true);
@@ -215,6 +220,7 @@ export default function CctvPage() {
       lng: null,
       ptzSupported: CAMERA_PRESETS[0].ptzSupported,
       onvifPort: CAMERA_PRESETS[0].onvifPort,
+      mirror: false,
     });
     setPreset(CAMERA_PRESETS[0].id);
   }
@@ -371,6 +377,18 @@ export default function CctvPage() {
                 {CAMERA_PRESETS.find((p) => p.id === preset)?.help} Ganti <code>{"{user}"}</code>, <code>{"{pass}"}</code> dan{" "}
                 <code>{"{ip}"}</code> dengan kredensial &amp; IP kamera Anda.
               </p>
+              <label className="flex items-center gap-2.5 text-[13px] font-semibold cursor-pointer">
+                <Checkbox
+                  checked={form.mirror}
+                  onChange={(e) => setForm({ ...form, mirror: e.target.checked })}
+                />
+                Video kamera ini terbalik (mirror) — balik ulang secara otomatis
+              </label>
+              <p className="text-[12px] text-muted bg-canvas rounded-xl px-3 py-2.5">
+                Beberapa kamera mengirim gambar yang sudah mirror dari pabriknya (posisi terbalik secara
+                horizontal) — ini dikoreksi di sisi dashboard saja, bukan mengubah kamera itu sendiri.
+                Aktifkan hanya jika Anda melihat gambar kamera ini terbalik di Mode Fokus.
+              </p>
             </div>
 
             <div className="h-px bg-line" />
@@ -430,13 +448,18 @@ export default function CctvPage() {
                 <div className="text-[12px] text-muted mt-0.5">{feed.lokasi} &middot; {feed.wilayah}</div>
               </div>
 
-              {check?.result?.ok && check.result.snapshotBase64 && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={`data:image/jpeg;base64,${check.result.snapshotBase64}`}
-                  alt={`Snapshot ${feed.nama}`}
-                  className="rounded-lg border border-line w-full aspect-video object-cover"
-                />
+              {feed.status === "ACTIVE" ? (
+                <LiveFeedVideo feedId={feed.id} mirror={feed.mirror} className="rounded-lg border border-line w-full aspect-video" />
+              ) : (
+                check?.result?.ok &&
+                check.result.snapshotBase64 && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={`data:image/jpeg;base64,${check.result.snapshotBase64}`}
+                    alt={`Snapshot ${feed.nama}`}
+                    className="rounded-lg border border-line w-full aspect-video object-cover"
+                  />
+                )
               )}
               {check?.loading && (
                 <div className="text-[11.5px] font-semibold rounded-lg px-2.5 py-2 bg-canvas text-muted flex items-center gap-1.5">

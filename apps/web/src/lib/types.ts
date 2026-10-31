@@ -50,6 +50,7 @@ export interface CctvFeed {
   status: string;
   ptzSupported: boolean;
   onvifPort: number;
+  mirror: boolean;
   createdAt: string;
 }
 

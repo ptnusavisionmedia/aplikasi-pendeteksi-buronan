@@ -163,6 +163,11 @@ model CCTVFeed {
   // one piece that varies by brand (Tapo: 2020, Hikvision/Dahua/generic: 80).
   ptzSupported Boolean           @default(false)
   onvifPort    Int               @default(80)
+  // Some cameras publish an already left-right-flipped RTSP stream (a physical mount orientation
+  // or vendor firmware quirk, not something this app controls) — a per-feed software correction,
+  // applied as a CSS mirror on the <video> element, since ONVIF has no standardized "unmirror"
+  // command most consumer cameras implement.
+  mirror     Boolean             @default(false)
   createdAt  DateTime            @default(now())
 
   owner           User             @relation(fields: [ownerId], references: [id])

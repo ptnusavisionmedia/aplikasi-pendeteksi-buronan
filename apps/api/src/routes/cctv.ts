@@ -47,6 +47,7 @@ const createFeedSchema = z.object({
   sourceType: z.enum(["PRODUCTION", "DEV_SIMULATION"]).optional(),
   ptzSupported: z.boolean().optional(),
   onvifPort: z.number().int().min(1).max(65535).optional(),
+  mirror: z.boolean().optional(),
 });
 
 cctvRouter.post(
@@ -101,6 +102,7 @@ const updateFeedSchema = z.object({
   urlStream: rtspUrlSchema.optional(),
   ptzSupported: z.boolean().optional(),
   onvifPort: z.number().int().min(1).max(65535).optional(),
+  mirror: z.boolean().optional(),
 });
 
 cctvRouter.patch(
