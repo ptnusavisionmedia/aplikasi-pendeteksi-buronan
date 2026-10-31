@@ -1,14 +1,26 @@
 import { env } from "../env";
 
 async function callDetectionEngine<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(`${env.detectionEngineUrl}${path}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Internal-Api-Key": env.detectionEngineApiKey,
-    },
-    body: JSON.stringify(body),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${env.detectionEngineUrl}${path}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Internal-Api-Key": env.detectionEngineApiKey,
+      },
+      body: JSON.stringify(body),
+      // Generous, but bounded — detection-engine's own check_feed() guarantees a reply within
+      // its internal 12s timeout, so this only ever trips if detection-engine itself is down or
+      // wedged, in which case callers (e.g. the CCTV list's auto "Cek Koneksi") should get an
+      // actual error back instead of hanging indefinitely.
+      signal: AbortSignal.timeout(20000),
+    });
+  } catch (err) {
+    throw new Error(
+      `Tidak bisa menghubungi detection engine — tidak merespons dalam 20 detik (${err instanceof Error ? err.message : err})`
+    );
+  }
 
   if (!res.ok) {
     const text = await res.text();
@@ -64,12 +76,16 @@ export function checkCctvFeed(rtspUrl: string) {
   return callDetectionEngine<CctvCheckResult>("/internal/cctv-feeds/check", { rtspUrl });
 }
 
+export interface DetectedFace {
+  bbox: [number, number, number, number];
+  confidence: number;
+  buronanId?: string;
+  ageSeconds: number;
+}
+
 export interface LiveDetectionResult {
   active: boolean;
-  bbox?: [number, number, number, number];
-  confidence?: number;
-  buronanId?: string;
-  ageSeconds?: number;
+  faces: DetectedFace[];
 }
 
 export function getLiveDetection(feedId: string) {

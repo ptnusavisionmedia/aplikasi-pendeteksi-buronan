@@ -154,20 +154,26 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <Link href="/eskalasi" className="bento-cell col-span-2 row-span-1 flex items-center justify-between hover:border-coral transition-colors">
+        <Link
+          href="/eskalasi"
+          className="bento-cell col-span-2 row-span-2 flex flex-col items-start justify-between hover:border-coral transition-colors"
+        >
+          <Siren className="text-coral w-6 h-6" />
           <div>
             <div className="font-bold text-[14px]">Eskalasi</div>
             <div className="text-[12px] text-muted">Kelola kasus yang ditindaklanjuti</div>
           </div>
-          <Siren className="text-coral w-6 h-6" />
         </Link>
 
-        <div className="bento-cell col-span-2 row-span-1 flex flex-col">
-          <div className="flex items-center justify-between mb-1">
+        {/* row-span-2 (not 1) — the donut+legend below needs real vertical room (~169px with
+            this card's padding/header subtracted); at row-span-1 it was taller than the whole
+            card and visibly overflowed past the card's bottom edge. */}
+        <div className="bento-cell col-span-2 row-span-2 flex flex-col">
+          <div className="flex items-center justify-between mb-2">
             <span className="font-bold text-[14px]">Distribusi Status Deteksi</span>
             <Badge tone="primary">{user?.role}</Badge>
           </div>
-          <div className="flex-1">
+          <div className="flex-1 flex items-center">
             <DetectionStatusChart detections={detections} />
           </div>
         </div>

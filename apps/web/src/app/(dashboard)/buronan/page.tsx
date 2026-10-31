@@ -7,6 +7,7 @@ import { Plus, Search, UserSearch } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import { useAuthStore } from "@/store/auth-store";
 import { Badge, Input, Select } from "@/components/form";
+import { RetryImage } from "@/components/retry-image";
 import type { Buronan, BuronanStatus } from "@/lib/types";
 
 const STATUS_TONE: Record<BuronanStatus, "coral" | "primary" | "muted"> = {
@@ -75,8 +76,7 @@ export default function BuronanListPage() {
           <Link key={b.id} href={`/buronan/${b.id}`} className="bento-cell flex flex-col gap-3 hover:border-primary transition-colors">
             <div className="w-full aspect-square rounded-xl bg-canvas overflow-hidden flex items-center justify-center text-muted">
               {b.fotos?.[0]?.urlFoto ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={b.fotos[0].urlFoto} alt={b.nama} className="w-full h-full object-cover" />
+                <RetryImage src={b.fotos[0].urlFoto} alt={b.nama} className="w-full h-full object-cover" />
               ) : (
                 <UserSearch className="w-8 h-8" />
               )}

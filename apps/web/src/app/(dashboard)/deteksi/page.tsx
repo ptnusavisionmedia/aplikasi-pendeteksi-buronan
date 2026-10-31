@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ScanFace, Upload, X } from "lucide-react";
 import { apiClient, apiErrorMessage } from "@/lib/api-client";
 import { PrimaryButton, Badge } from "@/components/form";
+import { RetryImage } from "@/components/retry-image";
 import type { DetectionEvent } from "@/lib/types";
 
 interface ManualCheckResult {
@@ -95,8 +96,11 @@ export default function DeteksiPage() {
             return (
             <Link key={d.id} href={`/deteksi/${d.id}`} className="bento-cell flex items-center gap-3 hover:border-primary transition-colors">
               {fotoUtama ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={fotoUtama.urlFoto} alt={d.buronan?.nama ?? "Buronan"} className="w-9 h-9 rounded-lg object-cover shrink-0" />
+                <RetryImage
+                  src={fotoUtama.urlFoto}
+                  alt={d.buronan?.nama ?? "Buronan"}
+                  className="w-9 h-9 rounded-lg object-cover shrink-0"
+                />
               ) : (
                 <div className="w-9 h-9 rounded-lg bg-canvas flex items-center justify-center text-muted shrink-0">
                   <ScanFace className="w-4 h-4" />

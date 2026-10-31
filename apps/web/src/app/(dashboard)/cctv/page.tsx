@@ -247,17 +247,25 @@ export default function CctvPage() {
     }
   }
 
-  // Cek koneksi tiap feed otomatis begitu daftar feed dimuat, lalu diulang tiap 30 detik, supaya
-  // status "Terhubung"/"Gagal terhubung" langsung terlihat tanpa pengguna klik "Cek Koneksi" manual.
+  const { data: settings } = useQuery({
+    queryKey: ["settings"],
+    queryFn: async () => (await apiClient.get<{ cctvAutoCheckIntervalSeconds: number }>("/settings")).data,
+  });
+
+  // Cek koneksi tiap feed otomatis begitu daftar feed dimuat, lalu diulang tiap N detik (lihat
+  // Pengaturan), supaya status "Terhubung"/"Gagal terhubung" langsung terlihat tanpa pengguna
+  // klik "Cek Koneksi" manual.
   useEffect(() => {
     if (!feeds || feeds.length === 0) return;
     feeds.forEach((feed) => onCheckFeed(feed.id));
-    const interval = setInterval(() => {
-      feeds.forEach((feed) => onCheckFeed(feed.id));
-    }, 30000);
+    const interval = setInterval(
+      () => {
+        feeds.forEach((feed) => onCheckFeed(feed.id));
+      },
+      (settings?.cctvAutoCheckIntervalSeconds ?? 30) * 1000
+    );
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [feeds]);
+  }, [feeds, settings?.cctvAutoCheckIntervalSeconds]);
 
   return (
     <div>

@@ -4,18 +4,23 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import Hls from "hls.js";
-import { ArrowLeft, ArrowUp, ArrowDown, ArrowRight, Camera as CameraIcon, X } from "lucide-react";
+import { ArrowLeft, ArrowUp, ArrowDown, ArrowRight, Camera as CameraIcon, GripHorizontal, X } from "lucide-react";
 import { apiClient, apiErrorMessage } from "@/lib/api-client";
 import { Badge } from "@/components/form";
+import { RetryImage } from "@/components/retry-image";
 import type { CctvFeed } from "@/lib/types";
 
 type Status = "connecting" | "live" | "error";
 
+interface DetectedFace {
+  bbox: [number, number, number, number];
+  confidence: number;
+  ageSeconds: number;
+}
+
 interface LiveDetection {
   active: boolean;
-  bbox?: [number, number, number, number];
-  confidence?: number;
-  ageSeconds?: number;
+  faces: DetectedFace[];
 }
 
 const STALE_DETECTION_SECONDS = 8; // a couple missed capture ticks (~2s each) — camera loop likely stopped
@@ -38,17 +43,92 @@ export default function CctvFocusPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<Status>("connecting");
   const [error, setError] = useState<string | null>(null);
   const [detection, setDetection] = useState<LiveDetection | null>(null);
   const [ptzError, setPtzError] = useState<string | null>(null);
   const [snapshotUrl, setSnapshotUrl] = useState<string | null>(null);
   const [capturing, setCapturing] = useState(false);
+  // Default position is bottom-right (set by CSS, panelPos === null). Once dragged, position is
+  // pinned in px from the stage's top-left — so the operator can pull it off whatever part of the
+  // frame it happens to be covering, and the choice survives reopening Mode Fokus for this camera.
+  const [panelPos, setPanelPos] = useState<{ x: number; y: number } | null>(null);
+  const dragState = useRef<{ dx: number; dy: number } | null>(null);
+
+  useEffect(() => {
+    if (!id) return;
+    try {
+      const saved = localStorage.getItem(`ptz-panel-pos:${id}`);
+      if (saved) setPanelPos(JSON.parse(saved));
+    } catch {
+      // ignore — falls back to the default corner position
+    }
+  }, [id]);
+
+  function clampToStage(x: number, y: number) {
+    const stage = stageRef.current;
+    const panel = panelRef.current;
+    if (!stage || !panel) return { x, y };
+    const margin = 12; // keeps the panel inside the "safe frame" — never flush against the edge
+    const maxX = stage.clientWidth - panel.offsetWidth - margin;
+    const maxY = stage.clientHeight - panel.offsetHeight - margin;
+    return { x: Math.min(Math.max(x, margin), Math.max(margin, maxX)), y: Math.min(Math.max(y, margin), Math.max(margin, maxY)) };
+  }
+
+  function onPanelDragStart(e: React.PointerEvent) {
+    const stage = stageRef.current;
+    const panel = panelRef.current;
+    if (!stage || !panel) return;
+    const stageBox = stage.getBoundingClientRect();
+    const panelBox = panel.getBoundingClientRect();
+    dragState.current = { dx: e.clientX - panelBox.left, dy: e.clientY - panelBox.top };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+
+    function onMove(ev: PointerEvent) {
+      if (!dragState.current) return;
+      const next = clampToStage(ev.clientX - stageBox.left - dragState.current.dx, ev.clientY - stageBox.top - dragState.current.dy);
+      setPanelPos(next);
+    }
+    function onUp() {
+      dragState.current = null;
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      setPanelPos((pos) => {
+        if (pos && id) {
+          try {
+            localStorage.setItem(`ptz-panel-pos:${id}`, JSON.stringify(pos));
+          } catch {
+            // best-effort only — losing the saved position just means it resets to default
+          }
+        }
+        return pos;
+      });
+    }
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }
+
+  // Re-clamp on window resize so a position saved at a larger viewport can't push the panel
+  // off-screen (or over the controls bar) after the window shrinks.
+  useEffect(() => {
+    function onResize() {
+      setPanelPos((pos) => (pos ? clampToStage(pos.x, pos.y) : pos));
+    }
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   const { data: feed } = useQuery({
     queryKey: ["cctv-feeds"],
     queryFn: async () => (await apiClient.get<CctvFeed[]>("/cctv-feeds")).data,
     select: (feeds) => feeds.find((f) => f.id === id),
+  });
+
+  const { data: settings } = useQuery({
+    queryKey: ["settings"],
+    queryFn: async () => (await apiClient.get<{ liveDetectionPollIntervalMs: number }>("/settings")).data,
   });
 
   useEffect(() => {
@@ -120,23 +200,22 @@ export default function CctvFocusPage() {
       try {
         const { data } = await apiClient.get<LiveDetection>(`/cctv-feeds/${id}/live-detection`);
         if (cancelled) return;
-        const stale = data.active && (data.ageSeconds ?? 0) > STALE_DETECTION_SECONDS;
-        setDetection(stale ? { active: false } : data);
+        const freshFaces = data.active ? data.faces.filter((f) => f.ageSeconds <= STALE_DETECTION_SECONDS) : [];
+        setDetection({ active: freshFaces.length > 0, faces: freshFaces });
       } catch {
         if (!cancelled) setDetection(null);
       }
     }
 
     poll();
-    const interval = setInterval(poll, 1200);
+    const interval = setInterval(poll, settings?.liveDetectionPollIntervalMs ?? 1200);
     return () => {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [id, status]);
+  }, [id, status, settings?.liveDetectionPollIntervalMs]);
 
-  const tier = detection?.active && detection.confidence !== undefined ? tierFor(detection.confidence) : null;
-  const bbox = detection?.active ? detection.bbox : undefined;
+  const faces = detection?.active ? detection.faces : [];
 
   async function startMove(direction: "up" | "down" | "left" | "right") {
     setPtzError(null);
@@ -185,30 +264,34 @@ export default function CctvFocusPage() {
         <div className="w-[120px]" />
       </div>
 
-      <div className="flex-1 flex items-center justify-center relative px-4 pb-4">
+      <div ref={stageRef} className="flex-1 flex items-center justify-center relative px-4 pb-4">
         <div className="relative inline-block max-w-full max-h-full">
           <video ref={videoRef} controls autoPlay playsInline muted className="block max-w-full max-h-full rounded-xl" />
 
-          {bbox && tier && (
-            <div
-              className="absolute border-[3px] rounded-md pointer-events-none transition-[left,top,width,height] duration-300"
-              style={{
-                left: `${bbox[0] * 100}%`,
-                top: `${bbox[1] * 100}%`,
-                width: `${(bbox[2] - bbox[0]) * 100}%`,
-                height: `${(bbox[3] - bbox[1]) * 100}%`,
-                borderColor: tier.color,
-                boxShadow: `0 0 0 9999px transparent, 0 0 16px 0 ${tier.color}66`,
-              }}
-            >
-              <span
-                className="absolute -top-6 left-0 text-[10.5px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap"
-                style={{ background: tier.color, color: "#fff" }}
+          {faces.map((face, i) => {
+            const tier = tierFor(face.confidence);
+            return (
+              <div
+                key={i}
+                className="absolute border-[3px] rounded-md pointer-events-none transition-[left,top,width,height] duration-300"
+                style={{
+                  left: `${face.bbox[0] * 100}%`,
+                  top: `${face.bbox[1] * 100}%`,
+                  width: `${(face.bbox[2] - face.bbox[0]) * 100}%`,
+                  height: `${(face.bbox[3] - face.bbox[1]) * 100}%`,
+                  borderColor: tier.color,
+                  boxShadow: `0 0 0 9999px transparent, 0 0 16px 0 ${tier.color}66`,
+                }}
               >
-                {Math.round((detection?.confidence ?? 0) * 100)}% &middot; {tier.label}
-              </span>
-            </div>
-          )}
+                <span
+                  className="absolute -top-6 left-0 text-[10.5px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap"
+                  style={{ background: tier.color, color: "#fff" }}
+                >
+                  {Math.round(face.confidence * 100)}% &middot; {tier.label}
+                </span>
+              </div>
+            );
+          })}
         </div>
 
         {status === "connecting" && (
@@ -223,7 +306,18 @@ export default function CctvFocusPage() {
         )}
 
         {status === "live" && feed?.ptzSupported && (
-          <div className="absolute right-6 bottom-6 flex flex-col items-center gap-3 bg-ink/70 backdrop-blur rounded-2xl p-4">
+          <div
+            ref={panelRef}
+            className="absolute flex flex-col items-center gap-2 bg-ink/70 backdrop-blur rounded-2xl p-4"
+            style={panelPos ? { left: panelPos.x, top: panelPos.y, right: "auto", bottom: "auto" } : { right: "1.5rem", bottom: "1.5rem" }}
+          >
+            <div
+              onPointerDown={onPanelDragStart}
+              className="flex items-center justify-center w-full h-4 -mt-1 -mb-0.5 text-white/40 hover:text-white/70 cursor-grab active:cursor-grabbing touch-none"
+              title="Geser panel kontrol"
+            >
+              <GripHorizontal className="w-4 h-4" />
+            </div>
             <div className="grid grid-cols-3 gap-1.5 w-[140px]">
               <span />
               <PtzButton icon={ArrowUp} label="Atas" onPress={() => startMove("up")} onRelease={stopMove} />
@@ -251,8 +345,7 @@ export default function CctvFocusPage() {
               >
                 <X className="w-4 h-4" /> Tutup
               </button>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={snapshotUrl} alt="Foto hasil PTZ" className="rounded-xl w-full" />
+              <RetryImage src={snapshotUrl} alt="Foto hasil PTZ" className="rounded-xl w-full" />
               <a
                 href={snapshotUrl}
                 target="_blank"

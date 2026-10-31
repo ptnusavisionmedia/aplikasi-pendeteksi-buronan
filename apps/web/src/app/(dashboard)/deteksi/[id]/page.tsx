@@ -8,6 +8,7 @@ import { ScanFace, Siren, Download, ExternalLink } from "lucide-react";
 import { apiClient, apiErrorMessage } from "@/lib/api-client";
 import { useAuthStore } from "@/store/auth-store";
 import { Badge, Select, Textarea, PrimaryButton, ErrorText, SuccessText } from "@/components/form";
+import { RetryImage } from "@/components/retry-image";
 import type { DetectionEvent } from "@/lib/types";
 
 interface Instansi {
@@ -64,8 +65,11 @@ export default function DetectionDetailPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {fotoUtama ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={fotoUtama.urlFoto} alt={event.buronan?.nama ?? "Buronan"} className="w-10 h-10 rounded-lg object-cover" />
+              <RetryImage
+                src={fotoUtama.urlFoto}
+                alt={event.buronan?.nama ?? "Buronan"}
+                className="w-10 h-10 rounded-lg object-cover"
+              />
             ) : (
               <div className="w-10 h-10 rounded-lg bg-canvas flex items-center justify-center text-muted">
                 <ScanFace className="w-5 h-5" />
@@ -99,15 +103,21 @@ export default function DetectionDetailPage() {
               {fotoUtama && (
                 <div>
                   <div className="text-[11px] text-muted mb-1">Foto buronan terdaftar</div>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={fotoUtama.urlFoto} alt={event.buronan.nama} className="rounded-xl border border-line w-full aspect-square object-cover" />
+                  <RetryImage
+                    src={fotoUtama.urlFoto}
+                    alt={event.buronan.nama}
+                    className="rounded-xl border border-line w-full aspect-square object-cover"
+                  />
                 </div>
               )}
               {event.evidence && (
                 <div>
                   <div className="text-[11px] text-muted mb-1">Tertangkap CCTV / evidence</div>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={event.evidence.fileUrl} alt="Evidence" className="rounded-xl border border-line w-full aspect-square object-cover" />
+                  <RetryImage
+                    src={event.evidence.fileUrl}
+                    alt="Evidence"
+                    className="rounded-xl border border-line w-full aspect-square object-cover"
+                  />
                 </div>
               )}
             </div>

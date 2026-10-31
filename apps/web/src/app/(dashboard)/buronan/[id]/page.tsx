@@ -7,6 +7,7 @@ import { UserSearch, Upload, ScanFace, Trash2, ArrowLeft, X } from "lucide-react
 import { apiClient, apiErrorMessage } from "@/lib/api-client";
 import { useAuthStore } from "@/store/auth-store";
 import { Badge, Select, ErrorText, GhostButton } from "@/components/form";
+import { RetryImage } from "@/components/retry-image";
 import type { Buronan, BuronanStatus, DetectionEvent } from "@/lib/types";
 
 const STATUS_TONE: Record<BuronanStatus, "coral" | "primary" | "muted"> = {
@@ -97,8 +98,7 @@ export default function BuronanDetailPage() {
       <div className="bento-cell flex flex-col gap-4">
         <div className="w-full aspect-square rounded-xl bg-canvas overflow-hidden flex items-center justify-center text-muted">
           {primaryFoto ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={primaryFoto.urlFoto} alt={buronan.nama} className="w-full h-full object-cover" />
+            <RetryImage src={primaryFoto.urlFoto} alt={buronan.nama} className="w-full h-full object-cover" />
           ) : (
             <UserSearch className="w-10 h-10" />
           )}
@@ -154,8 +154,7 @@ export default function BuronanDetailPage() {
               onClick={() => setLightboxUrl(f.urlFoto)}
               className="aspect-square rounded-xl border border-line overflow-hidden hover:opacity-80 transition-opacity"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={f.urlFoto} alt="" className="w-full h-full object-cover" />
+              <RetryImage src={f.urlFoto} alt="" className="w-full h-full object-cover" />
             </button>
           ))}
           {(!buronan.fotos || buronan.fotos.length === 0) && (
@@ -203,8 +202,7 @@ export default function BuronanDetailPage() {
           >
             <X className="w-5 h-5" />
           </button>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <RetryImage
             src={lightboxUrl}
             alt={buronan.nama}
             className="max-h-[85vh] max-w-[85vw] object-contain rounded-xl"

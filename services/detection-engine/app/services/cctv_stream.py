@@ -13,7 +13,8 @@ import cv2
 import httpx
 
 from app.config import settings
-from app.core.face import LowQualityFaceError, NoFaceDetectedError, extract_embedding
+from app.core.face import extract_embeddings
+from app.services.settings_sync import get_match_threshold, get_report_threshold
 from app.services.qdrant_client import search_face
 from app.services.storage import upload_snapshot
 
@@ -35,10 +36,10 @@ _check_executor = ThreadPoolExecutor(max_workers=16, thread_name_prefix="cctv-ch
 _running_tasks: dict[str, asyncio.Task] = {}
 _grabbers: dict[str, "_FrameGrabber"] = {}
 
-# Latest face seen per feed, for the live bbox overlay (Mode Fokus) — independent of whether it
-# was confident enough to get written to the database. Cleared whenever a capture tick sees no
-# face, so the overlay disappears instead of showing a stale box.
-_latest_detection: dict[str, dict] = {}
+# Latest faces seen per feed (up to MAX_DETECTED_FACES), for the live bbox overlay (Mode Fokus) —
+# independent of whether any of them was confident enough to get written to the database. Cleared
+# whenever a capture tick sees no face, so the overlay disappears instead of showing a stale box.
+_latest_detection: dict[str, list[dict]] = {}
 
 # Capture timestamp of the frame currently reflected in _latest_detection, per feed. With several
 # workers processing frames concurrently, an older frame can finish its (slower) pipeline after a
@@ -51,11 +52,12 @@ _latest_detection_frame_ts: dict[str, float] = {}
 _last_reported_at: dict[tuple[str, str], float] = {}
 
 
-def get_latest_detection(feed_id: str) -> dict | None:
-    detection = _latest_detection.get(feed_id)
-    if detection is None:
+def get_latest_detections(feed_id: str) -> list[dict] | None:
+    detections = _latest_detection.get(feed_id)
+    if detections is None:
         return None
-    return {**detection, "age_seconds": time.time() - detection["seen_at"]}
+    now = time.time()
+    return [{**d, "age_seconds": now - d["seen_at"]} for d in detections]
 
 
 async def start_feed(feed_id: str, rtsp_url: str) -> None:
@@ -278,9 +280,8 @@ async def _process_frame(feed_id: str, frame, captured_at: float) -> None:
     jpeg_bytes = jpeg.tobytes()
     frame_height, frame_width = frame.shape[:2]
 
-    try:
-        face = await loop.run_in_executor(None, extract_embedding, jpeg_bytes)
-    except (NoFaceDetectedError, LowQualityFaceError):
+    faces = await loop.run_in_executor(None, extract_embeddings, jpeg_bytes)
+    if not faces:
         # Only clear the overlay if this is the newest frame processed so far for this feed —
         # otherwise a faster worker on an older, face-less frame could blank out a fresher
         # worker's still-in-flight detection.
@@ -289,10 +290,23 @@ async def _process_frame(feed_id: str, frame, captured_at: float) -> None:
             _latest_detection_frame_ts[feed_id] = captured_at
         return
 
-    results = await loop.run_in_executor(None, search_face, face.embedding.tolist(), 1)
-    best = results[0] if results else None
-    score = best.score if best else 0.0
-    buronan_id = best.payload["buronan_id"] if best else None
+    # Search Qdrant for every face in the frame concurrently — each person gets independently
+    # matched against the buronan database, not just the single most prominent face.
+    search_results = await asyncio.gather(
+        *(loop.run_in_executor(None, search_face, face.embedding.tolist(), 1) for face in faces)
+    )
+
+    matches = []
+    for face, results in zip(faces, search_results):
+        best = results[0] if results else None
+        x1, y1, x2, y2 = face.bbox
+        matches.append(
+            {
+                "bbox": [x1 / frame_width, y1 / frame_height, x2 / frame_width, y2 / frame_height],
+                "confidence": float(best.score) if best else 0.0,
+                "buronan_id": best.payload["buronan_id"] if best else None,
+            }
+        )
 
     if captured_at < _latest_detection_frame_ts.get(feed_id, 0.0):
         # A worker on a newer frame already finished and updated the overlay; don't regress it
@@ -300,42 +314,44 @@ async def _process_frame(feed_id: str, frame, captured_at: float) -> None:
         # a real match is worth recording even if it's no longer the newest frame on screen.
         pass
     else:
-        x1, y1, x2, y2 = face.bbox
+        now = time.time()
         # Live overlay (Mode Fokus): every face gets a box, regardless of match confidence — the
         # green/yellow/red tiering happens client-side purely from this score.
-        _latest_detection[feed_id] = {
-            "bbox": [x1 / frame_width, y1 / frame_height, x2 / frame_width, y2 / frame_height],
-            "confidence": float(score),
-            "buronan_id": buronan_id,
-            "seen_at": time.time(),
-        }
+        _latest_detection[feed_id] = [{**m, "seen_at": now} for m in matches]
         _latest_detection_frame_ts[feed_id] = captured_at
 
-    if best is None or score < settings.cctv_report_threshold:
-        return  # not similar enough to any buronan on file to be worth a database row
+    reportable = [m for m in matches if m["buronan_id"] is not None and m["confidence"] >= get_report_threshold()]
+    if not reportable:
+        return  # none of the faces in this frame are similar enough to any buronan on file
 
-    # A confirmed-tier match (>= apps/api's 0.9 cutoff) always reports immediately; anything
-    # between the report floor and that cutoff is throttled so one lingering face doesn't spam
-    # LOW_CONFIDENCE/PENDING_CONFIRMATION rows every single capture tick.
-    report_key = (feed_id, buronan_id)
+    snapshot_url: str | None = None
     now = time.time()
-    if score < settings.match_threshold:
-        last = _last_reported_at.get(report_key)
-        if last is not None and now - last < settings.cctv_report_cooldown_seconds:
-            return
-    _last_reported_at[report_key] = now
-
-    snapshot_url = await loop.run_in_executor(None, upload_snapshot, jpeg_bytes)
-
     async with httpx.AsyncClient() as client:
-        await client.post(
-            settings.express_webhook_url,
-            headers={"X-Internal-Api-Key": settings.internal_api_key},
-            json={
-                "cctvFeedId": feed_id,
-                "buronanId": buronan_id,
-                "confidence": score,
-                "snapshotUrl": snapshot_url,
-            },
-            timeout=10.0,
-        )
+        for match in reportable:
+            buronan_id = match["buronan_id"]
+            score = match["confidence"]
+
+            # A confirmed-tier match (>= apps/api's 0.9 cutoff) always reports immediately;
+            # anything between the report floor and that cutoff is throttled so one lingering
+            # face doesn't spam LOW_CONFIDENCE/PENDING_CONFIRMATION rows every capture tick.
+            report_key = (feed_id, buronan_id)
+            if score < get_match_threshold():
+                last = _last_reported_at.get(report_key)
+                if last is not None and now - last < settings.cctv_report_cooldown_seconds:
+                    continue
+            _last_reported_at[report_key] = now
+
+            if snapshot_url is None:
+                snapshot_url = await loop.run_in_executor(None, upload_snapshot, jpeg_bytes)
+
+            await client.post(
+                settings.express_webhook_url,
+                headers={"X-Internal-Api-Key": settings.internal_api_key},
+                json={
+                    "cctvFeedId": feed_id,
+                    "buronanId": buronan_id,
+                    "confidence": score,
+                    "snapshotUrl": snapshot_url,
+                },
+                timeout=10.0,
+            )

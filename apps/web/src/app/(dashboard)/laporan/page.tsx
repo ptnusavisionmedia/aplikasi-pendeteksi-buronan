@@ -6,6 +6,7 @@ import { Flag, Trash2 } from "lucide-react";
 import { apiClient, apiErrorMessage } from "@/lib/api-client";
 import { useAuthStore } from "@/store/auth-store";
 import { GhostButton, PrimaryButton, Select } from "@/components/form";
+import { RetryImage } from "@/components/retry-image";
 import type { Report, ReportStatus } from "@/lib/types";
 
 const STATUS_FILTERS: { value: ReportStatus | "ALL"; label: string }[] = [
@@ -72,8 +73,7 @@ export default function LaporanPage() {
         {data?.map((report) => (
           <div key={report.id} className="bento-cell flex flex-col gap-3">
             <div className="w-full aspect-square rounded-xl bg-canvas overflow-hidden">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={report.fotoUrl} alt="Laporan" className="w-full h-full object-cover" />
+              <RetryImage src={report.fotoUrl} alt="Laporan" className="w-full h-full object-cover" />
             </div>
             <div>
               <div className="flex items-center justify-between gap-2">

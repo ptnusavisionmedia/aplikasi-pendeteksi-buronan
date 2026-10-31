@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from app.config import settings
 from app.core.face import LowQualityFaceError, NoFaceDetectedError, extract_embedding
-from app.services.cctv_stream import check_feed, get_latest_detection, start_feed, stop_feed
+from app.services.cctv_stream import check_feed, get_latest_detections, start_feed, stop_feed
 from app.services.qdrant_client import delete_points, search_face, upsert_face
 
 
@@ -126,28 +126,38 @@ async def cctv_check(body: CctvCheckRequest):
     return CctvCheckResponse(**result)
 
 
+class DetectedFace(BaseModel):
+    bbox: list[float]  # [x1, y1, x2, y2] normalized to 0..1 of the source frame
+    confidence: float
+    buronanId: str | None = None
+    ageSeconds: float
+
+
 class LiveDetectionResponse(BaseModel):
     active: bool
-    bbox: list[float] | None = None  # [x1, y1, x2, y2] normalized to 0..1 of the source frame
-    confidence: float | None = None
-    buronanId: str | None = None
-    ageSeconds: float | None = None
+    faces: list[DetectedFace] = []
 
 
 @router.post("/cctv-feeds/{feed_id}/live-detection", response_model=LiveDetectionResponse)
 async def cctv_live_detection(feed_id: str):
-    """Polled by the dashboard's Mode Fokus view (~1x/sec) to draw the confidence bounding box.
-    Reflects the capture loop's own periodic frame grab, not the exact instant shown in the HLS
-    player — the two run as separate pulls from the camera, so there's a small, expected lag."""
-    detection = get_latest_detection(feed_id)
-    if detection is None:
+    """Polled by the dashboard's Mode Fokus view (~1x/sec) to draw a confidence bounding box per
+    face in frame (up to MAX_DETECTED_FACES). Reflects the capture loop's own periodic frame
+    grab, not the exact instant shown in the HLS player — the two run as separate pulls from the
+    camera, so there's a small, expected lag."""
+    detections = get_latest_detections(feed_id)
+    if not detections:
         return LiveDetectionResponse(active=False)
     return LiveDetectionResponse(
         active=True,
-        bbox=detection["bbox"],
-        confidence=detection["confidence"],
-        buronanId=detection["buronan_id"],
-        ageSeconds=detection["age_seconds"],
+        faces=[
+            DetectedFace(
+                bbox=d["bbox"],
+                confidence=d["confidence"],
+                buronanId=d["buronan_id"],
+                ageSeconds=d["age_seconds"],
+            )
+            for d in detections
+        ],
     )
 
 

@@ -299,3 +299,18 @@ model AuditLog {
   @@index([entityType, entityId])
   @@map("audit_logs")
 }
+
+/// Singleton row (always id = "default") of admin-editable operational settings — the dashboard's
+/// "Pengaturan" page reads/writes this instead of requiring an env var change + redeploy for
+/// every knob. detection-engine polls GET /internal/settings periodically to pick up threshold
+/// changes without its own restart; see services/detection-engine/app/services/settings_sync.py.
+model SystemSetting {
+  id                          String   @id @default("default")
+  cctvAutoCheckIntervalSeconds Int     @default(30)
+  liveDetectionPollIntervalMs Int      @default(1200)
+  detectionReportThreshold    Float    @default(0.5)
+  detectionMatchThreshold     Float    @default(0.9)
+  updatedAt                   DateTime @updatedAt
+
+  @@map("system_settings")
+}

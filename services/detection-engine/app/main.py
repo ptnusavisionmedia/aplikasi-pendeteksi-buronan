@@ -1,9 +1,11 @@
+import asyncio
 import os
 
 from fastapi import FastAPI
 
 from app.api.internal import router as internal_router
 from app.services.qdrant_client import ensure_collection
+from app.services.settings_sync import run_settings_sync_loop
 from app.services.storage import ensure_bucket
 
 # OpenCV's FFmpeg backend defaults to UDP for RTSP, which is unreliable across
@@ -20,3 +22,4 @@ app.include_router(internal_router)
 async def on_startup() -> None:
     ensure_collection()
     ensure_bucket()
+    asyncio.create_task(run_settings_sync_loop())

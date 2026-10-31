@@ -13,9 +13,10 @@ import {
   Bell,
   Siren,
   LogOut,
-  Search,
+  Settings2,
 } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
+import { GlobalSearch } from "@/components/global-search";
 import type { Role } from "@/lib/types";
 
 interface NavItem {
@@ -33,6 +34,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/notifikasi", label: "Notifikasi", icon: Bell },
   { href: "/eskalasi", label: "Eskalasi", icon: Siren, roles: ["ADMIN", "APARAT", "KEAMANAN_SWASTA"] },
   { href: "/laporan", label: "Laporan Masyarakat", icon: Flag, roles: ["ADMIN", "APARAT", "KEAMANAN_SWASTA"] },
+  { href: "/pengaturan", label: "Pengaturan", icon: Settings2 },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -104,10 +106,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       <main className="flex-1 min-w-0">
         <header className="glass-strong h-16 rounded-none flex items-center justify-between px-7">
-          <div className="flex items-center gap-2 text-muted text-[13px] bg-canvas/70 rounded-xl px-3 py-2 w-[320px]">
-            <Search className="w-4 h-4" />
-            <span>Cari buronan, kamera, kasus...</span>
-          </div>
+          <GlobalSearch />
           <div className="flex items-center gap-3">
             <Link href="/notifikasi" className="w-9 h-9 rounded-xl bg-canvas flex items-center justify-center text-muted hover:text-ink">
               <Bell className="w-[18px] h-[18px]" />

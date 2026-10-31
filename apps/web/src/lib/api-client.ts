@@ -5,6 +5,10 @@ export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
+  // Without this, a request that hangs upstream (MediaMTX/detection-engine stalling on a bad
+  // camera) hangs here too — nothing ever rejects, so a UI like the CCTV list's auto "Cek
+  // Koneksi" gets stuck showing "Menghubungkan..." forever instead of eventually erroring out.
+  timeout: 30000,
 });
 
 apiClient.interceptors.request.use((config) => {
@@ -27,6 +31,12 @@ apiClient.interceptors.response.use(
 
 export function apiErrorMessage(error: unknown, fallback = "Terjadi kesalahan, coba lagi."): string {
   if (axios.isAxiosError(error)) {
+    if (error.code === "ECONNABORTED") {
+      return "Waktu permintaan habis — server tidak kunjung merespons. Coba lagi sesaat lagi.";
+    }
+    if (!error.response) {
+      return "Tidak bisa menghubungi server — periksa koneksi jaringan Anda.";
+    }
     const data = error.response?.data as { error?: unknown } | undefined;
     if (typeof data?.error === "string") return data.error;
     if (data?.error && typeof data.error === "object") {

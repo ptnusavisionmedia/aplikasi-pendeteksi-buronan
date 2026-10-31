@@ -201,7 +201,8 @@ cctvRouter.post("/:id/live", requireAuth, async (req, res) => {
     res.json({ hlsUrl: liveHlsUrl(feed.id) });
   } catch (err) {
     console.error(`Gagal menyiapkan live path feed ${feed.id}:`, err);
-    const message = err instanceof Error && /tidak valid/.test(err.message) ? err.message : "Gagal menyiapkan live stream";
+    const message =
+      err instanceof Error && /tidak valid|tidak merespons/.test(err.message) ? err.message : "Gagal menyiapkan live stream";
     res.status(502).json({ error: message });
   }
 });

@@ -21,20 +21,37 @@ export async function ensureLivePath(feedId: string, rtspUrl: string): Promise<v
 
   const headers = { "Content-Type": "application/json" };
   const body = JSON.stringify({ source: rtspUrl, sourceOnDemand: true });
+  // Without a bound here, a MediaMTX instance that's slow/wedged (e.g. still validating its
+  // whole path config from a previous call) hangs this fetch forever — and every caller of
+  // ensureLivePath (the CCTV list's auto "Cek Koneksi", Mode Fokus open) hangs right along with
+  // it, with no error ever surfacing to the dashboard.
+  const signal = AbortSignal.timeout(8000);
 
-  const addRes = await fetch(`${env.mediamtx.apiUrl}/v3/config/paths/add/${encodeURIComponent(feedId)}`, {
-    method: "POST",
-    headers,
-    body,
-  });
+  let addRes: Response;
+  try {
+    addRes = await fetch(`${env.mediamtx.apiUrl}/v3/config/paths/add/${encodeURIComponent(feedId)}`, {
+      method: "POST",
+      headers,
+      body,
+      signal,
+    });
+  } catch (err) {
+    throw new Error(`Gagal menghubungi MediaMTX — tidak merespons dalam 8 detik (${err instanceof Error ? err.message : err})`);
+  }
   if (addRes.ok) return;
 
   if (addRes.status === 400) {
-    const patchRes = await fetch(`${env.mediamtx.apiUrl}/v3/config/paths/patch/${encodeURIComponent(feedId)}`, {
-      method: "PATCH",
-      headers,
-      body,
-    });
+    let patchRes: Response;
+    try {
+      patchRes = await fetch(`${env.mediamtx.apiUrl}/v3/config/paths/patch/${encodeURIComponent(feedId)}`, {
+        method: "PATCH",
+        headers,
+        body,
+        signal: AbortSignal.timeout(8000),
+      });
+    } catch (err) {
+      throw new Error(`Gagal menghubungi MediaMTX — tidak merespons dalam 8 detik (${err instanceof Error ? err.message : err})`);
+    }
     if (patchRes.ok) return;
     throw new Error(`MediaMTX patch path error (${patchRes.status}): ${await patchRes.text()}`);
   }
