@@ -38,6 +38,26 @@ function parseCredentials(urlStream: string): { hostname: string; username?: str
   };
 }
 
+/** Translates the `onvif` package's raw SOAP fault text (e.g. `ONVIF SOAP Fault:
+ * {"value":"SOAP-ENV:Receiver","subcode":{"value":"ter:ActionNotSupported"}}`) into something a
+ * dashboard user can actually act on, instead of showing them an ONVIF protocol internals dump. */
+function friendlyPtzError(err: unknown, action: string): Error {
+  const message = err instanceof Error ? err.message : String(err);
+
+  if (/ActionNotSupported/i.test(message)) {
+    return new Error(
+      `Kamera ini tidak mendukung perintah ONVIF "${action}" — kemungkinan firmware kamera tidak mengimplementasikan fitur ini meski kameranya mendukung ONVIF secara umum.`
+    );
+  }
+  if (/NotAuthorized|Unauthorized|InvalidArgVal.*Credential/i.test(message)) {
+    return new Error("Kamera menolak kredensial ONVIF — periksa kembali username/password pada URL stream.");
+  }
+  if (/ECONNREFUSED|ETIMEDOUT|EHOSTUNREACH/i.test(message)) {
+    return new Error("Tidak bisa terhubung ke port ONVIF kamera — periksa kembali Port ONVIF, atau pastikan kamera & server di jaringan yang sama.");
+  }
+  return new Error(`Gagal menjalankan perintah PTZ "${action}" pada kamera — ${message}`);
+}
+
 function connect(feed: PtzFeed): Promise<InstanceType<typeof Cam>> {
   const { hostname, username, password } = parseCredentials(feed.urlStream);
   return new Promise((resolve, reject) => {
@@ -58,7 +78,7 @@ export async function ptzMove(feed: PtzFeed, direction: PtzDirection, speed = 0.
   const vector = DIRECTION_VECTOR[direction];
   await new Promise<void>((resolve, reject) => {
     cam.continuousMove({ x: vector.x * speed, y: vector.y * speed, zoom: 0 }, (err: Error | null) =>
-      err ? reject(err) : resolve()
+      err ? reject(friendlyPtzError(err, "gerakkan kamera")) : resolve()
     );
   });
 }
@@ -66,7 +86,9 @@ export async function ptzMove(feed: PtzFeed, direction: PtzDirection, speed = 0.
 export async function ptzStop(feed: PtzFeed): Promise<void> {
   const cam = await connect(feed);
   await new Promise<void>((resolve, reject) => {
-    cam.stop({ panTilt: true, zoom: true }, (err: Error | null) => (err ? reject(err) : resolve()));
+    cam.stop({ panTilt: true, zoom: true }, (err: Error | null) =>
+      err ? reject(friendlyPtzError(err, "hentikan kamera")) : resolve()
+    );
   });
 }
 
@@ -114,9 +136,11 @@ async function digestFetch(url: string, username?: string, password?: string): P
 export async function ptzSnapshot(feed: PtzFeed): Promise<Buffer> {
   const cam = await connect(feed);
   const { uri } = await new Promise<{ uri: string }>((resolve, reject) => {
-    cam.getSnapshotUri({}, (err: Error | null, result?: { uri: string }) =>
-      err || !result ? reject(err ?? new Error("Kamera tidak mengembalikan snapshot URI")) : resolve(result)
-    );
+    cam.getSnapshotUri({}, (err: Error | null, result?: { uri: string }) => {
+      if (err) return reject(friendlyPtzError(err, "ambil foto"));
+      if (!result) return reject(new Error("Kamera tidak mengembalikan snapshot URI"));
+      resolve(result);
+    });
   });
 
   const { username, password } = parseCredentials(feed.urlStream);
