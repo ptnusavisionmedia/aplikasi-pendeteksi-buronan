@@ -63,8 +63,47 @@ escalationsRouter.get("/", requireAuth, async (req, res) => {
   res.json(escalations);
 });
 
+escalationsRouter.get("/:id", requireAuth, async (req, res) => {
+  const escalation = await prisma.escalation.findUnique({
+    where: { id: req.params.id },
+    include: {
+      detectionEvent: { include: { buronan: true, evidence: true, cctvFeed: true } },
+      instansiTujuan: true,
+      dibuatOleh: { select: { id: true, nama: true, email: true, role: true } },
+    },
+  });
+  if (!escalation) return res.status(404).json({ error: "Eskalasi tidak ditemukan" });
+
+  const canView =
+    req.user!.role === "ADMIN" ||
+    escalation.dibuatOlehId === req.user!.id ||
+    escalation.instansiTujuanId === req.user!.instansiId;
+  if (!canView) return res.status(403).json({ error: "Tidak punya akses ke eskalasi ini" });
+
+  res.json(escalation);
+});
+
 const updateEscalationSchema = z.object({
   status: z.enum(["PENDING", "DITINDAKLANJUTI", "SELESAI"]),
+});
+
+escalationsRouter.delete("/:id", requireAuth, requireRole("ADMIN"), async (req, res) => {
+  const escalation = await prisma.escalation.findUnique({ where: { id: req.params.id } });
+  if (!escalation) return res.status(404).json({ error: "Eskalasi tidak ditemukan" });
+
+  await prisma.escalation.delete({ where: { id: escalation.id } });
+
+  // The escalation row is gone, but the audit trail of it having existed is not — writeAuditLog
+  // below is itself an append-only record, independent of the entity it describes.
+  await writeAuditLog({
+    userId: req.user!.id,
+    action: "DELETE_ESCALATION",
+    entityType: "Escalation",
+    entityId: escalation.id,
+    detail: { detectionEventId: escalation.detectionEventId, instansiTujuanId: escalation.instansiTujuanId },
+  });
+
+  res.status(204).end();
 });
 
 escalationsRouter.patch("/:id", requireAuth, requireRole("ADMIN", "APARAT"), async (req, res) => {

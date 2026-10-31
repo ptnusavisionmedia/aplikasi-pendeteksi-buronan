@@ -257,7 +257,7 @@ detectionsRouter.get("/", requireAuth, async (req, res) => {
         ? { detectedAt: { gte: from ? new Date(from) : undefined, lte: to ? new Date(to) : undefined } }
         : {}),
     },
-    include: { buronan: true, cctvFeed: true, evidence: true },
+    include: { buronan: { include: { fotos: true } }, cctvFeed: true, evidence: true },
     orderBy: { detectedAt: "desc" },
     take: 100,
   });
@@ -268,7 +268,7 @@ detectionsRouter.get("/", requireAuth, async (req, res) => {
 detectionsRouter.get("/:id", requireAuth, async (req, res) => {
   const event = await prisma.detectionEvent.findUnique({
     where: { id: req.params.id },
-    include: { buronan: true, cctvFeed: true, evidence: true },
+    include: { buronan: { include: { fotos: true } }, cctvFeed: true, evidence: true },
   });
   if (!event) return res.status(404).json({ error: "Detection event tidak ditemukan" });
   res.json(event);

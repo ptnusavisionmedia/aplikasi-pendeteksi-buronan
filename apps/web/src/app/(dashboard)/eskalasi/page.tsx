@@ -1,8 +1,8 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Siren } from "lucide-react";
-import { apiClient } from "@/lib/api-client";
+import { Siren, Trash2 } from "lucide-react";
+import { apiClient, apiErrorMessage } from "@/lib/api-client";
 import { useAuthStore } from "@/store/auth-store";
 import { Badge, Select } from "@/components/form";
 import type { Escalation, EscalationStatus } from "@/lib/types";
@@ -16,6 +16,7 @@ const STATUS_TONE: Record<EscalationStatus, "amber" | "primary" | "coral"> = {
 export default function EskalasiPage() {
   const user = useAuthStore((s) => s.user);
   const canUpdate = user?.role === "ADMIN" || user?.role === "APARAT";
+  const canDelete = user?.role === "ADMIN";
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -26,6 +27,18 @@ export default function EskalasiPage() {
   async function updateStatus(id: string, status: EscalationStatus) {
     await apiClient.patch(`/escalations/${id}`, { status });
     queryClient.invalidateQueries({ queryKey: ["escalations"] });
+  }
+
+  async function deleteEscalation(esc: Escalation) {
+    if (!window.confirm(`Hapus eskalasi untuk "${esc.detectionEvent?.buronan?.nama ?? "deteksi ini"}"? Tindakan ini tidak bisa dibatalkan.`)) {
+      return;
+    }
+    try {
+      await apiClient.delete(`/escalations/${esc.id}`);
+      queryClient.invalidateQueries({ queryKey: ["escalations"] });
+    } catch (err) {
+      window.alert(apiErrorMessage(err, "Gagal menghapus eskalasi"));
+    }
   }
 
   return (
@@ -61,6 +74,15 @@ export default function EskalasiPage() {
               </Select>
             ) : (
               <Badge tone={STATUS_TONE[esc.status]}>{esc.status}</Badge>
+            )}
+            {canDelete && (
+              <button
+                onClick={() => deleteEscalation(esc)}
+                aria-label="Hapus eskalasi"
+                className="flex items-center justify-center w-8 h-8 shrink-0 text-coral bg-coral-soft hover:bg-coral hover:text-white transition-colors rounded-lg"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
             )}
           </div>
         ))}

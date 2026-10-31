@@ -48,6 +48,8 @@ export interface CctvFeed {
   ownerId: string;
   wilayah: string;
   status: string;
+  ptzSupported: boolean;
+  onvifPort: number;
   createdAt: string;
 }
 

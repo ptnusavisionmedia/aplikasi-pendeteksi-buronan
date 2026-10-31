@@ -3,8 +3,10 @@
 import asyncio
 import base64
 import logging
+import socket
 import threading
 import time
+from urllib.parse import urlsplit
 
 import cv2
 import httpx
@@ -23,6 +25,12 @@ _grabbers: dict[str, "_FrameGrabber"] = {}
 # was confident enough to get written to the database. Cleared whenever a capture tick sees no
 # face, so the overlay disappears instead of showing a stale box.
 _latest_detection: dict[str, dict] = {}
+
+# Capture timestamp of the frame currently reflected in _latest_detection, per feed. With several
+# workers processing frames concurrently, an older frame can finish its (slower) pipeline after a
+# newer one already updated _latest_detection — this stops that older result from clobbering the
+# newer one.
+_latest_detection_frame_ts: dict[str, float] = {}
 
 # Last time a given (feed, buronan) pair was reported to the webhook below match_threshold, so one
 # lingering face doesn't write a new LOW_CONFIDENCE/PENDING_CONFIRMATION row every capture tick.
@@ -53,6 +61,36 @@ async def stop_feed(feed_id: str) -> None:
     if grabber:
         grabber.stop()
     _latest_detection.pop(feed_id, None)
+    _latest_detection_frame_ts.pop(feed_id, None)
+
+
+def _preflight_error(rtsp_url: str, timeout: float = 4.0) -> str | None:
+    """Raw TCP connect test before handing the URL to OpenCV/ffmpeg.
+
+    cv2.VideoCapture collapses every network-layer failure (bad hostname, closed port,
+    unreachable LAN) into the same generic open-timeout, which leaves the operator with
+    no idea which of those it actually is. A plain socket connect distinguishes them
+    cheaply and fast, so "Cek Koneksi" can say something actionable. Returns None when
+    the TCP handshake succeeds (caller should proceed to the real RTSP check via OpenCV).
+    """
+    parsed = urlsplit(rtsp_url)
+    host = parsed.hostname
+    port = parsed.port or 554
+    if not host:
+        return "URL RTSP tidak valid — periksa formatnya (contoh: rtsp://user:pass@192.168.1.10:554/stream1)"
+
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return None
+    except socket.gaierror:
+        return f"Host/IP '{host}' tidak ditemukan — periksa kembali alamat IP atau domain kamera"
+    except ConnectionRefusedError:
+        return f"Kamera menolak koneksi di port {port} — port RTSP salah, atau layanan streaming di kamera sedang mati"
+    except (TimeoutError, OSError):
+        return (
+            f"Kamera di {host}:{port} tidak merespons — kemungkinan kamera mati, "
+            "beda jaringan (LAN) dengan server ini, atau diblokir firewall/VPN"
+        )
 
 
 async def check_feed(rtsp_url: str, timeout: float = 12.0) -> dict:
@@ -66,25 +104,52 @@ async def check_feed(rtsp_url: str, timeout: float = 12.0) -> dict:
     """
     loop = asyncio.get_running_loop()
 
+    preflight_error = await loop.run_in_executor(None, _preflight_error, rtsp_url)
+    if preflight_error:
+        return {"ok": False, "error": preflight_error}
+
     try:
         capture = await asyncio.wait_for(
             loop.run_in_executor(None, cv2.VideoCapture, rtsp_url), timeout=timeout
         )
     except asyncio.TimeoutError:
-        return {"ok": False, "error": "Timeout saat membuka stream"}
+        return {
+            "ok": False,
+            "error": (
+                "Waktu habis saat negosiasi stream RTSP — jaringan ke kamera tersambung, tapi kamera "
+                "tidak kunjung membalas. Kemungkinan ada koneksi RTSP lain yang masih memegang stream "
+                "ini (mis. Mode Fokus atau aplikasi lain), atau kamera sedang sibuk. Coba lagi sesaat lagi."
+            ),
+        }
 
     try:
         opened = await loop.run_in_executor(None, capture.isOpened)
         if not opened:
-            return {"ok": False, "error": "Stream tidak bisa dibuka — cek URL, kredensial, atau jaringan"}
+            return {
+                "ok": False,
+                "error": (
+                    "Jaringan ke kamera berhasil tersambung, tapi stream RTSP ditolak — periksa kembali "
+                    "username, password, atau path URL-nya (contoh: /stream1)"
+                ),
+            }
 
         try:
             ok, frame = await asyncio.wait_for(loop.run_in_executor(None, capture.read), timeout=timeout)
         except asyncio.TimeoutError:
-            return {"ok": False, "error": "Timeout saat membaca frame"}
+            return {
+                "ok": False,
+                "error": (
+                    "Stream berhasil dibuka tapi tidak kunjung mengirim data — koneksi ke kamera ini sedang "
+                    "terganggu. Coba tutup Mode Fokus/aplikasi lain yang mungkin sedang menonton kamera "
+                    "yang sama, lalu cek koneksi lagi."
+                ),
+            }
 
         if not ok or frame is None:
-            return {"ok": False, "error": "Stream terbuka tapi gagal membaca frame"}
+            return {
+                "ok": False,
+                "error": "Stream terbuka tapi gagal membaca frame — coba cek koneksi lagi, atau restart kamera",
+            }
 
         height, width = frame.shape[:2]
         fps = await loop.run_in_executor(None, capture.get, cv2.CAP_PROP_FPS)
@@ -118,6 +183,7 @@ class _FrameGrabber:
         self._rtsp_url = rtsp_url
         self._lock = threading.Lock()
         self._latest_frame = None
+        self._latest_frame_ts = 0.0
         self._stop_event = threading.Event()
         self._thread = threading.Thread(target=self._run, daemon=True)
 
@@ -129,11 +195,13 @@ class _FrameGrabber:
         self._thread.join(timeout=5)
 
     def take_latest_frame(self):
-        """Returns the most recent frame and clears it, so a slow detection tick
-        never reprocesses the same frame twice."""
+        """Returns (frame, captured_at) for the most recent frame and clears it, so the
+        same frame is never claimed by two workers. Returns (None, 0.0) when nothing new
+        has arrived since the last call."""
         with self._lock:
-            frame, self._latest_frame = self._latest_frame, None
-        return frame
+            frame, ts = self._latest_frame, self._latest_frame_ts
+            self._latest_frame = None
+        return frame, ts
 
     def _run(self) -> None:
         capture: cv2.VideoCapture | None = None
@@ -155,23 +223,40 @@ class _FrameGrabber:
 
             with self._lock:
                 self._latest_frame = frame
+                self._latest_frame_ts = time.time()
 
         if capture is not None:
             capture.release()
 
 
 async def _capture_loop(feed_id: str, grabber: "_FrameGrabber") -> None:
+    """Runs cctv_worker_count workers concurrently against the same grabber.
+
+    Each worker just grabs whatever frame is currently freshest and processes it, with no
+    fixed cadence of its own — when one worker is mid-pipeline on an older frame, another
+    worker is already free to pick up whatever arrived since. Combined with the grabber
+    discarding frames nobody claimed in time, this is what lets detection catch back up to
+    the live edge of the stream after a slow tick, instead of working through a backlog in
+    capture order.
+    """
+    worker_count = max(1, settings.cctv_worker_count)
     try:
-        while True:
-            frame = grabber.take_latest_frame()
-            if frame is not None:
-                await _process_frame(feed_id, frame)
-            await asyncio.sleep(settings.cctv_capture_interval_seconds)
+        await asyncio.gather(*(_detection_worker(feed_id, grabber) for _ in range(worker_count)))
     except asyncio.CancelledError:
         pass
 
 
-async def _process_frame(feed_id: str, frame) -> None:
+async def _detection_worker(feed_id: str, grabber: "_FrameGrabber") -> None:
+    idle_poll_seconds = min(0.5, settings.cctv_capture_interval_seconds)
+    while True:
+        frame, captured_at = grabber.take_latest_frame()
+        if frame is None:
+            await asyncio.sleep(idle_poll_seconds)
+            continue
+        await _process_frame(feed_id, frame, captured_at)
+
+
+async def _process_frame(feed_id: str, frame, captured_at: float) -> None:
     loop = asyncio.get_running_loop()
     ok, jpeg = await loop.run_in_executor(None, cv2.imencode, ".jpg", frame)
     if not ok:
@@ -182,7 +267,12 @@ async def _process_frame(feed_id: str, frame) -> None:
     try:
         face = await loop.run_in_executor(None, extract_embedding, jpeg_bytes)
     except (NoFaceDetectedError, LowQualityFaceError):
-        _latest_detection.pop(feed_id, None)
+        # Only clear the overlay if this is the newest frame processed so far for this feed —
+        # otherwise a faster worker on an older, face-less frame could blank out a fresher
+        # worker's still-in-flight detection.
+        if captured_at >= _latest_detection_frame_ts.get(feed_id, 0.0):
+            _latest_detection.pop(feed_id, None)
+            _latest_detection_frame_ts[feed_id] = captured_at
         return
 
     results = await loop.run_in_executor(None, search_face, face.embedding.tolist(), 1)
@@ -190,15 +280,22 @@ async def _process_frame(feed_id: str, frame) -> None:
     score = best.score if best else 0.0
     buronan_id = best.payload["buronan_id"] if best else None
 
-    x1, y1, x2, y2 = face.bbox
-    # Live overlay (Mode Fokus): every face gets a box, regardless of match confidence — the
-    # green/yellow/red tiering happens client-side purely from this score.
-    _latest_detection[feed_id] = {
-        "bbox": [x1 / frame_width, y1 / frame_height, x2 / frame_width, y2 / frame_height],
-        "confidence": float(score),
-        "buronan_id": buronan_id,
-        "seen_at": time.time(),
-    }
+    if captured_at < _latest_detection_frame_ts.get(feed_id, 0.0):
+        # A worker on a newer frame already finished and updated the overlay; don't regress it
+        # with this slower, now-stale result. The match-reporting logic below still runs, since
+        # a real match is worth recording even if it's no longer the newest frame on screen.
+        pass
+    else:
+        x1, y1, x2, y2 = face.bbox
+        # Live overlay (Mode Fokus): every face gets a box, regardless of match confidence — the
+        # green/yellow/red tiering happens client-side purely from this score.
+        _latest_detection[feed_id] = {
+            "bbox": [x1 / frame_width, y1 / frame_height, x2 / frame_width, y2 / frame_height],
+            "confidence": float(score),
+            "buronan_id": buronan_id,
+            "seen_at": time.time(),
+        }
+        _latest_detection_frame_ts[feed_id] = captured_at
 
     if best is None or score < settings.cctv_report_threshold:
         return  # not similar enough to any buronan on file to be worth a database row

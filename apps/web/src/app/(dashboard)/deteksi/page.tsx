@@ -90,11 +90,18 @@ export default function DeteksiPage() {
       <div>
         <h2 className="font-bold text-[16px] mb-3">Riwayat Deteksi</h2>
         <div className="flex flex-col gap-2">
-          {detections?.map((d) => (
+          {detections?.map((d) => {
+            const fotoUtama = d.buronan?.fotos?.find((f) => f.isPrimary) ?? d.buronan?.fotos?.[0];
+            return (
             <Link key={d.id} href={`/deteksi/${d.id}`} className="bento-cell flex items-center gap-3 hover:border-primary transition-colors">
-              <div className="w-9 h-9 rounded-lg bg-canvas flex items-center justify-center text-muted">
-                <ScanFace className="w-4 h-4" />
-              </div>
+              {fotoUtama ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={fotoUtama.urlFoto} alt={d.buronan?.nama ?? "Buronan"} className="w-9 h-9 rounded-lg object-cover shrink-0" />
+              ) : (
+                <div className="w-9 h-9 rounded-lg bg-canvas flex items-center justify-center text-muted shrink-0">
+                  <ScanFace className="w-4 h-4" />
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <div className="text-[13px] font-semibold truncate">
                   {d.buronan?.nama ?? "Tidak dikenali"} &middot; {d.cctvFeed?.lokasi ?? "Upload manual"}
@@ -104,7 +111,8 @@ export default function DeteksiPage() {
               <Badge tone={d.status === "CONFIRMED" ? "coral" : d.status === "LOW_CONFIDENCE" ? "amber" : "muted"}>{d.status}</Badge>
               <span className="text-[11px] font-bold tabular">{Math.round(d.confidenceScore * 100)}%</span>
             </Link>
-          ))}
+            );
+          })}
           {detections?.length === 0 && <p className="text-[12.5px] text-muted">Belum ada riwayat deteksi.</p>}
         </div>
       </div>

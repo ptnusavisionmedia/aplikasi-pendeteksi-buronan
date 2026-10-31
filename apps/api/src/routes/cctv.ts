@@ -6,6 +6,8 @@ import { writeAuditLog } from "../services/audit-log";
 import { computeCameraAccuracy } from "../services/camera-accuracy";
 import { checkCctvFeed, getLiveDetection, startCctvFeed, stopCctvFeed } from "../services/detection-engine-client";
 import { ensureLivePath, liveHlsUrl, liveRtspUrl } from "../services/mediamtx-client";
+import { ptzMove, ptzSnapshot, ptzStop, type PtzDirection } from "../services/ptz-client";
+import { uploadEvidenceFile } from "../services/storage";
 import { env } from "../env";
 import { prisma } from "../services/prisma";
 
@@ -30,6 +32,8 @@ const createFeedSchema = z.object({
   wilayah: z.string().min(1),
   // FR-24: webcam-as-simulated-feed for dev/staging only, never production.
   sourceType: z.enum(["PRODUCTION", "DEV_SIMULATION"]).optional(),
+  ptzSupported: z.boolean().optional(),
+  onvifPort: z.number().int().min(1).max(65535).optional(),
 });
 
 cctvRouter.post(
@@ -82,6 +86,8 @@ const updateFeedSchema = z.object({
   lat: z.number().min(-90).max(90).optional(),
   lng: z.number().min(-180).max(180).optional(),
   urlStream: z.string().url().optional(),
+  ptzSupported: z.boolean().optional(),
+  onvifPort: z.number().int().min(1).max(65535).optional(),
 });
 
 cctvRouter.patch(
@@ -199,3 +205,90 @@ cctvRouter.get("/:id/accuracy", requireAuth, async (req, res) => {
 
   res.json(computeCameraAccuracy({ confirmedCount, rejectedCount }));
 });
+
+const ptzMoveSchema = z.object({ direction: z.enum(["up", "down", "left", "right"]) });
+
+async function requirePtzFeed(id: string, res: import("express").Response) {
+  const feed = await prisma.cCTVFeed.findUnique({ where: { id } });
+  if (!feed) {
+    res.status(404).json({ error: "CCTV feed tidak ditemukan" });
+    return null;
+  }
+  if (!feed.ptzSupported) {
+    res.status(422).json({ error: "Kamera ini belum ditandai mendukung PTZ — aktifkan di Edit Feed" });
+    return null;
+  }
+  return feed;
+}
+
+/** Starts continuous pan/tilt movement in one direction (held, like a joystick button) via ONVIF. */
+cctvRouter.post(
+  "/:id/ptz/move",
+  requireAuth,
+  requireRole("ADMIN", "APARAT", "KEAMANAN_SWASTA"),
+  async (req, res) => {
+    const parsed = ptzMoveSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+
+    const feed = await requirePtzFeed(req.params.id, res);
+    if (!feed) return;
+
+    try {
+      await ptzMove(feed, parsed.data.direction as PtzDirection);
+      res.json({ ok: true });
+    } catch (err) {
+      console.error(`Gagal menggerakkan PTZ feed ${feed.id}:`, err);
+      res.status(502).json({ ok: false, error: err instanceof Error ? err.message : "Gagal menggerakkan kamera" });
+    }
+  }
+);
+
+/** Stops any ongoing PTZ movement — must be called on button release, otherwise continuousMove
+ * keeps the camera panning/tilting indefinitely. */
+cctvRouter.post(
+  "/:id/ptz/stop",
+  requireAuth,
+  requireRole("ADMIN", "APARAT", "KEAMANAN_SWASTA"),
+  async (req, res) => {
+    const feed = await requirePtzFeed(req.params.id, res);
+    if (!feed) return;
+
+    try {
+      await ptzStop(feed);
+      res.json({ ok: true });
+    } catch (err) {
+      console.error(`Gagal menghentikan PTZ feed ${feed.id}:`, err);
+      res.status(502).json({ ok: false, error: err instanceof Error ? err.message : "Gagal menghentikan kamera" });
+    }
+  }
+);
+
+/** Captures a still photo straight from the camera (ONVIF snapshot), uploads it to evidence
+ * storage, and returns its URL so the operator can view/download it from the dashboard. */
+cctvRouter.post(
+  "/:id/ptz/snapshot",
+  requireAuth,
+  requireRole("ADMIN", "APARAT", "KEAMANAN_SWASTA"),
+  async (req, res) => {
+    const feed = await requirePtzFeed(req.params.id, res);
+    if (!feed) return;
+
+    try {
+      const photo = await ptzSnapshot(feed);
+      const url = await uploadEvidenceFile(photo, `ptz-${feed.id}-${Date.now()}.jpg`, "image/jpeg");
+
+      await writeAuditLog({
+        userId: req.user!.id,
+        action: "PTZ_SNAPSHOT",
+        entityType: "CCTVFeed",
+        entityId: feed.id,
+        detail: { url },
+      });
+
+      res.json({ url });
+    } catch (err) {
+      console.error(`Gagal mengambil snapshot PTZ feed ${feed.id}:`, err);
+      res.status(502).json({ error: err instanceof Error ? err.message : "Gagal mengambil foto dari kamera" });
+    }
+  }
+);

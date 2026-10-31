@@ -8,7 +8,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Camera, Maximize2, Pencil, Plus, Trash2, Wifi } from "lucide-react";
 import { apiClient, apiErrorMessage } from "@/lib/api-client";
 import { useAuthStore } from "@/store/auth-store";
-import { Field, Input, Select, PrimaryButton, GhostButton, ErrorText, Badge } from "@/components/form";
+import { Field, Input, Select, Checkbox, PrimaryButton, GhostButton, ErrorText, Badge } from "@/components/form";
 import { Modal } from "@/components/modal";
 import type { CctvFeed } from "@/lib/types";
 
@@ -31,56 +31,79 @@ const CAMERA_PRESETS = [
     label: "TP-Link Tapo C200",
     stream: "rtsp://{user}:{pass}@{ip}:554/stream1",
     help: "Aktifkan \"Camera Account\" di app Tapo (Advanced Settings > Camera Account), lalu pakai kredensial itu (bukan akun TP-Link). stream1 = resolusi penuh, stream2 = hemat bandwidth.",
+    onvifPort: 2020,
+    ptzSupported: true,
   },
   {
     id: "tapo-lainnya",
     label: "TP-Link Tapo (seri lain: C210/C225/dst)",
     stream: "rtsp://{user}:{pass}@{ip}:554/stream1",
     help: "Pola RTSP sama dengan C200 di sebagian besar seri Tapo.",
+    onvifPort: 2020,
+    ptzSupported: true,
   },
   {
     id: "hikvision",
     label: "Hikvision",
     stream: "rtsp://{user}:{pass}@{ip}:554/Streaming/Channels/101",
     help: "Channel 101 = kamera 1 stream utama. Ganti ke 102 untuk sub-stream.",
+    onvifPort: 80,
+    ptzSupported: false,
   },
   {
     id: "dahua",
     label: "Dahua",
     stream: "rtsp://{user}:{pass}@{ip}:554/cam/realmonitor?channel=1&subtype=0",
     help: "subtype=0 stream utama, subtype=1 sub-stream hemat bandwidth.",
+    onvifPort: 80,
+    ptzSupported: false,
   },
   {
     id: "ezviz",
     label: "Ezviz",
     stream: "rtsp://{user}:{pass}@{ip}:554/h264/ch1/main/av_stream",
     help: "Aktifkan akses RTSP di app EZVIZ (Device Settings > Advanced > Local RTSP).",
+    onvifPort: 80,
+    ptzSupported: false,
   },
   {
     id: "imou",
     label: "Imou",
     stream: "rtsp://{user}:{pass}@{ip}:554/cam/realmonitor?channel=1&subtype=0",
     help: "Imou berbasis platform Dahua, pola URL RTSP sama.",
+    onvifPort: 80,
+    ptzSupported: false,
   },
   {
     id: "xiaomi",
     label: "Xiaomi / Mi Home",
     stream: "rtsp://{user}:{pass}@{ip}:8554/live/ch00_0",
     help: "Butuh firmware custom (mis. Xiaomi Hack) agar RTSP aktif — firmware resmi menutup akses RTSP.",
+    onvifPort: 80,
+    ptzSupported: false,
   },
   {
     id: "onvif",
     label: "Generik ONVIF / RTSP lain",
     stream: "rtsp://{user}:{pass}@{ip}:554/",
     help: "Untuk merk lain yang mendukung ONVIF/RTSP standar — cek manual kamera untuk path stream yang tepat.",
+    onvifPort: 80,
+    ptzSupported: false,
   },
   {
     id: "manual",
     label: "Isi URL manual",
     stream: "",
     help: "Masukkan URL RTSP/HTTP stream sepenuhnya sendiri.",
+    onvifPort: 80,
+    ptzSupported: false,
   },
 ] as const;
+
+/** Setiap kamera punya port ONVIF default berbeda per merk (lihat CAMERA_PRESETS); daftar ini
+ * dipakai untuk mengisi ulang port saat merk diganti, dan sebagai fallback kalau kamera tidak
+ * ada di preset. PTZ (pan/tilt/zoom + foto) dikontrol lewat ONVIF, standar yang didukung banyak
+ * merk — bukan hanya Tapo — jadi field ini generik, bukan khusus satu vendor. */
 
 interface FeedCheckResult {
   ok: boolean;
@@ -107,6 +130,8 @@ export default function CctvPage() {
     wilayah: "",
     lat: null as number | null,
     lng: null as number | null,
+    ptzSupported: CAMERA_PRESETS[0].ptzSupported as boolean,
+    onvifPort: CAMERA_PRESETS[0].onvifPort as number,
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -127,6 +152,8 @@ export default function CctvPage() {
         lokasi: form.lokasi,
         wilayah: form.wilayah,
         urlStream: form.urlStream,
+        ptzSupported: form.ptzSupported,
+        onvifPort: form.onvifPort,
         ...(form.lat != null && form.lng != null ? { lat: form.lat, lng: form.lng } : {}),
       };
       if (editingFeed) {
@@ -145,7 +172,16 @@ export default function CctvPage() {
 
   function openCreateForm() {
     setEditingFeed(null);
-    setForm({ nama: "", lokasi: "", urlStream: CAMERA_PRESETS[0].stream, wilayah: "", lat: null, lng: null });
+    setForm({
+      nama: "",
+      lokasi: "",
+      urlStream: CAMERA_PRESETS[0].stream,
+      wilayah: "",
+      lat: null,
+      lng: null,
+      ptzSupported: CAMERA_PRESETS[0].ptzSupported,
+      onvifPort: CAMERA_PRESETS[0].onvifPort,
+    });
     setPreset(CAMERA_PRESETS[0].id);
     setShowForm(true);
   }
@@ -159,6 +195,8 @@ export default function CctvPage() {
       wilayah: feed.wilayah,
       lat: feed.lat ?? null,
       lng: feed.lng ?? null,
+      ptzSupported: feed.ptzSupported,
+      onvifPort: feed.onvifPort,
     });
     setPreset("manual");
     setShowForm(true);
@@ -168,7 +206,16 @@ export default function CctvPage() {
     setShowForm(false);
     setEditingFeed(null);
     setError(null);
-    setForm({ nama: "", lokasi: "", urlStream: CAMERA_PRESETS[0].stream, wilayah: "", lat: null, lng: null });
+    setForm({
+      nama: "",
+      lokasi: "",
+      urlStream: CAMERA_PRESETS[0].stream,
+      wilayah: "",
+      lat: null,
+      lng: null,
+      ptzSupported: CAMERA_PRESETS[0].ptzSupported,
+      onvifPort: CAMERA_PRESETS[0].onvifPort,
+    });
     setPreset(CAMERA_PRESETS[0].id);
   }
 
@@ -287,8 +334,13 @@ export default function CctvPage() {
                   onChange={(e) => {
                     const next = e.target.value;
                     setPreset(next);
-                    const tmpl = CAMERA_PRESETS.find((p) => p.id === next)?.stream ?? "";
-                    setForm((f) => ({ ...f, urlStream: tmpl }));
+                    const presetDef = CAMERA_PRESETS.find((p) => p.id === next);
+                    setForm((f) => ({
+                      ...f,
+                      urlStream: presetDef?.stream ?? "",
+                      ptzSupported: presetDef?.ptzSupported ?? f.ptzSupported,
+                      onvifPort: presetDef?.onvifPort ?? f.onvifPort,
+                    }));
                   }}
                 >
                   {CAMERA_PRESETS.map((p) => (
@@ -310,6 +362,35 @@ export default function CctvPage() {
               <p className="text-[12px] text-muted bg-canvas rounded-xl px-3 py-2.5">
                 {CAMERA_PRESETS.find((p) => p.id === preset)?.help} Ganti <code>{"{user}"}</code>, <code>{"{pass}"}</code> dan{" "}
                 <code>{"{ip}"}</code> dengan kredensial &amp; IP kamera Anda.
+              </p>
+            </div>
+
+            <div className="h-px bg-line" />
+
+            <div className="flex flex-col gap-4">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-muted">Kontrol PTZ (opsional)</p>
+              <label className="flex items-center gap-2.5 text-[13px] font-semibold cursor-pointer">
+                <Checkbox
+                  checked={form.ptzSupported}
+                  onChange={(e) => setForm({ ...form, ptzSupported: e.target.checked })}
+                />
+                Kamera ini mendukung PTZ (bisa digerakkan &amp; difoto dari dashboard)
+              </label>
+              {form.ptzSupported && (
+                <Field label="Port ONVIF">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={65535}
+                    value={form.onvifPort}
+                    onChange={(e) => setForm({ ...form, onvifPort: Number(e.target.value) || 80 })}
+                  />
+                </Field>
+              )}
+              <p className="text-[12px] text-muted bg-canvas rounded-xl px-3 py-2.5">
+                PTZ dikontrol lewat protokol ONVIF standar (bukan khusus satu merk), pakai kredensial yang sama
+                dengan URL stream di atas. Port umum: Tapo 2020, kebanyakan merk lain 80. Kamera tanpa motor
+                pan/tilt fisik (CCTV statis) tidak perlu mengaktifkan ini.
               </p>
             </div>
 

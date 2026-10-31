@@ -22,6 +22,12 @@ class Settings(BaseSettings):
     minio_bucket: str = "evidence"
     minio_use_ssl: bool = False
     cctv_capture_interval_seconds: float = 2.0
+    # Number of concurrent detection workers per feed. Each worker independently pulls whatever
+    # frame is freshest and processes it, so with N>1 several frames are mid-pipeline (encode ->
+    # embed -> Qdrant search) at once instead of one at a time. Combined with the frame grabber
+    # always discarding stale frames, this is what lets a feed catch back up to the live edge of
+    # the stream after a slow tick, instead of chewing through a backlog in capture order.
+    cctv_worker_count: int = 3
     # Once a feed has reported a sub-0.9 (not-yet-auto-captured) match for a given buronan, wait
     # this long before writing another row for the same buronan — avoids one lingering face
     # generating a new LOW_CONFIDENCE/PENDING_CONFIRMATION row every single capture tick. A >=0.9

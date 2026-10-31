@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import Hls from "hls.js";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ArrowUp, ArrowDown, ArrowRight, Camera as CameraIcon, X } from "lucide-react";
 import { apiClient, apiErrorMessage } from "@/lib/api-client";
 import { Badge } from "@/components/form";
 import type { CctvFeed } from "@/lib/types";
@@ -41,6 +41,9 @@ export default function CctvFocusPage() {
   const [status, setStatus] = useState<Status>("connecting");
   const [error, setError] = useState<string | null>(null);
   const [detection, setDetection] = useState<LiveDetection | null>(null);
+  const [ptzError, setPtzError] = useState<string | null>(null);
+  const [snapshotUrl, setSnapshotUrl] = useState<string | null>(null);
+  const [capturing, setCapturing] = useState(false);
 
   const { data: feed } = useQuery({
     queryKey: ["cctv-feeds"],
@@ -135,6 +138,37 @@ export default function CctvFocusPage() {
   const tier = detection?.active && detection.confidence !== undefined ? tierFor(detection.confidence) : null;
   const bbox = detection?.active ? detection.bbox : undefined;
 
+  async function startMove(direction: "up" | "down" | "left" | "right") {
+    setPtzError(null);
+    try {
+      await apiClient.post(`/cctv-feeds/${id}/ptz/move`, { direction });
+    } catch (err) {
+      setPtzError(apiErrorMessage(err, "Gagal menggerakkan kamera"));
+    }
+  }
+
+  async function stopMove() {
+    try {
+      await apiClient.post(`/cctv-feeds/${id}/ptz/stop`);
+    } catch {
+      // best-effort — the operator will see the camera keep moving if this genuinely failed,
+      // and can release/press again; surfacing this specific failure isn't worth the noise.
+    }
+  }
+
+  async function capturePhoto() {
+    setPtzError(null);
+    setCapturing(true);
+    try {
+      const { data } = await apiClient.post<{ url: string }>(`/cctv-feeds/${id}/ptz/snapshot`);
+      setSnapshotUrl(data.url);
+    } catch (err) {
+      setPtzError(apiErrorMessage(err, "Gagal mengambil foto dari kamera"));
+    } finally {
+      setCapturing(false);
+    }
+  }
+
   return (
     <div className="fixed inset-0 bg-ink z-50 flex flex-col">
       <div className="flex items-center justify-between px-5 py-4">
@@ -187,6 +221,49 @@ export default function CctvFocusPage() {
             {error}
           </div>
         )}
+
+        {status === "live" && feed?.ptzSupported && (
+          <div className="absolute right-6 bottom-6 flex flex-col items-center gap-3 bg-ink/70 backdrop-blur rounded-2xl p-4">
+            <div className="grid grid-cols-3 gap-1.5 w-[140px]">
+              <span />
+              <PtzButton icon={ArrowUp} label="Atas" onPress={() => startMove("up")} onRelease={stopMove} />
+              <span />
+              <PtzButton icon={ArrowLeft} label="Kiri" onPress={() => startMove("left")} onRelease={stopMove} />
+              <PtzButton icon={CameraIcon} label="Foto" onClick={capturePhoto} disabled={capturing} />
+              <PtzButton icon={ArrowRight} label="Kanan" onPress={() => startMove("right")} onRelease={stopMove} />
+              <span />
+              <PtzButton icon={ArrowDown} label="Bawah" onPress={() => startMove("down")} onRelease={stopMove} />
+              <span />
+            </div>
+            <p className="text-[10.5px] text-white/60 text-center leading-snug">
+              Tahan panah untuk menggerakkan kamera, lepas untuk berhenti
+            </p>
+            {ptzError && <p className="text-[11px] text-coral text-center max-w-[160px]">{ptzError}</p>}
+          </div>
+        )}
+
+        {snapshotUrl && (
+          <div className="absolute inset-0 bg-ink/95 flex items-center justify-center p-8 z-10">
+            <div className="relative max-w-2xl w-full">
+              <button
+                onClick={() => setSnapshotUrl(null)}
+                className="absolute -top-10 right-0 text-white/80 hover:text-white flex items-center gap-1.5 text-[13px] font-semibold"
+              >
+                <X className="w-4 h-4" /> Tutup
+              </button>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={snapshotUrl} alt="Foto hasil PTZ" className="rounded-xl w-full" />
+              <a
+                href={snapshotUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-white bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5"
+              >
+                Buka di tab baru
+              </a>
+            </div>
+          </div>
+        )}
       </div>
 
       {status === "live" && (
@@ -206,5 +283,41 @@ function LegendDot({ color, label }: { color: string; label: string }) {
       <span className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
       {label}
     </span>
+  );
+}
+
+/** A PTZ direction button starts moving on press and stops on release — like a joystick button,
+ * not a toggle — so the camera never keeps panning after the operator lets go. The photo button
+ * instead fires once per click via `onClick`. */
+function PtzButton({
+  icon: Icon,
+  label,
+  onPress,
+  onRelease,
+  onClick,
+  disabled,
+}: {
+  icon: typeof ArrowUp;
+  label: string;
+  onPress?: () => void;
+  onRelease?: () => void;
+  onClick?: () => void;
+  disabled?: boolean;
+}) {
+  const isHold = Boolean(onPress && onRelease);
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
+      onPointerDown={isHold ? onPress : undefined}
+      onPointerUp={isHold ? onRelease : undefined}
+      onPointerLeave={isHold ? onRelease : undefined}
+      onPointerCancel={isHold ? onRelease : undefined}
+      className="w-[42px] h-[42px] flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/25 active:bg-white/35 text-white transition-colors disabled:opacity-40 select-none touch-none"
+    >
+      <Icon className="w-5 h-5" />
+    </button>
   );
 }

@@ -157,6 +157,12 @@ model CCTVFeed {
   wilayah    String
   status     String              @default("ACTIVE")
   sourceType CCTVFeedSourceType  @default(PRODUCTION)
+  // PTZ (pan/tilt/zoom + snapshot) control via ONVIF — a standard most IP camera brands support,
+  // so this isn't tied to one vendor's proprietary protocol. ONVIF credentials/host are reused
+  // from urlStream (same account as RTSP on nearly all consumer/pro cameras); onvifPort is the
+  // one piece that varies by brand (Tapo: 2020, Hikvision/Dahua/generic: 80).
+  ptzSupported Boolean           @default(false)
+  onvifPort    Int               @default(80)
   createdAt  DateTime            @default(now())
 
   owner           User             @relation(fields: [ownerId], references: [id])

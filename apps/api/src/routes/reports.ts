@@ -70,13 +70,59 @@ reportsRouter.get("/:ticketId", async (req, res) => {
   res.json(report);
 });
 
+const listReportsQuerySchema = z.object({
+  // Defaults to the pending-verification queue (the dashboard's original behavior); pass
+  // status=ALL to see every report regardless of status, or a specific ReportStatus to filter.
+  status: z.enum(["ALL", "MENUNGGU_VERIFIKASI", "VALID", "TIDAK_VALID", "INVESTIGASI_LANJUTAN"]).optional(),
+});
+
 reportsRouter.get("/", requireAuth, requireRole("ADMIN", "APARAT", "KEAMANAN_SWASTA"), async (req, res) => {
+  const parsed = listReportsQuerySchema.safeParse(req.query);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+  const status = parsed.data.status ?? "MENUNGGU_VERIFIKASI";
+
   const reports = await prisma.report.findMany({
-    where: { status: "MENUNGGU_VERIFIKASI" },
+    where: status === "ALL" ? undefined : { status },
     include: { detectionEvents: { include: { buronan: true } } },
     orderBy: { createdAt: "desc" },
   });
   res.json(reports);
+});
+
+reportsRouter.get(
+  "/detail/:id",
+  requireAuth,
+  requireRole("ADMIN", "APARAT", "KEAMANAN_SWASTA"),
+  async (req, res) => {
+    const report = await prisma.report.findUnique({
+      where: { id: req.params.id },
+      include: {
+        detectionEvents: { include: { buronan: true, evidence: true } },
+        pelapor: { select: { id: true, nama: true, email: true } },
+      },
+    });
+    if (!report) return res.status(404).json({ error: "Laporan tidak ditemukan" });
+    res.json(report);
+  }
+);
+
+reportsRouter.delete("/:id", requireAuth, requireRole("ADMIN"), async (req, res) => {
+  const report = await prisma.report.findUnique({ where: { id: req.params.id } });
+  if (!report) return res.status(404).json({ error: "Laporan tidak ditemukan" });
+
+  // detection_events.reportId is nullable (ON DELETE SET NULL), so any detection history tied to
+  // this report survives its deletion, just no longer attributed to a community report.
+  await prisma.report.delete({ where: { id: report.id } });
+
+  await writeAuditLog({
+    userId: req.user!.id,
+    action: "DELETE_REPORT",
+    entityType: "Report",
+    entityId: report.id,
+    detail: { ticketId: report.ticketId, lokasi: report.lokasi },
+  });
+
+  res.status(204).end();
 });
 
 const verifyReportSchema = z.object({

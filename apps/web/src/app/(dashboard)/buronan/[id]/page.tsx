@@ -3,7 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { UserSearch, Upload, ScanFace, Trash2 } from "lucide-react";
+import { UserSearch, Upload, ScanFace, Trash2, ArrowLeft, X } from "lucide-react";
 import { apiClient, apiErrorMessage } from "@/lib/api-client";
 import { useAuthStore } from "@/store/auth-store";
 import { Badge, Select, ErrorText, GhostButton } from "@/components/form";
@@ -26,6 +26,7 @@ export default function BuronanDetailPage() {
   const [uploading, setUploading] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   const { data: buronan } = useQuery({
     queryKey: ["buronan", id],
@@ -83,7 +84,16 @@ export default function BuronanDetailPage() {
   const primaryFoto = buronan.fotos?.find((f) => f.isPrimary) ?? buronan.fotos?.[0];
 
   return (
-    <div className="grid grid-cols-3 gap-5">
+    <div>
+      <button
+        type="button"
+        onClick={() => router.push("/buronan")}
+        className="flex items-center gap-1.5 text-[12.5px] font-semibold text-muted hover:text-ink transition-colors mb-4"
+      >
+        <ArrowLeft className="w-4 h-4" /> Kembali ke daftar buronan
+      </button>
+
+      <div className="grid grid-cols-3 gap-5">
       <div className="bento-cell flex flex-col gap-4">
         <div className="w-full aspect-square rounded-xl bg-canvas overflow-hidden flex items-center justify-center text-muted">
           {primaryFoto ? (
@@ -138,8 +148,15 @@ export default function BuronanDetailPage() {
         <h2 className="font-bold text-[14px] mb-3">Foto Terdaftar ({buronan.fotos?.length ?? 0})</h2>
         <div className="grid grid-cols-4 gap-3 mb-6">
           {buronan.fotos?.map((f) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img key={f.id} src={f.urlFoto} alt="" className="aspect-square object-cover rounded-xl border border-line" />
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setLightboxUrl(f.urlFoto)}
+              className="aspect-square rounded-xl border border-line overflow-hidden hover:opacity-80 transition-opacity"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={f.urlFoto} alt="" className="w-full h-full object-cover" />
+            </button>
           ))}
           {(!buronan.fotos || buronan.fotos.length === 0) && (
             <p className="text-[12.5px] text-muted col-span-4">Belum ada foto wajah terdaftar.</p>
@@ -163,6 +180,38 @@ export default function BuronanDetailPage() {
           ))}
         </div>
       </div>
+      </div>
+
+      {lightboxUrl && (
+        <div
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-6"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setLightboxUrl(null)}
+            aria-label="Tutup, kembali"
+            className="absolute top-5 left-5 flex items-center gap-1.5 text-[13px] font-semibold text-white/90 hover:text-white"
+          >
+            <ArrowLeft className="w-4 h-4" /> Kembali
+          </button>
+          <button
+            type="button"
+            onClick={() => setLightboxUrl(null)}
+            aria-label="Tutup"
+            className="absolute top-5 right-5 text-white/90 hover:text-white"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={lightboxUrl}
+            alt={buronan.nama}
+            className="max-h-[85vh] max-w-[85vw] object-contain rounded-xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }
