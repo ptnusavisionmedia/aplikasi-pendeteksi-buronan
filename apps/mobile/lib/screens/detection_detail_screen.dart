@@ -5,6 +5,7 @@ import '../core/api_client.dart';
 import '../core/theme.dart';
 import '../models/detection.dart';
 import '../state/auth_provider.dart';
+import '../widgets/retry_image.dart';
 
 class _Instansi {
   final String id;
@@ -86,7 +87,7 @@ class _DetectionDetailScreenState extends ConsumerState<DetectionDetailScreen> {
                     child: Stack(
                       children: [
                         if (event.evidence != null)
-                          Image.network(event.evidence!.fileUrl, height: 180, width: double.infinity, fit: BoxFit.cover)
+                          RetryImage(url: event.evidence!.fileUrl, height: 180, width: double.infinity, fit: BoxFit.cover)
                         else
                           Container(
                             height: 180,

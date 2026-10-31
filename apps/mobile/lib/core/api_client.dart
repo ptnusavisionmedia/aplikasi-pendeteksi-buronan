@@ -32,6 +32,10 @@ final dioProvider = Provider<Dio>((ref) {
 });
 
 String apiErrorMessage(Object error, [String fallback = 'Terjadi kesalahan, coba lagi.']) {
+  // Thrown by a model's fromJson() when the response shape doesn't match what's expected
+  // (e.g. CctvFeed.fromJson) — distinct from a network/server error, so it gets its own
+  // message instead of falling through to the generic network-failure fallback below.
+  if (error is FormatException) return error.message;
   if (error is DioException) {
     final data = error.response?.data;
     if (data is Map && data['error'] is String) return data['error'] as String;
