@@ -7,6 +7,18 @@ import { env } from "../env";
  * changed since the last focus-mode open), so we fall back to /patch.
  */
 export async function ensureLivePath(feedId: string, rtspUrl: string): Promise<void> {
+  // MediaMTX validates its *entire* path config whenever any path is added/patched, not just the
+  // one being touched — so one feed with a malformed source URL (e.g. an unfilled "{host}"
+  // template placeholder saved before stricter validation existed on the create/update routes)
+  // makes every add/patch call fail with MediaMTX's validation error, for every other feed too,
+  // on every periodic health-check cycle. Reject it here, before it ever reaches MediaMTX, so a
+  // single bad feed can never poison live view/detection for the rest of the system.
+  if (/[{}]/.test(rtspUrl)) {
+    throw new Error(
+      `URL stream feed ${feedId} tidak valid — mengandung tanda kurung kurawal { } (placeholder yang belum diganti)`
+    );
+  }
+
   const headers = { "Content-Type": "application/json" };
   const body = JSON.stringify({ source: rtspUrl, sourceOnDemand: true });
 

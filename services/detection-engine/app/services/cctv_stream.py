@@ -6,6 +6,7 @@ import logging
 import socket
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urlsplit
 
 import cv2
@@ -17,6 +18,19 @@ from app.services.qdrant_client import search_face
 from app.services.storage import upload_snapshot
 
 logger = logging.getLogger("cctv_stream")
+
+# check_feed() and the detection workers (_process_frame) both run blocking cv2/CPU work via
+# loop.run_in_executor(None, ...), which defaults to one shared pool across the whole process.
+# With cctv_worker_count workers per active feed all doing face embedding + Qdrant search on that
+# same default pool, a one-shot "Cek Koneksi" call can sit queued behind them for its whole
+# timeout budget and report a false "RTSP negotiation timed out" even though the camera answered
+# in milliseconds. Giving the one-shot check its own pool keeps it responsive regardless of how
+# busy detection is. Sized generously (not just cctv_worker_count-sized) because a single
+# unreachable/misconfigured feed's cv2.VideoCapture() open call keeps its worker thread blocked
+# for its own OS-level connect timeout even after our asyncio-level `timeout` gives up waiting on
+# it — a handful of simultaneously-broken feeds shouldn't be able to starve checks for the
+# cameras that *are* fine.
+_check_executor = ThreadPoolExecutor(max_workers=16, thread_name_prefix="cctv-check")
 
 _running_tasks: dict[str, asyncio.Task] = {}
 _grabbers: dict[str, "_FrameGrabber"] = {}
@@ -104,13 +118,13 @@ async def check_feed(rtsp_url: str, timeout: float = 12.0) -> dict:
     """
     loop = asyncio.get_running_loop()
 
-    preflight_error = await loop.run_in_executor(None, _preflight_error, rtsp_url)
+    preflight_error = await loop.run_in_executor(_check_executor, _preflight_error, rtsp_url)
     if preflight_error:
         return {"ok": False, "error": preflight_error}
 
     try:
         capture = await asyncio.wait_for(
-            loop.run_in_executor(None, cv2.VideoCapture, rtsp_url), timeout=timeout
+            loop.run_in_executor(_check_executor, cv2.VideoCapture, rtsp_url), timeout=timeout
         )
     except asyncio.TimeoutError:
         return {
@@ -123,7 +137,7 @@ async def check_feed(rtsp_url: str, timeout: float = 12.0) -> dict:
         }
 
     try:
-        opened = await loop.run_in_executor(None, capture.isOpened)
+        opened = await loop.run_in_executor(_check_executor, capture.isOpened)
         if not opened:
             return {
                 "ok": False,
@@ -134,7 +148,7 @@ async def check_feed(rtsp_url: str, timeout: float = 12.0) -> dict:
             }
 
         try:
-            ok, frame = await asyncio.wait_for(loop.run_in_executor(None, capture.read), timeout=timeout)
+            ok, frame = await asyncio.wait_for(loop.run_in_executor(_check_executor, capture.read), timeout=timeout)
         except asyncio.TimeoutError:
             return {
                 "ok": False,
@@ -152,8 +166,8 @@ async def check_feed(rtsp_url: str, timeout: float = 12.0) -> dict:
             }
 
         height, width = frame.shape[:2]
-        fps = await loop.run_in_executor(None, capture.get, cv2.CAP_PROP_FPS)
-        encode_ok, jpeg = await loop.run_in_executor(None, cv2.imencode, ".jpg", frame)
+        fps = await loop.run_in_executor(_check_executor, capture.get, cv2.CAP_PROP_FPS)
+        encode_ok, jpeg = await loop.run_in_executor(_check_executor, cv2.imencode, ".jpg", frame)
         snapshot_base64 = base64.b64encode(jpeg.tobytes()).decode("ascii") if encode_ok else None
 
         return {
@@ -164,7 +178,7 @@ async def check_feed(rtsp_url: str, timeout: float = 12.0) -> dict:
             "snapshotBase64": snapshot_base64,
         }
     finally:
-        await loop.run_in_executor(None, capture.release)
+        await loop.run_in_executor(_check_executor, capture.release)
 
 
 class _FrameGrabber:

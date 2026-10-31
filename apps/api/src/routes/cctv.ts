@@ -13,6 +13,19 @@ import { prisma } from "../services/prisma";
 
 export const cctvRouter = Router();
 
+// `.url()` alone accepts strings like "rtsp://{user}:{pass}@{host}:554/stream1" — curly braces
+// are valid URL characters per WHATWG parsing, but they're never valid as literal credentials/host,
+// almost always a copy-pasted template placeholder the user forgot to fill in. MediaMTX's stricter
+// Go URL parser rejects these at stream time (and, since MediaMTX validates its whole path config
+// together, one feed with a bad URL like this can break live view/checks for every other feed too)
+// — so we reject it up front with a message that points at the actual mistake.
+const rtspUrlSchema = z
+  .string()
+  .url()
+  .refine((url) => !/[{}]/.test(url), {
+    message: "URL stream mengandung tanda kurung kurawal { } — sepertinya placeholder template belum diganti dengan nilai asli (username/password/IP kamera)",
+  });
+
 /**
  * Arms the detection-engine capture loop for a feed via MediaMTX's re-published stream rather
  * than the camera's own URL — see env.mediamtx.rtspUrl for why. Registers the MediaMTX path
@@ -28,7 +41,7 @@ const createFeedSchema = z.object({
   lokasi: z.string().min(1),
   lat: z.number().min(-90).max(90).optional(),
   lng: z.number().min(-180).max(180).optional(),
-  urlStream: z.string().url(),
+  urlStream: rtspUrlSchema,
   wilayah: z.string().min(1),
   // FR-24: webcam-as-simulated-feed for dev/staging only, never production.
   sourceType: z.enum(["PRODUCTION", "DEV_SIMULATION"]).optional(),
@@ -85,7 +98,7 @@ const updateFeedSchema = z.object({
   wilayah: z.string().min(1).optional(),
   lat: z.number().min(-90).max(90).optional(),
   lng: z.number().min(-180).max(180).optional(),
-  urlStream: z.string().url().optional(),
+  urlStream: rtspUrlSchema.optional(),
   ptzSupported: z.boolean().optional(),
   onvifPort: z.number().int().min(1).max(65535).optional(),
 });
@@ -157,7 +170,20 @@ cctvRouter.post("/:id/check", requireAuth, async (req, res) => {
   if (!feed) return res.status(404).json({ error: "CCTV feed tidak ditemukan" });
 
   try {
-    const result = await checkCctvFeed(feed.urlStream);
+    // Go through MediaMTX's relay instead of opening a second direct RTSP session to the camera —
+    // this periodic check runs every 30s from the CCTV list page, and a camera like the Tapo C200
+    // can't sustain a direct connection from this check *and* Mode Fokus/detection-engine at the
+    // same time (same root cause as the bbox-freeze fix in startDetection above). MediaMTX
+    // multiplexes everyone onto a single upstream connection to the camera.
+    try {
+      await ensureLivePath(feed.id, feed.urlStream);
+    } catch (err) {
+      // A malformed URL (e.g. an unfilled "{host}" placeholder) is rejected before it ever
+      // reaches MediaMTX or detection-engine — surface that specific reason instead of a generic
+      // "can't reach detection engine", so it's clear this is a feed configuration problem.
+      return res.json({ ok: false, error: err instanceof Error ? err.message : "URL stream tidak valid" });
+    }
+    const result = await checkCctvFeed(liveRtspUrl(feed.id));
     res.json(result);
   } catch (err) {
     console.error(`Gagal cek koneksi feed ${feed.id}:`, err);
@@ -175,7 +201,8 @@ cctvRouter.post("/:id/live", requireAuth, async (req, res) => {
     res.json({ hlsUrl: liveHlsUrl(feed.id) });
   } catch (err) {
     console.error(`Gagal menyiapkan live path feed ${feed.id}:`, err);
-    res.status(502).json({ error: "Gagal menyiapkan live stream" });
+    const message = err instanceof Error && /tidak valid/.test(err.message) ? err.message : "Gagal menyiapkan live stream";
+    res.status(502).json({ error: message });
   }
 });
 
