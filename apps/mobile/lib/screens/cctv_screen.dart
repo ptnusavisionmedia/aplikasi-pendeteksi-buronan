@@ -23,18 +23,21 @@ class CctvScreen extends ConsumerWidget {
     final auth = ref.watch(authProvider);
 
     if (!auth.isAuthenticated) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.lock_outline, size: 40, color: AppColors.muted),
-              const SizedBox(height: 12),
-              const Text('Masuk untuk memantau CCTV', textAlign: TextAlign.center),
-              const SizedBox(height: 16),
-              ElevatedButton(onPressed: () => context.push('/login'), child: const Text('Masuk')),
-            ],
+      return Scaffold(
+        appBar: AppBar(title: const Text('CCTV')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.lock_outline, size: 40, color: AppColors.muted),
+                const SizedBox(height: 12),
+                const Text('Masuk untuk memantau CCTV', textAlign: TextAlign.center),
+                const SizedBox(height: 16),
+                ElevatedButton(onPressed: () => context.push('/login'), child: const Text('Masuk')),
+              ],
+            ),
           ),
         ),
       );
@@ -42,7 +45,9 @@ class CctvScreen extends ConsumerWidget {
 
     final feedsAsync = ref.watch(cctvFeedsProvider);
 
-    return SafeArea(
+    return Scaffold(
+      appBar: AppBar(title: const Text('CCTV')),
+      body: SafeArea(
       child: RefreshIndicator(
         onRefresh: () async => ref.refresh(cctvFeedsProvider),
         child: CustomScrollView(
@@ -53,8 +58,6 @@ class CctvScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('CCTV', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
-                    const SizedBox(height: 2),
                     Text(
                       feedsAsync.maybeWhen(
                         data: (items) => '${items.length} kamera terpantau · pantau saja, tambah/kelola dari dashboard web',
@@ -98,6 +101,7 @@ class CctvScreen extends ConsumerWidget {
           ],
         ),
       ),
+      ),
     );
   }
 }
@@ -113,7 +117,7 @@ class _CctvCard extends StatelessWidget {
     final badgeBg = isActive ? AppColors.primarySoft : AppColors.canvas;
     final badgeText = isActive ? AppColors.primaryInk : AppColors.muted;
 
-    return BentoCell(
+    final card = BentoCell(
       padding: const EdgeInsets.all(12),
       child: Row(
         children: [
@@ -121,7 +125,7 @@ class _CctvCard extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(color: AppColors.canvas, borderRadius: BorderRadius.circular(12)),
-            child: const Icon(Icons.videocam_outlined, color: AppColors.ink, size: 20),
+            child: Icon(isActive ? Icons.play_circle_outline : Icons.videocam_outlined, color: AppColors.ink, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -133,8 +137,10 @@ class _CctvCard extends StatelessWidget {
                 Text('${feed.lokasi} · ${feed.wilayah}',
                     style: const TextStyle(color: AppColors.muted, fontSize: 11.5), overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 2),
-                Text('Terdaftar ${DateFormat('dd MMM yyyy').format(feed.createdAt)}',
-                    style: const TextStyle(color: AppColors.muted, fontSize: 10.5)),
+                Text(
+                  isActive ? 'Ketuk untuk lihat live' : 'Terdaftar ${DateFormat('dd MMM yyyy').format(feed.createdAt)}',
+                  style: TextStyle(color: isActive ? AppColors.primaryInk : AppColors.muted, fontSize: 10.5, fontWeight: isActive ? FontWeight.w600 : FontWeight.normal),
+                ),
               ],
             ),
           ),
@@ -146,6 +152,14 @@ class _CctvCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+
+    if (!isActive) return card;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: () => context.push('/cctv/${feed.id}/live', extra: feed.nama),
+      child: card,
     );
   }
 }

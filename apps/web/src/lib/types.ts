@@ -22,6 +22,8 @@ export type EscalationStatus = "PENDING" | "DITINDAKLANJUTI" | "SELESAI";
 
 export type ReportStatus = "MENUNGGU_VERIFIKASI" | "VALID" | "TIDAK_VALID" | "INVESTIGASI_LANJUTAN";
 
+export type BeritaAcaraStatus = "DRAFT" | "TERBIT" | "ARSIP";
+
 export interface User {
   id: string;
   email: string;
@@ -129,4 +131,18 @@ export interface Report {
   verifiedAt: string | null;
   createdAt: string;
   detectionEvents?: DetectionEvent[];
+}
+
+export interface BeritaAcara {
+  id: string;
+  judul: string;
+  ringkasan: string;
+  isi: string;
+  fotoUrl: string | null;
+  status: BeritaAcaraStatus;
+  penulisId: string;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  penulis?: { id: string; nama: string };
 }

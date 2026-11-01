@@ -15,6 +15,7 @@ import {
   LogOut,
   Settings2,
   Menu,
+  Newspaper,
   X,
 } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
@@ -36,6 +37,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/notifikasi", label: "Notifikasi", icon: Bell },
   { href: "/eskalasi", label: "Eskalasi", icon: Siren, roles: ["ADMIN", "APARAT", "KEAMANAN_SWASTA"] },
   { href: "/laporan", label: "Laporan Masyarakat", icon: Flag, roles: ["ADMIN", "APARAT", "KEAMANAN_SWASTA"] },
+  { href: "/berita-acara", label: "Berita Acara", icon: Newspaper, roles: ["ADMIN", "APARAT", "KEAMANAN_SWASTA"] },
   { href: "/pengaturan", label: "Pengaturan", icon: Settings2 },
 ];
 

@@ -12,18 +12,21 @@ class ProfilScreen extends ConsumerWidget {
     final auth = ref.watch(authProvider);
 
     if (!auth.isAuthenticated) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.person_outline, size: 40, color: AppColors.muted),
-              const SizedBox(height: 12),
-              const Text('Masuk untuk melihat profil Anda'),
-              const SizedBox(height: 16),
-              ElevatedButton(onPressed: () => context.push('/login'), child: const Text('Masuk')),
-            ],
+      return Scaffold(
+        appBar: AppBar(title: const Text('Profil')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.person_outline, size: 40, color: AppColors.muted),
+                const SizedBox(height: 12),
+                const Text('Masuk untuk melihat profil Anda'),
+                const SizedBox(height: 16),
+                ElevatedButton(onPressed: () => context.push('/login'), child: const Text('Masuk')),
+              ],
+            ),
           ),
         ),
       );
@@ -32,7 +35,9 @@ class ProfilScreen extends ConsumerWidget {
     final user = auth.user!;
     final initials = user.nama.trim().split(RegExp(r'\s+')).map((p) => p[0]).take(2).join().toUpperCase();
 
-    return SafeArea(
+    return Scaffold(
+      appBar: AppBar(title: const Text('Profil')),
+      body: SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -90,6 +95,7 @@ class ProfilScreen extends ConsumerWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

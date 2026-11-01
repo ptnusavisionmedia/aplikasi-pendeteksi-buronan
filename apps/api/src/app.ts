@@ -3,6 +3,7 @@ import express from "express";
 import { adminRouter } from "./routes/admin";
 import { appealsRouter } from "./routes/appeals";
 import { authRouter } from "./routes/auth";
+import { beritaAcaraRouter } from "./routes/berita-acara";
 import { buronanRouter } from "./routes/buronan";
 import { cctvRouter } from "./routes/cctv";
 import { detectionsRouter } from "./routes/detections";
@@ -32,6 +33,7 @@ app.use("/reports", reportsRouter);
 app.use("/appeals", appealsRouter);
 app.use("/settings", settingsRouter);
 app.use("/search", searchRouter);
+app.use("/berita-acara", beritaAcaraRouter);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);

@@ -82,6 +82,13 @@ class _LaporScreenState extends ConsumerState<LaporScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Lapor Temuan')),
+      body: _buildBody(context),
+    );
+  }
+
+  Widget _buildBody(BuildContext context) {
     if (_ticketId != null) {
       return SafeArea(
         child: Center(
@@ -123,7 +130,6 @@ class _LaporScreenState extends ConsumerState<LaporScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Lapor Temuan', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
             const Text('Bantu kami menjaga wilayah Anda', style: TextStyle(color: AppColors.muted, fontSize: 12)),
             const SizedBox(height: 16),
             if (_error != null) ...[

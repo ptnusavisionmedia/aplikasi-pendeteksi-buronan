@@ -47,13 +47,14 @@ class _StatusScreenState extends ConsumerState<StatusScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
+    return Scaffold(
+      appBar: AppBar(title: const Text('Status Laporan')),
+      body: SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Status Laporan', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
             const Text('Pantau laporan yang Anda kirim', style: TextStyle(color: AppColors.muted, fontSize: 12)),
             const SizedBox(height: 16),
             Row(
@@ -81,6 +82,7 @@ class _StatusScreenState extends ConsumerState<StatusScreen> {
             if (_result != null) _ResultCard(result: _result!),
           ],
         ),
+      ),
       ),
     );
   }

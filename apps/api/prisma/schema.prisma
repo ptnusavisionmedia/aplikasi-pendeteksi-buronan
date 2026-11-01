@@ -72,6 +72,12 @@ enum ReportStatus {
   INVESTIGASI_LANJUTAN
 }
 
+enum BeritaAcaraStatus {
+  DRAFT
+  TERBIT
+  ARSIP
+}
+
 model Instansi {
   id               String   @id @default(uuid())
   nama             String
@@ -108,6 +114,7 @@ model User {
   cctvFeeds         CCTVFeed[]
   confirmedDetections DetectionEvent[] @relation("DetectionConfirmedBy")
   reviewedAppeals   Appeal[]         @relation("AppealReviewedBy")
+  beritaAcaraDitulis BeritaAcara[]
 
   @@map("users")
 }
@@ -288,6 +295,26 @@ model Report {
 
   @@index([status])
   @@map("reports")
+}
+
+/// Berita acara resmi yang dikelola petugas (CMS-style) dan ditampilkan ke masyarakat lewat
+/// mobile app — hanya yang berstatus TERBIT yang publik; DRAFT/ARSIP cuma terlihat di dashboard.
+model BeritaAcara {
+  id          String            @id @default(uuid())
+  judul       String
+  ringkasan   String
+  isi         String
+  fotoUrl     String?
+  status      BeritaAcaraStatus @default(DRAFT)
+  penulisId   String
+  publishedAt DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  penulis User @relation(fields: [penulisId], references: [id])
+
+  @@index([status, publishedAt])
+  @@map("berita_acara")
 }
 
 model AuditLog {

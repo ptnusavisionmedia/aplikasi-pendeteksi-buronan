@@ -139,6 +139,12 @@ detectionsRouter.post("/webhook", async (req, res) => {
   const cctvFeed = await prisma.cCTVFeed.findUnique({ where: { id: cctvFeedId } });
   if (!cctvFeed) return res.status(404).json({ error: "CCTV feed tidak ditemukan" });
 
+  // Guards against a stale Qdrant embedding (e.g. left behind by a buronan whose deletion's
+  // Qdrant cleanup failed) matching a buronanId that no longer exists in Postgres — without this,
+  // detectionEvent.create below throws an unhandled FK violation (P2003) that crashes the process.
+  const buronanExists = await prisma.buronan.findUnique({ where: { id: buronanId }, select: { id: true } });
+  if (!buronanExists) return res.status(404).json({ error: "Buronan tidak ditemukan (kemungkinan embedding usang)" });
+
   const live = assessLiveness({ isLive });
   const isDevSimulation = cctvFeed.sourceType === "DEV_SIMULATION";
 
