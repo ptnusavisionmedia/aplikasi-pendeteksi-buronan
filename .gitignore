@@ -20,3 +20,6 @@ apps/mobile/.flutter-plugins-dependencies
 
 # Infra
 infra/*.local.yml
+
+# Local-only data — foto wajah/identitas asli, jangan pernah di-push (repo publik)
+/buronan/
