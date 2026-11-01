@@ -62,7 +62,7 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <div className="flex items-end justify-between mb-6">
+      <div className="flex items-end justify-between gap-3 flex-wrap mb-6">
         <div>
           <h1 className="text-[22px] font-extrabold tracking-tight">Ringkasan Hari Ini</h1>
           <p className="text-muted text-[13px] mt-1">
@@ -79,7 +79,7 @@ export default function DashboardPage() {
 
       {/* Hero: ringkasan total deteksi paling menonjol, baris sendiri di atas, dengan sparkline
           7 hari agar tidak hanya berupa angka polos. */}
-      <div className="bento-cell bg-primary text-white flex items-center justify-between gap-6 mb-4">
+      <div className="bento-cell bg-primary text-white flex items-center justify-between gap-4 flex-wrap mb-4">
         <div>
           <span className="text-[12.5px] font-semibold uppercase tracking-wide opacity-80">Total Deteksi Tercatat</span>
           <div className="text-4xl font-extrabold tabular mt-1">{stats?.total ?? "–"}</div>
@@ -105,8 +105,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Statistik ringkas, selalu dalam satu baris agar mudah di-scan */}
-      <div className="grid grid-cols-4 gap-4 mb-4">
+      {/* Statistik ringkas; 2 kolom di mobile, satu baris penuh mulai tablet agar mudah di-scan */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
         <div className="bento-cell flex flex-col justify-between gap-3">
           <div className="icon-badge bg-primary-soft">
             <UserX className="text-primary w-[18px] h-[18px]" />
@@ -152,7 +152,7 @@ export default function DashboardPage() {
       </div>
 
       {/* FR item 7: ringkasan status eskalasi (pending/ditindaklanjuti/selesai) */}
-      <div className="grid grid-cols-3 gap-4 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
         <Link href="/eskalasi?status=PENDING" className="bento-cell flex items-center justify-between hover:border-amber transition-colors">
           <div>
             <div className="text-2xl font-extrabold tabular">{escalationStats?.PENDING ?? "–"}</div>
@@ -182,9 +182,11 @@ export default function DashboardPage() {
         </Link>
       </div>
 
-      {/* Detail: deteksi terbaru di kiri (lebih luas), ringkasan aksi cepat di kanan */}
-      <div className="grid grid-cols-4 gap-4 auto-rows-[108px]">
-        <div className="bento-cell col-span-2 row-span-2 flex flex-col">
+      {/* Detail: deteksi terbaru di kiri (lebih luas), ringkasan aksi cepat di kanan.
+          Satu kolom penuh di mobile/tablet (setiap kartu punya tinggi wajar sendiri);
+          grid 4-kolom + baris tetap 108px hanya berlaku mulai desktop (lg). */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:auto-rows-[108px]">
+        <div className="bento-cell lg:col-span-2 lg:row-span-2 min-h-[260px] lg:min-h-0 flex flex-col">
           <div className="flex items-center justify-between mb-3">
             <span className="font-bold text-[14px]">Deteksi Terbaru</span>
             <Link href="/deteksi" className="text-[12.5px] font-semibold text-primary hover:underline">
@@ -210,7 +212,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="bento-cell col-span-2 row-span-2 flex flex-col">
+        <div className="bento-cell lg:col-span-2 lg:row-span-2 min-h-[220px] lg:min-h-0 flex flex-col">
           <div className="flex items-center justify-between mb-2">
             <span className="font-bold text-[14px]">Tren Deteksi</span>
             <span className="text-[11.5px] text-muted">7 hari terakhir</span>
@@ -222,7 +224,7 @@ export default function DashboardPage() {
 
         <Link
           href="/eskalasi"
-          className="bento-cell col-span-2 row-span-2 flex flex-col items-start justify-between hover:border-coral transition-colors"
+          className="bento-cell lg:col-span-2 lg:row-span-2 flex flex-col items-start justify-between gap-3 hover:border-coral transition-colors"
         >
           <Siren className="text-coral w-6 h-6" />
           <div>
@@ -234,7 +236,7 @@ export default function DashboardPage() {
         {/* row-span-2 (not 1) — the donut+legend below needs real vertical room (~169px with
             this card's padding/header subtracted); at row-span-1 it was taller than the whole
             card and visibly overflowed past the card's bottom edge. */}
-        <div className="bento-cell col-span-2 row-span-2 flex flex-col">
+        <div className="bento-cell lg:col-span-2 lg:row-span-2 min-h-[160px] lg:min-h-0 flex flex-col">
           <div className="flex items-center justify-between mb-2">
             <span className="font-bold text-[14px]">Distribusi Status Deteksi</span>
             <Badge tone="primary">{user?.role}</Badge>

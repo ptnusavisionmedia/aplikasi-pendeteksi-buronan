@@ -73,7 +73,7 @@ export default function BuronanListPage() {
           <h1 className="text-[22px] font-extrabold tracking-tight">Database Buronan</h1>
           <p className="text-muted text-[13px] mt-1">{data?.total ?? 0} data ditemukan</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <ExportButtons
             title="Database Buronan"
             filenameBase="database-buronan"

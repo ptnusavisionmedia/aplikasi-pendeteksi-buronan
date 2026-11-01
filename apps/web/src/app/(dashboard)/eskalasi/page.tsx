@@ -95,7 +95,7 @@ export default function EskalasiPage() {
       </div>
 
       {/* FR item 3/7: ringkasan status, konsisten dengan kartu di Overview */}
-      <div className="grid grid-cols-3 gap-4 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
         <div className="bento-cell flex items-center justify-between">
           <div>
             <div className="text-2xl font-extrabold tabular">{stats?.PENDING ?? "–"}</div>
@@ -141,42 +141,44 @@ export default function EskalasiPage() {
           <button
             key={esc.id}
             onClick={() => setDetailId(esc.id)}
-            className="bento-cell flex items-center gap-3 hover:border-primary transition-colors text-left w-full"
+            className="bento-cell flex flex-wrap items-center gap-3 hover:border-primary transition-colors text-left w-full"
           >
             <div className="w-9 h-9 rounded-lg bg-coral-soft flex items-center justify-center text-coral shrink-0">
               <Siren className="w-4 h-4" />
             </div>
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-[160px]">
               <div className="text-[13px] font-semibold truncate">
                 {esc.detectionEvent?.buronan?.nama ?? "Deteksi"} &middot; {esc.instansiTujuan?.nama ?? "-"}
               </div>
               <div className="text-[11.5px] text-muted truncate">{esc.catatan ?? "Tanpa catatan"}</div>
               <div className="text-[11px] text-muted">{new Date(esc.createdAt).toLocaleString("id-ID")}</div>
             </div>
-            {canUpdate ? (
-              <Select
-                value={esc.status}
-                onClick={(e) => e.stopPropagation()}
-                onChange={(e) => { e.stopPropagation(); updateStatus(esc.id, e.target.value as EscalationStatus); }}
-                className="w-[180px]"
-              >
-                <option value="PENDING">Pending</option>
-                <option value="DITINDAKLANJUTI">Ditindaklanjuti</option>
-                <option value="SELESAI">Selesai</option>
-              </Select>
-            ) : (
-              <Badge tone={STATUS_TONE[esc.status]}>{STATUS_LABEL[esc.status]}</Badge>
-            )}
-            {canDelete && (
-              <span
-                role="button"
-                onClick={(e) => { e.stopPropagation(); deleteEscalation(esc); }}
-                aria-label="Hapus eskalasi"
-                className="flex items-center justify-center w-8 h-8 shrink-0 text-coral bg-coral-soft hover:bg-coral hover:text-white transition-colors rounded-lg"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </span>
-            )}
+            <div className="flex items-center gap-2 ml-auto">
+              {canUpdate ? (
+                <Select
+                  value={esc.status}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => { e.stopPropagation(); updateStatus(esc.id, e.target.value as EscalationStatus); }}
+                  className="w-[170px]"
+                >
+                  <option value="PENDING">Pending</option>
+                  <option value="DITINDAKLANJUTI">Ditindaklanjuti</option>
+                  <option value="SELESAI">Selesai</option>
+                </Select>
+              ) : (
+                <Badge tone={STATUS_TONE[esc.status]}>{STATUS_LABEL[esc.status]}</Badge>
+              )}
+              {canDelete && (
+                <span
+                  role="button"
+                  onClick={(e) => { e.stopPropagation(); deleteEscalation(esc); }}
+                  aria-label="Hapus eskalasi"
+                  className="flex items-center justify-center w-8 h-8 shrink-0 text-coral bg-coral-soft hover:bg-coral hover:text-white transition-colors rounded-lg"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </span>
+              )}
+            </div>
           </button>
         ))}
       </div>

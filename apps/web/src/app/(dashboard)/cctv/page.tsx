@@ -302,7 +302,7 @@ export default function CctvPage() {
 
             <div className="flex flex-col gap-4">
               <p className="text-[11px] font-bold uppercase tracking-wide text-muted">Identitas</p>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="Nama kamera">
                   <Input
                     autoFocus

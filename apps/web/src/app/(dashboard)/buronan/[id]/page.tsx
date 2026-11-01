@@ -8,6 +8,7 @@ import { apiClient, apiErrorMessage } from "@/lib/api-client";
 import { useAuthStore } from "@/store/auth-store";
 import { Badge, Select, ErrorText, GhostButton } from "@/components/form";
 import { RetryImage } from "@/components/retry-image";
+import { detectionStatusMeta } from "@/lib/detection-status";
 import type { Buronan, BuronanStatus, DetectionEvent } from "@/lib/types";
 
 const STATUS_TONE: Record<BuronanStatus, "coral" | "primary" | "muted"> = {
@@ -94,7 +95,7 @@ export default function BuronanDetailPage() {
         <ArrowLeft className="w-4 h-4" /> Kembali ke daftar buronan
       </button>
 
-      <div className="grid grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
       <div className="bento-cell flex flex-col gap-4">
         <div className="w-full aspect-square rounded-xl bg-canvas overflow-hidden flex items-center justify-center text-muted">
           {primaryFoto ? (
@@ -144,9 +145,9 @@ export default function BuronanDetailPage() {
         )}
       </div>
 
-      <div className="bento-cell col-span-2">
+      <div className="bento-cell md:col-span-2">
         <h2 className="font-bold text-[14px] mb-3">Foto Terdaftar ({buronan.fotos?.length ?? 0})</h2>
-        <div className="grid grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           {buronan.fotos?.map((f) => (
             <button
               key={f.id}
@@ -158,7 +159,7 @@ export default function BuronanDetailPage() {
             </button>
           ))}
           {(!buronan.fotos || buronan.fotos.length === 0) && (
-            <p className="text-[12.5px] text-muted col-span-4">Belum ada foto wajah terdaftar.</p>
+            <p className="text-[12.5px] text-muted col-span-2 sm:col-span-4">Belum ada foto wajah terdaftar.</p>
           )}
         </div>
 
@@ -171,7 +172,7 @@ export default function BuronanDetailPage() {
                 <ScanFace className="w-4 h-4" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-[13px] font-semibold">{d.status}</div>
+                <div className="text-[13px] font-semibold">{detectionStatusMeta(d.status).label}</div>
                 <div className="text-[11.5px] text-muted">{new Date(d.detectedAt).toLocaleString("id-ID")}</div>
               </div>
               <span className="text-[11px] font-bold text-muted">{Math.round(d.confidenceScore * 100)}%</span>

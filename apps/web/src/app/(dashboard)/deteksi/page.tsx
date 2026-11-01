@@ -91,7 +91,7 @@ export default function DeteksiPage() {
           <h1 className="text-[22px] font-extrabold tracking-tight">Deteksi</h1>
           <p className="text-muted text-[13px] mt-1">{data?.total ?? 0} riwayat deteksi</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {user?.role === "ADMIN" && (
             <GhostButton type="button" onClick={onClearData} disabled={clearing} className="text-coral">
               <Trash2 className="w-4 h-4" /> {clearing ? "Menghapus..." : "Bersihkan Data"}
@@ -142,7 +142,9 @@ export default function DeteksiPage() {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {detections.map((d) => {
-          const fotoUtama = d.buronan?.fotos?.find((f) => f.isPrimary) ?? d.buronan?.fotos?.[0];
+          // Tampilkan foto hasil capture kamera saat deteksi (evidence), bukan foto database
+          // buronan — evidence baru akurat menunjukkan kondisi/angle nyata saat tertangkap kamera.
+          const fotoCapture = d.evidence?.fileUrl;
           const pct = Math.round(d.confidenceScore * 100);
           const isHighConfidence = d.confidenceScore >= HIGH_CONFIDENCE;
           return (
@@ -152,8 +154,8 @@ export default function DeteksiPage() {
               className="bento-cell flex flex-col gap-2 p-3 hover:border-primary transition-colors"
             >
               <div className="relative aspect-square rounded-lg overflow-hidden bg-canvas">
-                {fotoUtama ? (
-                  <RetryImage src={fotoUtama.urlFoto} alt={d.buronan?.nama ?? "Buronan"} className="w-full h-full object-cover" />
+                {fotoCapture ? (
+                  <RetryImage src={fotoCapture} alt={d.buronan?.nama ?? "Buronan"} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-muted">
                     <ScanFace className="w-6 h-6" />

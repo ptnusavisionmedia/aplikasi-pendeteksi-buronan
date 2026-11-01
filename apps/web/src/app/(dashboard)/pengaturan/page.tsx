@@ -70,7 +70,7 @@ export default function PengaturanPage() {
           <div>
             <h2 className="font-bold text-[14px] mb-1">CCTV & Mode Fokus</h2>
             <p className="text-[12px] text-muted mb-3">Seberapa sering dashboard memeriksa status kamera dan memperbarui kotak deteksi.</p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="Interval cek koneksi otomatis (detik)">
                 <Input
                   type="number"
@@ -101,7 +101,7 @@ export default function PengaturanPage() {
               Diterapkan ke mesin deteksi dalam ~15 detik tanpa perlu restart. Kecocokan ≥ ambang &quot;terkonfirmasi&quot; otomatis
               tersimpan sebagai bukti; di antara kedua ambang ini hanya tercatat sebagai kemiripan rendah/menunggu konfirmasi.
             </p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="Ambang laporkan (0-1)">
                 <Input
                   type="number"

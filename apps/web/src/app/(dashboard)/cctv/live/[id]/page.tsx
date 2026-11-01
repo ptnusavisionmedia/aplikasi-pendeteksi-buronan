@@ -369,18 +369,19 @@ export default function CctvFocusPage() {
 
   return (
     <div className="fixed inset-0 bg-ink z-50 flex flex-col">
-      <div className="flex items-center justify-between px-5 py-4">
+      <div className="flex items-center justify-between gap-2 px-3 sm:px-5 py-3 sm:py-4">
         <button
           onClick={() => router.push("/cctv")}
-          className="flex items-center gap-2 text-[13.5px] font-semibold text-white bg-white/10 hover:bg-white/20 transition-colors rounded-xl px-3.5 py-2"
+          className="flex items-center gap-2 text-[13.5px] font-semibold text-white bg-white/10 hover:bg-white/20 transition-colors rounded-xl px-3 sm:px-3.5 py-2 shrink-0"
         >
-          <ArrowLeft className="w-4 h-4" /> Kembali ke CCTV
+          <ArrowLeft className="w-4 h-4" />
+          <span className="hidden sm:inline">Kembali ke CCTV</span>
         </button>
-        <div className="flex items-center gap-2.5">
-          <span className="font-bold text-[14px] text-white">{feed?.nama ?? "Memuat..."}</span>
+        <div className="flex items-center gap-2 min-w-0 flex-1 justify-end sm:justify-center">
+          <span className="font-bold text-[14px] text-white truncate">{feed?.nama ?? "Memuat..."}</span>
           {feed && <Badge tone={feed.status === "ACTIVE" ? "primary" : "muted"}>{feed.status}</Badge>}
         </div>
-        <div className="w-[120px]" />
+        <div className="hidden sm:block w-[120px] shrink-0" />
       </div>
 
       <div ref={stageRef} className="flex-1 flex items-center justify-center relative px-4 pb-4">
@@ -490,7 +491,7 @@ export default function CctvFocusPage() {
       </div>
 
       {status === "live" && (
-        <div className="flex items-center justify-center gap-5 px-5 pb-4 text-[11.5px] font-semibold text-white/70">
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 px-3 sm:px-5 pb-4 text-center text-[11.5px] font-semibold text-white/70">
           <LegendDot color="var(--color-safe)" label={`< ${Math.round(reportThreshold * 100)}% — rendah`} />
           <LegendDot color="var(--color-amber)" label={`${Math.round(reportThreshold * 100)}–${Math.round(matchThreshold * 100)}% — mirip`} />
           <LegendDot color="var(--color-coral)" label={`≥ ${Math.round(matchThreshold * 100)}% — otomatis tersimpan ke database`} />

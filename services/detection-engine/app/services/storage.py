@@ -27,4 +27,7 @@ def upload_snapshot(jpeg_bytes: bytes) -> str:
         length=len(jpeg_bytes),
         content_type="image/jpeg",
     )
-    return object_name
+    # Dev bucket is publicly readable (s3mock default), so a direct URL works without signing,
+    # matching apps/api/src/services/storage.ts's uploadEvidenceFile().
+    scheme = "https" if settings.minio_use_ssl else "http"
+    return f"{scheme}://{settings.minio_endpoint}/{settings.minio_bucket}/{object_name}"

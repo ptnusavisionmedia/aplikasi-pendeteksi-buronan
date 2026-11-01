@@ -59,7 +59,7 @@ export function GlobalSearch() {
   const showDropdown = open && debounced.length >= 2;
 
   return (
-    <div ref={containerRef} className="relative w-[320px]">
+    <div ref={containerRef} className="relative flex-1 min-w-0 max-w-[320px]">
       <div className="flex items-center gap-2 text-muted text-[13px] bg-canvas/70 rounded-xl px-3 py-2">
         {isFetching ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <Search className="w-4 h-4 shrink-0" />}
         <input

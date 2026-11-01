@@ -61,8 +61,8 @@ export default function DetectionDetailPage() {
   const fotoUtama = event.buronan?.fotos?.find((f) => f.isPrimary) ?? event.buronan?.fotos?.[0];
 
   return (
-    <div className="grid grid-cols-3 gap-5">
-      <div className="bento-cell col-span-2 flex flex-col gap-4">
+    <div className={canEscalate ? "grid grid-cols-1 md:grid-cols-3 gap-5" : "grid grid-cols-1 gap-5"}>
+      <div className={`bento-cell flex flex-col gap-4 ${canEscalate ? "md:col-span-2" : ""}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {fotoUtama ? (
