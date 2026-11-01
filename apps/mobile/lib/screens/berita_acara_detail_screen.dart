@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../core/api_client.dart';
 import '../core/theme.dart';
 import '../models/berita_acara.dart';
+import '../widgets/back_button.dart';
 import '../widgets/retry_image.dart';
 
 final beritaAcaraDetailProvider =
@@ -27,7 +28,7 @@ class BeritaAcaraDetailScreen extends ConsumerWidget {
     final detailAsync = ref.watch(beritaAcaraDetailProvider(id));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Berita Acara')),
+      appBar: AppBar(leading: const AppBackButton(fallbackRoute: '/berita-acara'), title: const Text('Berita Acara')),
       body: detailAsync.when(
         data: (item) => _DetailBody(item: item),
         loading: () => preloaded != null

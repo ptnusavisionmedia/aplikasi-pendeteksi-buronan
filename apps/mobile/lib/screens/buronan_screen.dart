@@ -4,6 +4,7 @@ import '../core/api_client.dart';
 import '../core/theme.dart';
 import '../models/buronan.dart';
 import '../state/auth_provider.dart';
+import '../widgets/back_button.dart';
 import '../widgets/retry_image.dart';
 
 /// Read-only: mobile hanya menampilkan daftar DPO untuk kewaspadaan masyarakat. Tambah/edit/hapus
@@ -44,7 +45,7 @@ class _BuronanScreenState extends ConsumerState<BuronanScreen> {
 
     if (!auth.isAuthenticated) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Daftar Buronan')),
+        appBar: AppBar(leading: const AppBackButton(), title: const Text('Daftar Buronan')),
         body: const Center(child: Text('Masuk untuk melihat daftar buronan')),
       );
     }
@@ -52,7 +53,7 @@ class _BuronanScreenState extends ConsumerState<BuronanScreen> {
     final itemsAsync = ref.watch(buronanListProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Daftar Buronan')),
+      appBar: AppBar(leading: const AppBackButton(), title: const Text('Daftar Buronan')),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async => ref.refresh(buronanListProvider),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/theme.dart';
+import '../widgets/back_button.dart';
 
 class _FaqItem {
   final String question;
@@ -37,7 +38,7 @@ class BantuanScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Bantuan')),
+      appBar: AppBar(leading: const AppBackButton(), title: const Text('Bantuan')),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(16),

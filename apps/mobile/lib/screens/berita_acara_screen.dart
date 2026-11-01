@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../core/api_client.dart';
 import '../core/theme.dart';
 import '../models/berita_acara.dart';
+import '../widgets/back_button.dart';
 import '../widgets/retry_image.dart';
 
 final beritaAcaraListProvider = FutureProvider.autoDispose<List<BeritaAcara>>((ref) async {
@@ -40,7 +41,7 @@ class _BeritaAcaraScreenState extends ConsumerState<BeritaAcaraScreen> {
     final itemsAsync = ref.watch(beritaAcaraListProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Berita Acara')),
+      appBar: AppBar(leading: const AppBackButton(), title: const Text('Berita Acara')),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async => ref.refresh(beritaAcaraListProvider),

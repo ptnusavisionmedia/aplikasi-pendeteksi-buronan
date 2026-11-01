@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../core/theme.dart';
 import '../state/auth_provider.dart';
+import '../widgets/back_button.dart';
 
 class ProfilScreen extends ConsumerWidget {
   const ProfilScreen({super.key});
@@ -13,7 +14,7 @@ class ProfilScreen extends ConsumerWidget {
 
     if (!auth.isAuthenticated) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Profil')),
+        appBar: AppBar(leading: const AppBackButton(), title: const Text('Profil')),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -36,7 +37,7 @@ class ProfilScreen extends ConsumerWidget {
     final initials = user.nama.trim().split(RegExp(r'\s+')).map((p) => p[0]).take(2).join().toUpperCase();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Profil')),
+      appBar: AppBar(leading: const AppBackButton(), title: const Text('Profil')),
       body: SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

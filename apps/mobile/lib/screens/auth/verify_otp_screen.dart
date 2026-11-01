@@ -5,6 +5,7 @@ import '../../core/api_client.dart';
 import '../../core/theme.dart';
 import '../../models/user.dart';
 import '../../state/auth_provider.dart';
+import '../../widgets/back_button.dart';
 
 class VerifyOtpScreen extends ConsumerStatefulWidget {
   final String pendingToken;
@@ -46,7 +47,7 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Verifikasi OTP')),
+      appBar: AppBar(leading: const AppBackButton(fallbackRoute: '/login'), title: const Text('Verifikasi OTP')),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),

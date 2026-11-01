@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../core/api_client.dart';
 import '../core/theme.dart';
 import '../models/notification.dart';
+import '../widgets/back_button.dart';
 
 final notificationsProvider = FutureProvider.autoDispose<List<AppNotification>>((ref) async {
   final dio = ref.read(dioProvider);
@@ -22,7 +23,7 @@ class NotifikasiScreen extends ConsumerWidget {
     final notificationsAsync = ref.watch(notificationsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Notifikasi Deteksi')),
+      appBar: AppBar(leading: const AppBackButton(), title: const Text('Notifikasi Deteksi')),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async => ref.refresh(notificationsProvider),

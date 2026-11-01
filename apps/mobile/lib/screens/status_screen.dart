@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../core/api_client.dart';
 import '../core/theme.dart';
 import '../models/report.dart';
+import '../widgets/back_button.dart';
 
 const _statusLabel = {
   'MENUNGGU_VERIFIKASI': 'Menunggu verifikasi',
@@ -48,7 +49,7 @@ class _StatusScreenState extends ConsumerState<StatusScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Status Laporan')),
+      appBar: AppBar(leading: const AppBackButton(), title: const Text('Status Laporan')),
       body: SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

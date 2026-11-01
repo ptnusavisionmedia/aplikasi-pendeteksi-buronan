@@ -6,6 +6,7 @@ import '../core/api_client.dart';
 import '../core/theme.dart';
 import '../models/cctv_feed.dart';
 import '../state/auth_provider.dart';
+import '../widgets/back_button.dart';
 
 /// Read-only: mobile only ever GETs /cctv-feeds. Adding, editing or
 /// deactivating a feed stays admin-only on the web dashboard.
@@ -24,7 +25,7 @@ class CctvScreen extends ConsumerWidget {
 
     if (!auth.isAuthenticated) {
       return Scaffold(
-        appBar: AppBar(title: const Text('CCTV')),
+        appBar: AppBar(leading: const AppBackButton(), title: const Text('CCTV')),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -46,7 +47,7 @@ class CctvScreen extends ConsumerWidget {
     final feedsAsync = ref.watch(cctvFeedsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('CCTV')),
+      appBar: AppBar(leading: const AppBackButton(), title: const Text('CCTV')),
       body: SafeArea(
       child: RefreshIndicator(
         onRefresh: () async => ref.refresh(cctvFeedsProvider),

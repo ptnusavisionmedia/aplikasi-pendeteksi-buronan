@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../core/api_client.dart';
 import '../core/theme.dart';
+import '../widgets/back_button.dart';
 
 class ManualCheckScreen extends ConsumerStatefulWidget {
   const ManualCheckScreen({super.key});
@@ -57,7 +58,7 @@ class _ManualCheckScreenState extends ConsumerState<ManualCheckScreen> {
     final matched = _result?['matched'] == true;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Periksa Foto Manual')),
+      appBar: AppBar(leading: const AppBackButton(), title: const Text('Periksa Foto Manual')),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20),

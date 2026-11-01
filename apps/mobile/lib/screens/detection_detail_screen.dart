@@ -5,6 +5,7 @@ import '../core/api_client.dart';
 import '../core/theme.dart';
 import '../models/detection.dart';
 import '../state/auth_provider.dart';
+import '../widgets/back_button.dart';
 import '../widgets/retry_image.dart';
 
 class _Instansi {
@@ -72,7 +73,7 @@ class _DetectionDetailScreenState extends ConsumerState<DetectionDetailScreen> {
     final user = ref.watch(authProvider).user;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Detail Deteksi')),
+      appBar: AppBar(leading: const AppBackButton(), title: const Text('Detail Deteksi')),
       body: SafeArea(
         child: detailAsync.when(
           data: (event) {

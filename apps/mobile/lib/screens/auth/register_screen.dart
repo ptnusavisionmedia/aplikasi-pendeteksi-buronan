@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_client.dart';
 import '../../core/theme.dart';
+import '../../widgets/back_button.dart';
 
 /// Public self-registration is Masyarakat-only — the mobile app is a
 /// read-only monitoring tool for the public. Staff/admin accounts (Aparat,
@@ -50,7 +51,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Buat Akun')),
+      appBar: AppBar(leading: const AppBackButton(fallbackRoute: '/login'), title: const Text('Buat Akun')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),

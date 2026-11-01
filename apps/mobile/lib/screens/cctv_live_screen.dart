@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 import '../core/api_client.dart';
 import '../core/theme.dart';
+import '../widgets/back_button.dart';
 
 /// POST /cctv-feeds/:id/live — memastikan MediaMTX sudah menarik stream kamera lalu
 /// mengembalikan URL pemutaran. Mobile memakai HLS saja (ExoPlayer/AVPlayer di Android/iOS
@@ -29,6 +30,7 @@ class CctvLiveScreen extends ConsumerWidget {
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
+        leading: const AppBackButton(fallbackRoute: '/cctv'),
         title: Text(feedNama),
       ),
       body: Center(

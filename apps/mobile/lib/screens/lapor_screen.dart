@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../core/api_client.dart';
 import '../core/theme.dart';
+import '../widgets/back_button.dart';
 
 class LaporScreen extends ConsumerStatefulWidget {
   const LaporScreen({super.key});
@@ -83,7 +84,7 @@ class _LaporScreenState extends ConsumerState<LaporScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Lapor Temuan')),
+      appBar: AppBar(leading: const AppBackButton(), title: const Text('Lapor Temuan')),
       body: _buildBody(context),
     );
   }
