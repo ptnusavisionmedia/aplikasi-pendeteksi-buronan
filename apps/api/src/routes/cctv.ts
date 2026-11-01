@@ -4,8 +4,9 @@ import { requireAuth } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { writeAuditLog } from "../services/audit-log";
 import { computeCameraAccuracy } from "../services/camera-accuracy";
+import { getOrCreateSettings } from "./settings";
 import { checkCctvFeed, getLiveDetection, startCctvFeed, stopCctvFeed } from "../services/detection-engine-client";
-import { ensureLivePath, liveHlsUrl, liveRtspUrl } from "../services/mediamtx-client";
+import { ensureLivePath, liveHlsUrl, liveRtspUrl, liveWhepUrl } from "../services/mediamtx-client";
 import { ptzMove, ptzSnapshot, ptzStop, type PtzDirection } from "../services/ptz-client";
 import { uploadEvidenceFile } from "../services/storage";
 import { env } from "../env";
@@ -200,7 +201,7 @@ cctvRouter.post("/:id/live", requireAuth, async (req, res) => {
 
   try {
     await ensureLivePath(feed.id, feed.urlStream);
-    res.json({ hlsUrl: liveHlsUrl(feed.id) });
+    res.json({ hlsUrl: liveHlsUrl(feed.id), whepUrl: liveWhepUrl(feed.id) });
   } catch (err) {
     console.error(`Gagal menyiapkan live path feed ${feed.id}:`, err);
     const message =
@@ -228,12 +229,24 @@ cctvRouter.get("/:id/accuracy", requireAuth, async (req, res) => {
   const feed = await prisma.cCTVFeed.findUnique({ where: { id: req.params.id } });
   if (!feed) return res.status(404).json({ error: "CCTV feed tidak ditemukan" });
 
-  const [confirmedCount, rejectedCount] = await Promise.all([
+  const [confirmedCount, rejectedCount, rejectedAgg, settings] = await Promise.all([
     prisma.detectionEvent.count({ where: { cctvFeedId: feed.id, status: "CONFIRMED_BY_OFFICER" } }),
     prisma.detectionEvent.count({ where: { cctvFeedId: feed.id, status: "REJECTED_FALSE_POSITIVE" } }),
+    prisma.detectionEvent.aggregate({
+      where: { cctvFeedId: feed.id, status: "REJECTED_FALSE_POSITIVE" },
+      _avg: { confidenceScore: true },
+    }),
+    getOrCreateSettings(),
   ]);
 
-  res.json(computeCameraAccuracy({ confirmedCount, rejectedCount }));
+  res.json(
+    computeCameraAccuracy({
+      confirmedCount,
+      rejectedCount,
+      avgRejectedConfidence: rejectedAgg._avg.confidenceScore,
+      currentMatchThreshold: settings.detectionMatchThreshold,
+    })
+  );
 });
 
 const ptzMoveSchema = z.object({ direction: z.enum(["up", "down", "left", "right"]) });

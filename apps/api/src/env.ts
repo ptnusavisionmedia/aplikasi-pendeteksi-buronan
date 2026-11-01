@@ -21,6 +21,11 @@ export const env = {
     apiUrl: process.env.MEDIAMTX_API_URL ?? "http://localhost:9997",
     // Browser-facing: the URL the web dashboard's <video> player fetches HLS segments from.
     hlsBaseUrl: process.env.MEDIAMTX_HLS_BASE_URL ?? "http://localhost:8888",
+    // Browser-facing: MediaMTX's WHEP (WebRTC-HTTP Egress Protocol) endpoint — Mode Fokus prefers
+    // this over HLS when available, since WebRTC's sub-second glass-to-glass latency is the fix
+    // for the "terasa lambat" complaint HLS's segment-buffering inherently can't match. Falls
+    // back to HLS automatically if WebRTC negotiation fails (see live-feed player code).
+    whepBaseUrl: process.env.MEDIAMTX_WHEP_BASE_URL ?? "http://localhost:8889",
     // detection-engine-facing: MediaMTX's own RTSP server. The detection loop reads a feed's
     // stream from here instead of connecting to the camera directly, so it shares MediaMTX's
     // single upstream camera connection with the Mode Fokus viewer rather than opening a second,

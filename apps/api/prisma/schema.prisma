@@ -314,7 +314,7 @@ model SystemSetting {
   cctvAutoCheckIntervalSeconds Int     @default(30)
   liveDetectionPollIntervalMs Int      @default(1200)
   detectionReportThreshold    Float    @default(0.5)
-  detectionMatchThreshold     Float    @default(0.9)
+  detectionMatchThreshold     Float    @default(0.7)
   updatedAt                   DateTime @updatedAt
 
   @@map("system_settings")

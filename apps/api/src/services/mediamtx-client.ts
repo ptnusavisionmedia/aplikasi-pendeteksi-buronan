@@ -63,6 +63,11 @@ export function liveHlsUrl(feedId: string): string {
   return `${env.mediamtx.hlsBaseUrl}/${feedId}/index.m3u8`;
 }
 
+/** WHEP (WebRTC) endpoint for this feed — lower latency than HLS, preferred by Mode Fokus. */
+export function liveWhepUrl(feedId: string): string {
+  return `${env.mediamtx.whepBaseUrl}/${feedId}/whep`;
+}
+
 /** The feed's stream re-published by MediaMTX, for the detection-engine capture loop to read
  * instead of connecting to the camera directly (see env.mediamtx.rtspUrl). */
 export function liveRtspUrl(feedId: string): string {

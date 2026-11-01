@@ -81,6 +81,7 @@ export interface DetectedFace {
   confidence: number;
   buronanId?: string;
   ageSeconds: number;
+  loiterSeconds?: number | null;
 }
 
 export interface LiveDetectionResult {

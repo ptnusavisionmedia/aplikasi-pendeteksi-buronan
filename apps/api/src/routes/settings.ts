@@ -12,10 +12,10 @@ const DEFAULT_SETTINGS = {
   cctvAutoCheckIntervalSeconds: 30,
   liveDetectionPollIntervalMs: 1200,
   detectionReportThreshold: 0.5,
-  detectionMatchThreshold: 0.9,
+  detectionMatchThreshold: 0.7,
 };
 
-async function getOrCreateSettings() {
+export async function getOrCreateSettings() {
   return prisma.systemSetting.upsert({
     where: { id: "default" },
     update: {},

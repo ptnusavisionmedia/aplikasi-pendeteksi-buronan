@@ -1,12 +1,12 @@
 ---
-tags: [research, recommendation, latency, cctv, deferred]
+tags: [research, recommendation, latency, cctv, implemented]
 date: 2026-10-31
-status: belum-dikerjakan
+status: dikerjakan
 ---
 
 # Rencana Perbaikan Latensi Mode Fokus
 
-> **Catatan status:** User secara eksplisit meminta ini **hanya rencana dulu, belum dieksekusi** — "jangan dieksekusi dulu saya ingin lihat" (revisi 2026-10-31, bersamaan dengan permintaan kamera jangan mirror, yang sudah dikerjakan — lihat [[../03-Decisions/2026-10-31 - Perbaikan CCTV Multi-Wajah, Low-Light, dan UX Dashboard]]). Dokumen ini murni analisis akar masalah + opsi, untuk didiskusikan dan disetujui user sebelum ada kode yang diubah.
+> **Update 2026-11-01:** User menyetujui eksekusi rencana ini pada permintaan revisi berikutnya. Opsi A1 (migrasi ke WebRTC/WHEP dengan fallback HLS), A2 (lower HLS buffer), B1 (downscale frame deteksi), B2 (executor pool terpisah), dan C1 (reuse koneksi ONVIF) **sudah diimplementasikan** — lihat [[../03-Decisions/2026-11-01 - Unifikasi Ambang Deteksi, Optimasi Streaming, dan Fitur AI Advisory|Decision Record 2026-11-01]] untuk detail & hasil verifikasi langsung (video real-time terbukti jalan via WHEP, bukan hanya HLS fallback). Sisa dokumen di bawah ini tetap sebagai catatan riset asli/analisis akar masalah, tidak diubah.
 
 ## Konteks
 

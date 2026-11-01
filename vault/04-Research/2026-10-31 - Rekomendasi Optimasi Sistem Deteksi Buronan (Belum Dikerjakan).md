@@ -1,12 +1,12 @@
 ---
-tags: [research, recommendation, detection, deferred]
+tags: [research, recommendation, detection, implemented]
 date: 2026-10-31
-status: belum-dikerjakan
+status: sebagian-dikerjakan
 ---
 
 # Rekomendasi Optimasi Sistem Deteksi Buronan
 
-> **Catatan status:** Ini murni rekomendasi/riset, **belum diimplementasikan**. User secara eksplisit meminta item ini "nanti dulu dikerjakan" saat permintaan revisi 2026-10-31 — lihat [[2026-10-31 - Kontrol PTZ via ONVIF dan Deteksi Multi-Worker]] untuk 7 item lain dari permintaan yang sama yang SUDAH dikerjakan. Dokumen ini hanya analisis & opsi untuk didiskusikan kapan user siap melanjutkan.
+> **Update 2026-11-01:** Sebagian besar item di sini **sudah diimplementasikan** — lihat [[../03-Decisions/2026-11-01 - Unifikasi Ambang Deteksi, Optimasi Streaming, dan Fitur AI Advisory|Decision Record 2026-11-01]] untuk detail lengkap apa yang dikerjakan (downscale frame deteksi, executor pool terpisah, blur/quality gate, multi-frame voting) dan apa yang sengaja masih ditunda (migrasi job queue Redis/RQ penuh — lihat bagian "Sengaja ditunda" di Decision Record tsb). Sisa dokumen di bawah ini tetap sebagai catatan riset asli/konteks, tidak diubah.
 
 ## Konteks
 

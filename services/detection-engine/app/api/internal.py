@@ -131,6 +131,9 @@ class DetectedFace(BaseModel):
     confidence: float
     buronanId: str | None = None
     ageSeconds: float
+    # Rule-based dwell-time flag (seconds this face has lingered roughly in place), or None if it
+    # hasn't crossed the loitering threshold — informational only, see cctv_stream._LOITER_SECONDS.
+    loiterSeconds: float | None = None
 
 
 class LiveDetectionResponse(BaseModel):
@@ -155,6 +158,7 @@ async def cctv_live_detection(feed_id: str):
                 confidence=d["confidence"],
                 buronanId=d["buronan_id"],
                 ageSeconds=d["age_seconds"],
+                loiterSeconds=d.get("loiter_seconds"),
             )
             for d in detections
         ],

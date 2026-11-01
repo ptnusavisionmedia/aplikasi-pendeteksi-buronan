@@ -33,6 +33,81 @@ logger = logging.getLogger("cctv_stream")
 # cameras that *are* fine.
 _check_executor = ThreadPoolExecutor(max_workers=16, thread_name_prefix="cctv-check")
 
+# Detection's own CPU-bound work (downscale, blur check, CLAHE+embedding, Qdrant search) used to
+# run on asyncio's shared default executor — the same pool every other run_in_executor(None, ...)
+# call in this process uses. With cctv_worker_count workers per feed, across several feeds, all
+# doing that work concurrently, the default pool's thread count (CPU count by default) becomes a
+# bottleneck shared with unrelated blocking calls elsewhere in the process. A dedicated pool, sized
+# to comfortably cover every feed's workers, keeps detection throughput isolated from anything else
+# that happens to use run_in_executor(None, ...).
+_detection_executor = ThreadPoolExecutor(max_workers=32, thread_name_prefix="cctv-detect")
+
+# Live frames are detected at this resolution cap (longest side, px) regardless of the camera's
+# native resolution (e.g. 1920x1080) — face embedding accuracy doesn't need full-res input, and
+# running CLAHE+ArcFace on a smaller image is the single biggest lever on per-frame latency.
+# Evidence snapshots (upload_snapshot) still use the original full-res frame; only the detection
+# path downscales.
+_DETECTION_MAX_DIM = 960
+
+# Laplacian-variance threshold below which a frame is treated as too blurry/motion-smeared to
+# trust a face match from (fast pan, focus hunting, compression artifacts on a bad link) — skipped
+# entirely rather than risking a confident-looking match on a blurred face. Conservative on purpose
+# so a normally-sharp feed essentially never trips it; tune per-camera later if needed.
+_BLUR_VARIANCE_THRESHOLD = 25.0
+
+# Consecutive capture ticks a (feed, buronan) match must persist at >= report threshold before
+# it's treated as "reportable" at all (webhook/evidence/notification) — a single-frame blip (motion
+# blur ghosting, a near-duplicate stranger, a transient Qdrant near-match) no longer creates a
+# database row by itself.
+_VOTES_REQUIRED = 2
+
+# Per-(feed, buronan) consecutive-match streak, reset the moment a tick doesn't see that pair.
+_vote_counts: dict[tuple[str, str], int] = {}
+
+# Rule-based loitering/dwell-time flag: a face bbox persisting at roughly the same position across
+# capture ticks for at least this long is flagged "lingering" on the live-detection response — no
+# ML involved, no auto-escalation, purely informational (see vault/04-Research/2026-10-31 -
+# Rencana Kecerdasan Buatan Tambahan). An officer decides whether that's worth acting on.
+_LOITER_SECONDS = 60.0
+# Two bbox centers (normalized 0..1 of frame width/height) within this distance are treated as
+# "the same person, roughly still in the same spot" between ticks — generous enough to tolerate
+# normal fidgeting/shifting, not so generous it conflates two different people standing nearby.
+_LOITER_CENTROID_TOLERANCE = 0.1
+# A dwell entry survives this many seconds without being matched to any face in a tick before
+# it's dropped (brief occlusion/missed tick shouldn't reset the whole dwell timer).
+_LOITER_MAX_GAP_SECONDS = 6.0
+
+# Per-feed list of active dwell entries: [{"cx", "cy", "first_seen", "last_seen"}, ...].
+_dwell_tracking: dict[str, list[dict]] = {}
+
+
+def _update_dwell_tracking(feed_id: str, matches: list[dict], now: float) -> None:
+    """Matches this tick's face bboxes against tracked dwell entries by nearest centroid,
+    extends/creates entries, drops stale ones, and sets `loiter_seconds` on each match whose
+    tracked presence has crossed _LOITER_SECONDS."""
+    entries = _dwell_tracking.setdefault(feed_id, [])
+    entries[:] = [e for e in entries if now - e["last_seen"] <= _LOITER_MAX_GAP_SECONDS]
+
+    for match in matches:
+        x1, y1, x2, y2 = match["bbox"]
+        cx, cy = (x1 + x2) / 2, (y1 + y2) / 2
+
+        best_entry, best_dist = None, _LOITER_CENTROID_TOLERANCE
+        for entry in entries:
+            dist = ((entry["cx"] - cx) ** 2 + (entry["cy"] - cy) ** 2) ** 0.5
+            if dist <= best_dist:
+                best_entry, best_dist = entry, dist
+
+        if best_entry is None:
+            best_entry = {"cx": cx, "cy": cy, "first_seen": now, "last_seen": now}
+            entries.append(best_entry)
+        else:
+            best_entry["cx"], best_entry["cy"], best_entry["last_seen"] = cx, cy, now
+
+        dwell = now - best_entry["first_seen"]
+        match["loiter_seconds"] = dwell if dwell >= _LOITER_SECONDS else None
+
+
 _running_tasks: dict[str, asyncio.Task] = {}
 _grabbers: dict[str, "_FrameGrabber"] = {}
 
@@ -78,6 +153,9 @@ async def stop_feed(feed_id: str) -> None:
         grabber.stop()
     _latest_detection.pop(feed_id, None)
     _latest_detection_frame_ts.pop(feed_id, None)
+    for key in [k for k in _vote_counts if k[0] == feed_id]:
+        del _vote_counts[key]
+    _dwell_tracking.pop(feed_id, None)
 
 
 def _preflight_error(rtsp_url: str, timeout: float = 4.0) -> str | None:
@@ -272,15 +350,57 @@ async def _detection_worker(feed_id: str, grabber: "_FrameGrabber") -> None:
         await _process_frame(feed_id, frame, captured_at)
 
 
+def _downscale_for_detection(frame):
+    """Shrinks `frame` so its longest side is at most _DETECTION_MAX_DIM, preserving aspect
+    ratio (so bbox coordinates normalized against the downscaled image's own width/height still
+    land in the same 0..1 fraction of the original frame). Returns the frame unchanged if it's
+    already at or below the cap."""
+    height, width = frame.shape[:2]
+    longest = max(height, width)
+    if longest <= _DETECTION_MAX_DIM:
+        return frame
+    scale = _DETECTION_MAX_DIM / longest
+    return cv2.resize(frame, (int(width * scale), int(height * scale)), interpolation=cv2.INTER_AREA)
+
+
+def _is_too_blurry(frame) -> bool:
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    variance = cv2.Laplacian(gray, cv2.CV_64F).var()
+    return variance < _BLUR_VARIANCE_THRESHOLD
+
+
+def _encode_full_res(frame) -> bytes:
+    ok, jpeg = cv2.imencode(".jpg", frame)
+    if not ok:
+        raise RuntimeError("Gagal encode frame CCTV ke JPEG untuk evidence")
+    return jpeg.tobytes()
+
+
+def _prepare_detection_frame(frame):
+    """Runs on the detection executor: downscale -> blur check -> JPEG-encode the downscaled
+    frame, all in one executor hop instead of three. Returns None when the frame is too blurry
+    to bother detecting on."""
+    small = _downscale_for_detection(frame)
+    if _is_too_blurry(small):
+        return None
+    ok, jpeg = cv2.imencode(".jpg", small)
+    if not ok:
+        return None
+    height, width = small.shape[:2]
+    return jpeg.tobytes(), width, height
+
+
 async def _process_frame(feed_id: str, frame, captured_at: float) -> None:
     loop = asyncio.get_running_loop()
-    ok, jpeg = await loop.run_in_executor(None, cv2.imencode, ".jpg", frame)
-    if not ok:
-        return
-    jpeg_bytes = jpeg.tobytes()
-    frame_height, frame_width = frame.shape[:2]
 
-    faces = await loop.run_in_executor(None, extract_embeddings, jpeg_bytes)
+    prepared = await loop.run_in_executor(_detection_executor, _prepare_detection_frame, frame)
+    if prepared is None:
+        # Either too blurry to trust, or encoding failed — leave the overlay as-is (don't clear
+        # it on a single bad frame) and let the next worker/tick try again.
+        return
+    detect_jpeg_bytes, frame_width, frame_height = prepared
+
+    faces = await loop.run_in_executor(_detection_executor, extract_embeddings, detect_jpeg_bytes)
     if not faces:
         # Only clear the overlay if this is the newest frame processed so far for this feed —
         # otherwise a faster worker on an older, face-less frame could blank out a fresher
@@ -293,7 +413,7 @@ async def _process_frame(feed_id: str, frame, captured_at: float) -> None:
     # Search Qdrant for every face in the frame concurrently — each person gets independently
     # matched against the buronan database, not just the single most prominent face.
     search_results = await asyncio.gather(
-        *(loop.run_in_executor(None, search_face, face.embedding.tolist(), 1) for face in faces)
+        *(loop.run_in_executor(_detection_executor, search_face, face.embedding.tolist(), 1) for face in faces)
     )
 
     matches = []
@@ -315,14 +435,36 @@ async def _process_frame(feed_id: str, frame, captured_at: float) -> None:
         pass
     else:
         now = time.time()
+        _update_dwell_tracking(feed_id, matches, now)
         # Live overlay (Mode Fokus): every face gets a box, regardless of match confidence — the
         # green/yellow/red tiering happens client-side purely from this score.
         _latest_detection[feed_id] = [{**m, "seen_at": now} for m in matches]
         _latest_detection_frame_ts[feed_id] = captured_at
 
-    reportable = [m for m in matches if m["buronan_id"] is not None and m["confidence"] >= get_report_threshold()]
+    candidates = [m for m in matches if m["buronan_id"] is not None and m["confidence"] >= get_report_threshold()]
+    if not candidates:
+        # Nobody above the report floor this tick — every streak for this feed resets, since a
+        # match has to persist across *consecutive* ticks to count (see _VOTES_REQUIRED below).
+        for key in [k for k in _vote_counts if k[0] == feed_id]:
+            del _vote_counts[key]
+        return
+
+    # Multi-frame voting: a (feed, buronan) pair only becomes reportable once it's shown up at
+    # >= report threshold for _VOTES_REQUIRED consecutive ticks — a single blip (motion-blur
+    # ghosting, a momentary near-duplicate stranger) no longer creates a database row by itself.
+    seen_pairs = set()
+    reportable = []
+    for match in candidates:
+        pair = (feed_id, match["buronan_id"])
+        seen_pairs.add(pair)
+        streak = _vote_counts[pair] = _vote_counts.get(pair, 0) + 1
+        if streak >= _VOTES_REQUIRED:
+            reportable.append(match)
+    for key in [k for k in _vote_counts if k[0] == feed_id and k not in seen_pairs]:
+        del _vote_counts[key]
+
     if not reportable:
-        return  # none of the faces in this frame are similar enough to any buronan on file
+        return  # seen, but not yet for enough consecutive ticks to trust
 
     snapshot_url: str | None = None
     now = time.time()
@@ -331,9 +473,9 @@ async def _process_frame(feed_id: str, frame, captured_at: float) -> None:
             buronan_id = match["buronan_id"]
             score = match["confidence"]
 
-            # A confirmed-tier match (>= apps/api's 0.9 cutoff) always reports immediately;
-            # anything between the report floor and that cutoff is throttled so one lingering
-            # face doesn't spam LOW_CONFIDENCE/PENDING_CONFIRMATION rows every capture tick.
+            # A confirmed-tier match (>= apps/api's configurable cutoff) always reports
+            # immediately; anything between the report floor and that cutoff is throttled so one
+            # lingering face doesn't spam LOW_CONFIDENCE/PENDING_CONFIRMATION rows every tick.
             report_key = (feed_id, buronan_id)
             if score < get_match_threshold():
                 last = _last_reported_at.get(report_key)
@@ -342,7 +484,10 @@ async def _process_frame(feed_id: str, frame, captured_at: float) -> None:
             _last_reported_at[report_key] = now
 
             if snapshot_url is None:
-                snapshot_url = await loop.run_in_executor(None, upload_snapshot, jpeg_bytes)
+                # Evidence snapshot uses the original full-resolution frame, not the downscaled
+                # copy detection ran on — this is the image an officer later reviews.
+                full_res_jpeg = await loop.run_in_executor(None, _encode_full_res, frame)
+                snapshot_url = await loop.run_in_executor(None, upload_snapshot, full_res_jpeg)
 
             await client.post(
                 settings.express_webhook_url,

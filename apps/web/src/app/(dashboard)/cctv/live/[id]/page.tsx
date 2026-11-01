@@ -16,6 +16,9 @@ interface DetectedFace {
   bbox: [number, number, number, number];
   confidence: number;
   ageSeconds: number;
+  // Rule-based dwell-time flag (not ML, no auto-escalation) — seconds this face has lingered
+  // roughly in the same spot, once that crosses the engine's loitering threshold.
+  loiterSeconds?: number | null;
 }
 
 interface LiveDetection {
@@ -25,11 +28,17 @@ interface LiveDetection {
 
 const STALE_DETECTION_SECONDS = 8; // a couple missed capture ticks (~2s each) — camera loop likely stopped
 
-/** Green <50%, yellow 50-90%, red >=90% — the same cutoff that decides whether apps/api
- * auto-captures the frame into the database (CONFIDENCE_THRESHOLD in detections.ts). */
-function tierFor(confidence: number): { color: string; soft: string; label: string } {
-  if (confidence >= 0.9) return { color: "var(--color-coral)", soft: "var(--color-coral-soft)", label: "COCOK TINGGI" };
-  if (confidence >= 0.5) return { color: "var(--color-amber)", soft: "var(--color-amber-soft)", label: "MIRIP" };
+/** Green < reportThreshold, yellow reportThreshold-matchThreshold, red >= matchThreshold — the
+ * same cutoffs (admin-editable in Pengaturan, SystemSetting.detectionMatchThreshold /
+ * detectionReportThreshold) that decide whether apps/api auto-captures the frame into the
+ * database (getConfidenceThreshold() in detections.ts). */
+function tierFor(
+  confidence: number,
+  reportThreshold: number,
+  matchThreshold: number
+): { color: string; soft: string; label: string } {
+  if (confidence >= matchThreshold) return { color: "var(--color-coral)", soft: "var(--color-coral-soft)", label: "COCOK TINGGI" };
+  if (confidence >= reportThreshold) return { color: "var(--color-amber)", soft: "var(--color-amber-soft)", label: "MIRIP" };
   return { color: "var(--color-safe)", soft: "var(--color-safe-soft)", label: "RENDAH" };
 }
 
@@ -128,8 +137,17 @@ export default function CctvFocusPage() {
 
   const { data: settings } = useQuery({
     queryKey: ["settings"],
-    queryFn: async () => (await apiClient.get<{ liveDetectionPollIntervalMs: number }>("/settings")).data,
+    queryFn: async () =>
+      (
+        await apiClient.get<{
+          liveDetectionPollIntervalMs: number;
+          detectionReportThreshold: number;
+          detectionMatchThreshold: number;
+        }>("/settings")
+      ).data,
   });
+  const reportThreshold = settings?.detectionReportThreshold ?? 0.5;
+  const matchThreshold = settings?.detectionMatchThreshold ?? 0.7;
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -141,41 +159,140 @@ export default function CctvFocusPage() {
 
   useEffect(() => {
     let hls: Hls | null = null;
+    let pc: RTCPeerConnection | null = null;
+    let whepSessionUrl: string | null = null;
     let cancelled = false;
     const video = videoRef.current;
+
+    function playHls(hlsUrl: string) {
+      if (!video) return;
+      if (Hls.isSupported()) {
+        // liveSyncDurationCount keeps the player this many segments behind the live edge —
+        // lower means less buffering latency but more risk of stalling on a hiccup. WHEP
+        // (tried first, above) is the real latency fix; this is just HLS's own best-effort knob
+        // for whenever WHEP isn't available (older browser, MediaMTX WHEP down).
+        hls = new Hls({ liveSyncDurationCount: 2, maxLiveSyncPlaybackRate: 1.2 });
+        hls.loadSource(hlsUrl);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          if (cancelled) return;
+          setStatus("live");
+          video.play().catch(() => {});
+        });
+        hls.on(Hls.Events.ERROR, (_evt, errData) => {
+          if (errData.fatal && !cancelled) {
+            setStatus("error");
+            setError("Gagal memutar live stream — cek koneksi kamera atau coba lagi.");
+          }
+        });
+      } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+        video.src = hlsUrl;
+        video.addEventListener("loadedmetadata", () => {
+          if (cancelled) return;
+          setStatus("live");
+          video.play().catch(() => {});
+        });
+      } else {
+        setStatus("error");
+        setError("Browser ini tidak mendukung pemutaran live stream.");
+      }
+    }
+
+    /** WHEP (WebRTC-HTTP Egress Protocol): sub-second glass-to-glass latency, vs. HLS's
+     * multi-second segment-buffering delay — this is the actual fix for Mode Fokus feeling
+     * laggy. Tried first; any failure (browser support, network, MediaMTX WHEP down) falls
+     * back to the HLS path above, so Mode Fokus still works either way. */
+    async function playWhep(whepUrl: string): Promise<boolean> {
+      if (!video || typeof RTCPeerConnection === "undefined") return false;
+      try {
+        // A STUN server costs nothing when the browser and MediaMTX are on the same LAN (the
+        // common case here), but it's what lets Chrome also gather a real-IP "srflx" candidate
+        // alongside its privacy-obfuscated mDNS "host" one — without it, some network setups
+        // only ever offer the unresolvable .local hostname and media never flows even though
+        // signaling reports success.
+        pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+        pc.addTransceiver("video", { direction: "recvonly" });
+        pc.addTransceiver("audio", { direction: "recvonly" });
+        const stream = new MediaStream();
+        video.srcObject = stream;
+        pc.ontrack = (evt) => stream.addTrack(evt.track);
+
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+
+        // WHEP here is non-trickle: the offer is sent as a single HTTP POST, so it must already
+        // carry every ICE candidate — sending it right after setLocalDescription (before
+        // gathering finishes) produces an SDP with no/partial candidates, and media never
+        // flows even though signaling "succeeds" (track exists but stays perpetually muted).
+        if (pc.iceGatheringState !== "complete") {
+          await new Promise<void>((resolve) => {
+            const timeout = setTimeout(resolve, 3000); // cap the wait; partial candidates beat none
+            pc!.addEventListener("icegatheringstatechange", () => {
+              if (pc!.iceGatheringState === "complete") {
+                clearTimeout(timeout);
+                resolve();
+              }
+            });
+          });
+        }
+
+        const resp = await fetch(whepUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/sdp" },
+          // pc.localDescription, not the original `offer` — it now carries every ICE candidate
+          // gathered during the wait above, not just whatever existed the instant createOffer()
+          // returned.
+          body: pc.localDescription?.sdp ?? offer.sdp,
+        });
+        if (!resp.ok) return false;
+        whepSessionUrl = resp.headers.get("Location")
+          ? new URL(resp.headers.get("Location")!, whepUrl).toString()
+          : null;
+
+        const answerSdp = await resp.text();
+        await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
+        if (cancelled) return true;
+        video.play().catch(() => {});
+
+        // Signaling succeeding doesn't guarantee media actually arrives (e.g. no reachable ICE
+        // candidate pair on this network) — wait for a real frame before declaring WHEP the
+        // winner, otherwise a "successful" session that never delivers a frame would leave Mode
+        // Fokus stuck on a silent black screen instead of falling back to HLS below.
+        const gotFrame = await new Promise<boolean>((resolveFrame) => {
+          const onPlaying = () => resolveFrame(true);
+          video!.addEventListener("playing", onPlaying, { once: true });
+          setTimeout(() => {
+            video!.removeEventListener("playing", onPlaying);
+            resolveFrame(false);
+          }, 5000);
+        });
+
+        if (!gotFrame || cancelled) return false;
+        setStatus("live");
+        return true;
+      } catch {
+        return false;
+      }
+    }
 
     async function connect() {
       setStatus("connecting");
       setError(null);
       try {
-        const { data } = await apiClient.post<{ hlsUrl: string }>(`/cctv-feeds/${id}/live`);
+        const { data } = await apiClient.post<{ hlsUrl: string; whepUrl?: string }>(`/cctv-feeds/${id}/live`);
         if (cancelled || !video) return;
 
-        if (Hls.isSupported()) {
-          hls = new Hls({ liveSyncDurationCount: 3 });
-          hls.loadSource(data.hlsUrl);
-          hls.attachMedia(video);
-          hls.on(Hls.Events.MANIFEST_PARSED, () => {
-            if (cancelled) return;
-            setStatus("live");
-            video.play().catch(() => {});
-          });
-          hls.on(Hls.Events.ERROR, (_evt, errData) => {
-            if (errData.fatal && !cancelled) {
-              setStatus("error");
-              setError("Gagal memutar live stream — cek koneksi kamera atau coba lagi.");
-            }
-          });
-        } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-          video.src = data.hlsUrl;
-          video.addEventListener("loadedmetadata", () => {
-            if (cancelled) return;
-            setStatus("live");
-            video.play().catch(() => {});
-          });
-        } else {
-          setStatus("error");
-          setError("Browser ini tidak mendukung pemutaran HLS.");
+        const whepOk = data.whepUrl ? await playWhep(data.whepUrl) : false;
+        if (cancelled) return;
+        if (!whepOk) {
+          pc?.close();
+          pc = null;
+          video.srcObject = null;
+          if (whepSessionUrl) {
+            fetch(whepSessionUrl, { method: "DELETE" }).catch(() => {});
+            whepSessionUrl = null;
+          }
+          playHls(data.hlsUrl);
         }
       } catch (err) {
         if (!cancelled) {
@@ -189,6 +306,8 @@ export default function CctvFocusPage() {
     return () => {
       cancelled = true;
       hls?.destroy();
+      pc?.close();
+      if (whepSessionUrl) fetch(whepSessionUrl, { method: "DELETE" }).catch(() => {});
     };
   }, [id]);
 
@@ -271,7 +390,7 @@ export default function CctvFocusPage() {
           <video ref={videoRef} controls autoPlay playsInline muted className="block max-w-full max-h-full rounded-xl" />
 
           {faces.map((face, i) => {
-            const tier = tierFor(face.confidence);
+            const tier = tierFor(face.confidence, reportThreshold, matchThreshold);
             return (
               <div
                 key={i}
@@ -291,6 +410,15 @@ export default function CctvFocusPage() {
                 >
                   {Math.round(face.confidence * 100)}% &middot; {tier.label}
                 </span>
+                {face.loiterSeconds != null && (
+                  // Rule-based dwell-time flag only — purely informational, no auto-escalation.
+                  <span
+                    className="absolute -bottom-6 left-0 text-[10.5px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap bg-ink text-white"
+                    style={{ transform: feed?.mirror ? "scaleX(-1)" : undefined }}
+                  >
+                    Berdiam {Math.round(face.loiterSeconds)}s
+                  </span>
+                )}
               </div>
             );
           })}
@@ -363,9 +491,9 @@ export default function CctvFocusPage() {
 
       {status === "live" && (
         <div className="flex items-center justify-center gap-5 px-5 pb-4 text-[11.5px] font-semibold text-white/70">
-          <LegendDot color="var(--color-safe)" label="< 50% — rendah" />
-          <LegendDot color="var(--color-amber)" label="50–90% — mirip" />
-          <LegendDot color="var(--color-coral)" label="≥ 90% — otomatis tersimpan ke database" />
+          <LegendDot color="var(--color-safe)" label={`< ${Math.round(reportThreshold * 100)}% — rendah`} />
+          <LegendDot color="var(--color-amber)" label={`${Math.round(reportThreshold * 100)}–${Math.round(matchThreshold * 100)}% — mirip`} />
+          <LegendDot color="var(--color-coral)" label={`≥ ${Math.round(matchThreshold * 100)}% — otomatis tersimpan ke database`} />
         </div>
       )}
     </div>

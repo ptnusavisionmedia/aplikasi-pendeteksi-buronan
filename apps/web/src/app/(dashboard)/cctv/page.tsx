@@ -466,6 +466,7 @@ export default function CctvPage() {
                   <span className="w-1.5 h-1.5 rounded-full bg-muted animate-pulse" /> Mengecek koneksi...
                 </div>
               )}
+              {canManage && <CalibrationSuggestion feedId={feed.id} />}
               {check && !check.loading && (
                 <div className={clsx(
                   "text-[11.5px] font-semibold rounded-lg px-2.5 py-2 flex items-center gap-1.5",
@@ -520,6 +521,30 @@ export default function CctvPage() {
         })}
         {feeds?.length === 0 && <p className="text-[12.5px] text-muted col-span-3">Belum ada feed CCTV terdaftar.</p>}
       </div>
+    </div>
+  );
+}
+
+/** Advisory-only per-camera threshold calibration (FR-22 extension) — surfaces a statistical
+ * suggestion derived from officer confirm/reject history (GET /cctv-feeds/:id/accuracy), never
+ * applies it automatically. Admins decide whether to act on it in Pengaturan. */
+function CalibrationSuggestion({ feedId }: { feedId: string }) {
+  const { data } = useQuery({
+    queryKey: ["cctv-accuracy", feedId],
+    queryFn: async () =>
+      (
+        await apiClient.get<{ flagged: boolean; falsePositiveRate: number; totalReviewed: number; calibrationSuggestion: string | null }>(
+          `/cctv-feeds/${feedId}/accuracy`
+        )
+      ).data,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  if (!data?.calibrationSuggestion) return null;
+  return (
+    <div className="text-[11.5px] font-medium rounded-lg px-2.5 py-2 bg-amber-soft text-ink leading-snug">
+      <span className="font-bold">Saran kalibrasi: </span>
+      {data.calibrationSuggestion}
     </div>
   );
 }

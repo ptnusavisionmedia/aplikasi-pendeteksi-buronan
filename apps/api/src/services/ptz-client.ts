@@ -58,17 +58,50 @@ function friendlyPtzError(err: unknown, action: string): Error {
   return new Error(`Gagal menjalankan perintah PTZ "${action}" pada kamera — ${message}`);
 }
 
+// Every ptzMove/ptzStop/ptzSnapshot call used to open a brand-new ONVIF connection (a fresh
+// SOAP handshake + device discovery) from scratch — the single biggest contributor to PTZ
+// command latency, since ONVIF's connect handshake itself can take several hundred ms. Cached
+// here per host:port:username and reused across calls; a connection is dropped from the cache
+// (and a fresh one opened) the moment it errors, since a camera reboot/network blip can leave a
+// cached `Cam` silently dead.
+const _camCache = new Map<string, InstanceType<typeof Cam>>();
+const _CAM_CACHE_TTL_MS = 10 * 60 * 1000;
+const _camCacheTimestamps = new Map<string, number>();
+
 function connect(feed: PtzFeed): Promise<InstanceType<typeof Cam>> {
   const { hostname, username, password } = parseCredentials(feed.urlStream);
+  const cacheKey = `${hostname}:${feed.onvifPort}:${username ?? ""}`;
+
+  const cached = _camCache.get(cacheKey);
+  const cachedAt = _camCacheTimestamps.get(cacheKey) ?? 0;
+  if (cached && Date.now() - cachedAt < _CAM_CACHE_TTL_MS) {
+    return Promise.resolve(cached);
+  }
+  _camCache.delete(cacheKey);
+  _camCacheTimestamps.delete(cacheKey);
+
   return new Promise((resolve, reject) => {
     const cam = new Cam(
       { hostname, username, password, port: feed.onvifPort, timeout: 8000 },
       (err: Error | null) => {
         if (err) reject(new Error(`Gagal terhubung ke ONVIF kamera di ${hostname}:${feed.onvifPort} — ${err.message}`));
-        else resolve(cam);
+        else {
+          _camCache.set(cacheKey, cam);
+          _camCacheTimestamps.set(cacheKey, Date.now());
+          resolve(cam);
+        }
       }
     );
   });
+}
+
+/** Drops a cached connection so the next call reconnects from scratch — call this when a cached
+ * `Cam`'s command fails, since the failure might be the connection itself having gone stale. */
+function invalidateConnection(feed: PtzFeed): void {
+  const { hostname, username } = parseCredentials(feed.urlStream);
+  const cacheKey = `${hostname}:${feed.onvifPort}:${username ?? ""}`;
+  _camCache.delete(cacheKey);
+  _camCacheTimestamps.delete(cacheKey);
 }
 
 /** Starts panning/tilting in `direction` at a fixed speed. The camera keeps moving until `ptzStop`
@@ -77,18 +110,24 @@ export async function ptzMove(feed: PtzFeed, direction: PtzDirection, speed = 0.
   const cam = await connect(feed);
   const vector = DIRECTION_VECTOR[direction];
   await new Promise<void>((resolve, reject) => {
-    cam.continuousMove({ x: vector.x * speed, y: vector.y * speed, zoom: 0 }, (err: Error | null) =>
-      err ? reject(friendlyPtzError(err, "gerakkan kamera")) : resolve()
-    );
+    cam.continuousMove({ x: vector.x * speed, y: vector.y * speed, zoom: 0 }, (err: Error | null) => {
+      if (err) {
+        invalidateConnection(feed);
+        reject(friendlyPtzError(err, "gerakkan kamera"));
+      } else resolve();
+    });
   });
 }
 
 export async function ptzStop(feed: PtzFeed): Promise<void> {
   const cam = await connect(feed);
   await new Promise<void>((resolve, reject) => {
-    cam.stop({ panTilt: true, zoom: true }, (err: Error | null) =>
-      err ? reject(friendlyPtzError(err, "hentikan kamera")) : resolve()
-    );
+    cam.stop({ panTilt: true, zoom: true }, (err: Error | null) => {
+      if (err) {
+        invalidateConnection(feed);
+        reject(friendlyPtzError(err, "hentikan kamera"));
+      } else resolve();
+    });
   });
 }
 
@@ -137,7 +176,10 @@ export async function ptzSnapshot(feed: PtzFeed): Promise<Buffer> {
   const cam = await connect(feed);
   const { uri } = await new Promise<{ uri: string }>((resolve, reject) => {
     cam.getSnapshotUri({}, (err: Error | null, result?: { uri: string }) => {
-      if (err) return reject(friendlyPtzError(err, "ambil foto"));
+      if (err) {
+        invalidateConnection(feed);
+        return reject(friendlyPtzError(err, "ambil foto"));
+      }
       if (!result) return reject(new Error("Kamera tidak mengembalikan snapshot URI"));
       resolve(result);
     });

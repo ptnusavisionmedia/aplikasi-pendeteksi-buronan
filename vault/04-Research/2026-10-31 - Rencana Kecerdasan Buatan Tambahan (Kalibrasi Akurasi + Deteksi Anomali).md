@@ -1,12 +1,12 @@
 ---
-tags: [research, recommendation, ai, deferred]
+tags: [research, recommendation, ai, implemented]
 date: 2026-10-31
-status: perlu-didiskusikan
+status: dikerjakan-advisory-only
 ---
 
 # Rencana Kecerdasan Buatan Tambahan — Kalibrasi Akurasi & Deteksi Anomali
 
-> **Catatan status:** Item ini (nomor 9 dari daftar revisi 2026-10-31) secara eksplisit diminta user untuk **didiskusikan dulu**, bukan langsung dikerjakan — lihat [[2026-10-31 - Perbaikan CCTV Multi-Wajah, Low-Light, dan UX Dashboard]] untuk 8 item lain dari permintaan yang sama yang SUDAH dikerjakan. Dokumen ini adalah bahan diskusi, bukan keputusan final.
+> **Update 2026-11-01:** User menyetujui eksekusi kedua arah ini pada permintaan revisi berikutnya, **keduanya diimplementasikan sebagai advisory/informational-only** (tidak auto-apply/auto-escalate, sesuai pertimbangan keamanan yang dibahas di dokumen ini) — lihat [[../03-Decisions/2026-11-01 - Unifikasi Ambang Deteksi, Optimasi Streaming, dan Fitur AI Advisory|Decision Record 2026-11-01]] untuk detail implementasi (saran kalibrasi per-kamera di kartu CCTV, flag loitering di overlay Mode Fokus). Sisa dokumen di bawah ini tetap sebagai catatan riset/diskusi asli, tidak diubah.
 
 ## Konteks
 

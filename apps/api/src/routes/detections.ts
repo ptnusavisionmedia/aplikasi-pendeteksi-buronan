@@ -11,11 +11,19 @@ import { prisma } from "../services/prisma";
 import { writeAuditLog } from "../services/audit-log";
 import { env } from "../env";
 import { evidenceRetentionDate, uploadEvidenceFile } from "../services/storage";
+import { getOrCreateSettings } from "./settings";
 
 export const detectionsRouter = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 
-const CONFIDENCE_THRESHOLD = 0.9;
+// Capture/evidence-save threshold is admin-editable via Pengaturan > "Ambang terkonfirmasi"
+// (SystemSetting.detectionMatchThreshold, default 0.7) — this used to be a separate hardcoded
+// constant here, out of sync with the Pengaturan UI that looked like it controlled this.
+async function getConfidenceThreshold(): Promise<number> {
+  const settings = await getOrCreateSettings();
+  return settings.detectionMatchThreshold;
+}
+
 const OFFICER_ROLES = ["ADMIN", "APARAT", "KEAMANAN_SWASTA"] as const;
 
 const uploadCheckRateLimit = rateLimit({
@@ -39,11 +47,12 @@ detectionsRouter.post(
   const best = result.candidates.sort((a, b) => b.confidence - a.confidence)[0];
   if (!best) return res.json({ matched: false, candidates: [] });
 
+  const confidenceThreshold = await getConfidenceThreshold();
   const event = await prisma.detectionEvent.create({
     data: {
       buronanId: best.buronanId,
       confidenceScore: best.confidence,
-      status: best.confidence >= CONFIDENCE_THRESHOLD ? "MANUAL_CHECK" : "LOW_CONFIDENCE",
+      status: best.confidence >= confidenceThreshold ? "MANUAL_CHECK" : "LOW_CONFIDENCE",
     },
   });
 
@@ -88,12 +97,13 @@ detectionsRouter.post(
 
     if (!best) return res.json({ matched: false, candidates: [] });
 
+    const confidenceThreshold = await getConfidenceThreshold();
     const event = await prisma.detectionEvent.create({
       data: {
         cctvFeedId: feed.id,
         buronanId: best.buronanId,
         confidenceScore: best.confidence,
-        status: best.confidence >= CONFIDENCE_THRESHOLD ? "PENDING_CONFIRMATION" : "LOW_CONFIDENCE",
+        status: best.confidence >= confidenceThreshold ? "PENDING_CONFIRMATION" : "LOW_CONFIDENCE",
         isLive: true,
       },
     });
@@ -147,17 +157,18 @@ detectionsRouter.post("/webhook", async (req, res) => {
 
   // FR-19: a high-confidence match no longer auto-escalates. It waits for an officer's
   // confirm/reject decision (see PATCH /:id/confirm|reject) before FR-14 Escalation can fire.
+  const confidenceThreshold = await getConfidenceThreshold();
   const event = await prisma.detectionEvent.create({
     data: {
       cctvFeedId,
       buronanId,
       confidenceScore: confidence,
-      status: confidence >= CONFIDENCE_THRESHOLD ? "PENDING_CONFIRMATION" : "LOW_CONFIDENCE",
+      status: confidence >= confidenceThreshold ? "PENDING_CONFIRMATION" : "LOW_CONFIDENCE",
       isLive: true,
     },
   });
 
-  if (confidence >= CONFIDENCE_THRESHOLD) {
+  if (confidence >= confidenceThreshold) {
     await prisma.evidence.create({
       data: {
         detectionEventId: event.id,
