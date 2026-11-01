@@ -1,0 +1,79 @@
+[
+  {
+    "key": "kaskita",
+    "title": "KasKita",
+    "short": "Aplikasi web pengelolaan iuran kas kelas yang transparan dan rapi.",
+    "desc": "Platform iuran kas kelas berbasis web. Seluruh anggota kelas bisa memantau saldo, pengeluaran, dan tagihan secara real-time.",
+    "feat": "[\"Laporan kas masuk dan kas keluar yang terbuka.\",\"Daftar siswa yang belum lunas.\",\"Online lewat Netlify, bisa diakses kapan saja.\"]",
+    "tech": "[\"HTML5\",\"JavaScript\",\"Tailwind CSS\",\"Netlify\"]",
+    "stack": "HTML / JS / Netlify",
+    "link": "https://uang-kas-27.netlify.app",
+    "img_len": 48115
+  },
+  {
+    "key": "kasirweb",
+    "title": "KasirKu Web",
+    "short": "Aplikasi kasir web dengan stok produk, laporan penjualan, dan cetak struk.",
+    "desc": "Aplikasi kasir (point of sale) satu halaman yang berjalan di browser, untuk usaha kecil. Pemilik bisa mencatat penjualan, mengelola produk dan stok, melihat laporan omzet dan laba, serta mencetak struk. Seluruh data tersimpan di browser perangkat.",
+    "feat": "[\"Kasir: cari produk atau SKU, pindai barcode/QR lewat kamera, keranjang, dan diskon nominal atau persen.\",\"Pembayaran tunai, transfer, dan QRIS dengan hitung kembalian otomatis, lalu cetak struk 58 mm atau 80 mm.\",\"Manajemen produk: kategori, SKU, harga jual, modal, dan stok, dengan peringatan stok menipis.\",\"Laporan omzet dan laba per hari, 7 hari, atau 30 hari, lengkap dengan grafik, produk terlaris, dan riwayat transaksi.\",\"Pengaturan toko, ekspor dan pulihkan cadangan data (.json), mode gelap otomatis, serta tampilan responsif untuk HP.\"]",
+    "tech": "[\"HTML5\",\"CSS3\",\"JavaScript\",\"SVG\",\"localStorage\"]",
+    "stack": "HTML / CSS / JS",
+    "link": "#",
+    "img_len": 34215
+  },
+  {
+    "key": "webgokil",
+    "title": "Gokill Nasi Goreng Geprek",
+    "short": "Website usaha kuliner lengkap dengan menu, ulasan, lokasi, dan pemesanan lewat WhatsApp.",
+    "desc": "Website profil untuk usaha Gokill Nasi Goreng Geprek di Keputih, Surabaya. Pengunjung bisa melihat menu, membaca ulasan, mencari lokasi, lalu menyusun pesanan yang dikirim langsung ke penjual lewat WhatsApp.",
+    "feat": "[\"Menu lengkap dengan pencarian, filter kategori, dan urutan harga.\",\"Keranjang pesanan: atur jumlah, level pedas, dan jenis pesanan (makan di tempat, bawa pulang, atau antar), lalu kirim lewat WhatsApp.\",\"Fitur “Pilihkan untuk saya” yang mengacak satu menu sesuai jenis yang dipilih.\",\"Ulasan pelanggan, galeri foto, tanya jawab, serta lokasi dengan peta, jam buka, dan status buka atau tutup.\",\"Tampilan interaktif: layar pembuka beranimasi, foto menu yang berputar otomatis, dan efek miring 3D.\"]",
+    "tech": "[\"HTML5\",\"CSS3\",\"JavaScript\",\"WhatsApp\",\"Google Maps\"]",
+    "stack": "HTML / CSS / JS",
+    "link": "#",
+    "img_len": 60143
+  },
+  {
+    "key": "warung",
+    "title": "Warung Nusantara",
+    "short": "Website restoran multi-halaman dengan menu, keranjang, kode promo, dan pesan via WhatsApp.",
+    "desc": "Website restoran masakan Nusantara dengan tujuh halaman. Pengunjung bisa melihat menu, menyusun pesanan, memakai kode promo, lalu mengirim pesanan atau reservasi langsung ke WhatsApp restoran.",
+    "feat": "[\"Tujuh halaman: Beranda, Menu, Delivery, Tentang, Galeri, Kontak, dan Pesan Online.\",\"Menu dengan pencarian, filter kategori, urutan harga, dan tanda favorit yang tersimpan di browser.\",\"Keranjang pesanan dengan subtotal, ongkos kirim per area, minimal order, dan kode promo, lalu dikirim ke WhatsApp restoran.\",\"Reservasi meja lewat WhatsApp, status buka atau tutup otomatis, dan peta lokasi.\",\"Mode gelap, galeri foto yang bisa diperbesar, transisi antar halaman berpanel, dan tombol WhatsApp melayang.\"]",
+    "tech": "[\"HTML5\",\"CSS3\",\"JavaScript\",\"localStorage\",\"WhatsApp\",\"Google Maps\"]",
+    "stack": "HTML / CSS / JS",
+    "link": "#",
+    "img_len": 81639
+  },
+  {
+    "key": "jurnalpkl",
+    "title": "Jurnal PKL",
+    "short": "Aplikasi web untuk mencatat kegiatan harian PKL dan rencana kerja besok.",
+    "desc": "Aplikasi web untuk mencatat jurnal harian selama Praktik Kerja Lapangan (PKL). Setiap catatan berisi kegiatan hari ini dan rencana besok, lengkap dengan kategori dan status pengerjaan, sehingga mudah dilacak dan dicetak untuk laporan.",
+    "feat": "[\"Form catatan: tanggal, kategori atau divisi, uraian kegiatan dan rencana besok, serta status (Selesai, Dalam Proses, Tertunda).\",\"Ringkasan otomatis: total catatan, jumlah yang selesai, dan yang masih diproses.\",\"Riwayat jurnal dengan pencarian kegiatan dan filter status, plus edit dan hapus catatan.\",\"Cetak ke PDF untuk laporan, dan backup seluruh data ke file JSON.\",\"Data tersimpan di browser, dengan tampilan gelap yang responsif untuk HP dan laptop.\"]",
+    "tech": "[\"HTML5\",\"Tailwind CSS\",\"JavaScript\",\"Phosphor Icons\",\"localStorage\"]",
+    "stack": "HTML / Tailwind / JS",
+    "link": "#",
+    "img_len": 31487
+  },
+  {
+    "key": "sistemparkir",
+    "title": "Sistem Manajemen Parkir",
+    "short": "Aplikasi web manajemen parkir dengan data kendaraan, laporan, dan cetak struk.",
+    "desc": "Aplikasi web untuk mengelola parkir kendaraan, mulai dari input kendaraan masuk, pemantauan kendaraan yang sedang parkir, proses kendaraan keluar, hingga laporan transaksi dan cetak struk parkir.",
+    "feat": "[\"Input kendaraan masuk dengan nomor plat dan jenis kendaraan (motor/mobil).\",\"Daftar kendaraan yang sedang parkir lengkap dengan waktu masuk dan status.\",\"Proses kendaraan keluar dengan konfirmasi pembayaran.\",\"Laporan transaksi parkir: durasi dan total biaya per kendaraan.\",\"Cetak struk parkir langsung dari browser.\"]",
+    "tech": "[\"HTML5\",\"CSS3\",\"JavaScript\",\"PHP\"]",
+    "stack": "HTML / CSS / PHP",
+    "link": "#",
+    "img_len": 163446
+  },
+  {
+    "key": "ceritarakyat",
+    "title": "Cerita Rakyat: Malin Kundang",
+    "short": "Aplikasi web cerita rakyat interaktif dengan narasi dua bahasa dan kuis.",
+    "desc": "Aplikasi web untuk membaca legenda Malin Kundang secara interaktif, lengkap dengan narasi per bab, pengaturan ukuran teks, pembacaan teks otomatis (text-to-speech), dan kuis pemahaman cerita.",
+    "feat": "[\"Dashboard cerita dengan tokoh utama dan daftar bab.\",\"Mode baca per bab dengan navigasi langsung ke bagian tertentu.\",\"Dua bahasa: Bahasa Indonesia dan Jawa Krama, bisa diganti langsung.\",\"Text-to-speech untuk membacakan cerita dengan pengaturan kecepatan.\",\"Pengatur ukuran teks dan kuis interaktif di akhir cerita.\"]",
+    "tech": "[\"HTML5\",\"CSS3\",\"JavaScript\",\"Web Speech API\"]",
+    "stack": "HTML / CSS / JS",
+    "link": "#",
+    "img_len": 247170
+  }
+]
