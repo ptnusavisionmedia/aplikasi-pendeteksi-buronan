@@ -9,6 +9,7 @@ import { apiClient, apiErrorMessage } from "@/lib/api-client";
 import { useAuthStore } from "@/store/auth-store";
 import { Badge, Select, Textarea, PrimaryButton, ErrorText, SuccessText } from "@/components/form";
 import { RetryImage } from "@/components/retry-image";
+import { detectionStatusMeta } from "@/lib/detection-status";
 import type { DetectionEvent } from "@/lib/types";
 
 interface Instansi {
@@ -80,8 +81,8 @@ export default function DetectionDetailPage() {
               <div className="text-[12px] text-muted">{new Date(event.detectedAt).toLocaleString("id-ID")}</div>
             </div>
           </div>
-          <Badge tone={event.status === "CONFIRMED" ? "coral" : event.status === "LOW_CONFIDENCE" ? "amber" : "muted"}>
-            {event.status}
+          <Badge tone={detectionStatusMeta(event.status).tone}>
+            {detectionStatusMeta(event.status).label}
           </Badge>
         </div>
 

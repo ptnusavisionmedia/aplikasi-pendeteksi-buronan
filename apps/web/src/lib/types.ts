@@ -10,7 +10,13 @@ export type Role = "ADMIN" | "APARAT" | "KEAMANAN_SWASTA" | "INSTANSI_HUKUM" | "
 
 export type BuronanStatus = "DPO_AKTIF" | "TERTANGKAP" | "DICABUT";
 
-export type DetectionStatus = "CONFIRMED" | "LOW_CONFIDENCE" | "MANUAL_CHECK";
+export type DetectionStatus =
+  | "CONFIRMED"
+  | "LOW_CONFIDENCE"
+  | "MANUAL_CHECK"
+  | "PENDING_CONFIRMATION"
+  | "CONFIRMED_BY_OFFICER"
+  | "REJECTED_FALSE_POSITIVE";
 
 export type EscalationStatus = "PENDING" | "DITINDAKLANJUTI" | "SELESAI";
 

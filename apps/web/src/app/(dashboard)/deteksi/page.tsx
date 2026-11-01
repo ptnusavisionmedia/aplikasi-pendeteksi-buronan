@@ -9,6 +9,7 @@ import { PrimaryButton, GhostButton, Badge } from "@/components/form";
 import { RetryImage } from "@/components/retry-image";
 import { SearchBar, Pagination } from "@/components/list-controls";
 import { ExportButtons } from "@/components/export-buttons";
+import { detectionStatusMeta } from "@/lib/detection-status";
 import { useAuthStore } from "@/store/auth-store";
 import type { DetectionEvent, PaginatedResult } from "@/lib/types";
 
@@ -169,7 +170,7 @@ export default function DeteksiPage() {
                 <div className="text-[11px] text-muted truncate">{d.cctvFeed?.lokasi ?? "Upload manual"}</div>
               </div>
               <div className="flex items-center justify-between">
-                <Badge tone={d.status === "CONFIRMED" ? "coral" : d.status === "LOW_CONFIDENCE" ? "amber" : "muted"}>{d.status}</Badge>
+                <Badge tone={detectionStatusMeta(d.status).tone}>{detectionStatusMeta(d.status).label}</Badge>
                 {!isHighConfidence && <span className="text-[11px] font-bold tabular text-muted">{pct}%</span>}
               </div>
               <div className="text-[10.5px] text-muted">{new Date(d.detectedAt).toLocaleString("id-ID")}</div>
