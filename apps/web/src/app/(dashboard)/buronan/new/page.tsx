@@ -28,32 +28,36 @@ export default function NewBuronanPage() {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({ nama: "", nik: "", nomorKasus: "", tingkatAncaman: "Sedang" });
-  const [photo, setPhoto] = useState<{ file: File; previewUrl: string; width: number; height: number } | null>(null);
+  const [photos, setPhotos] = useState<{ file: File; previewUrl: string; width: number; height: number }[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function onPhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
     setError(null);
-    try {
-      const { width, height } = await readImageDimensions(file);
-      if (width < MIN_PHOTO_SIZE || height < MIN_PHOTO_SIZE) {
-        setError(`Resolusi foto terlalu rendah (minimum ${MIN_PHOTO_SIZE}x${MIN_PHOTO_SIZE}px) — pilih foto wajah yang lebih jelas.`);
-        if (fileRef.current) fileRef.current.value = "";
-        return;
+    const accepted: typeof photos = [];
+    for (const file of files) {
+      try {
+        const { width, height } = await readImageDimensions(file);
+        if (width < MIN_PHOTO_SIZE || height < MIN_PHOTO_SIZE) {
+          setError(`Resolusi foto "${file.name}" terlalu rendah (minimum ${MIN_PHOTO_SIZE}x${MIN_PHOTO_SIZE}px) — foto ini dilewati.`);
+          continue;
+        }
+        accepted.push({ file, previewUrl: URL.createObjectURL(file), width, height });
+      } catch {
+        setError(`File "${file.name}" bukan gambar yang valid — foto ini dilewati.`);
       }
-      setPhoto({ file, previewUrl: URL.createObjectURL(file), width, height });
-    } catch {
-      setError("File bukan gambar yang valid.");
-      if (fileRef.current) fileRef.current.value = "";
     }
+    setPhotos((prev) => [...prev, ...accepted]);
+    if (fileRef.current) fileRef.current.value = "";
   }
 
-  function removePhoto() {
-    if (photo) URL.revokeObjectURL(photo.previewUrl);
-    setPhoto(null);
-    if (fileRef.current) fileRef.current.value = "";
+  function removePhoto(index: number) {
+    setPhotos((prev) => {
+      URL.revokeObjectURL(prev[index].previewUrl);
+      return prev.filter((_, i) => i !== index);
+    });
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -68,19 +72,29 @@ export default function NewBuronanPage() {
         tingkatAncaman: form.tingkatAncaman,
       });
 
-      if (photo) {
-        const formData = new FormData();
-        formData.append("foto", photo.file);
-        formData.append("isPrimary", "true");
-        formData.append("angle", "FRONTAL");
-        formData.append("width", String(photo.width));
-        formData.append("height", String(photo.height));
-        // Buronan sudah tersimpan di titik ini — kalau upload foto gagal, tetap lanjut ke
-        // halaman detail (foto bisa ditambahkan/diulang dari sana) daripada membuat duplikat
-        // dengan submit ulang form ini.
+      // Buronan sudah tersimpan di titik ini — kalau upload foto gagal, tetap lanjut ke
+      // halaman detail (foto bisa ditambahkan/diulang dari sana) daripada membuat duplikat
+      // dengan submit ulang form ini. Foto pertama didaftarkan lewat /foto (FR-21: metadata
+      // sudut + resolusi) agar jadi foto utama; sisanya lewat /foto/bulk sekaligus.
+      if (photos.length > 0) {
+        const [primary, ...rest] = photos;
+        const primaryFormData = new FormData();
+        primaryFormData.append("foto", primary.file);
+        primaryFormData.append("isPrimary", "true");
+        primaryFormData.append("angle", "FRONTAL");
+        primaryFormData.append("width", String(primary.width));
+        primaryFormData.append("height", String(primary.height));
         await apiClient
-          .post(`/buronan/${data.id}/foto`, formData, { headers: { "Content-Type": "multipart/form-data" } })
+          .post(`/buronan/${data.id}/foto`, primaryFormData, { headers: { "Content-Type": "multipart/form-data" } })
           .catch((err) => console.error("Gagal mengunggah foto saat pembuatan buronan:", err));
+
+        if (rest.length > 0) {
+          const bulkFormData = new FormData();
+          rest.forEach((p) => bulkFormData.append("fotos", p.file));
+          await apiClient
+            .post(`/buronan/${data.id}/foto/bulk`, bulkFormData, { headers: { "Content-Type": "multipart/form-data" } })
+            .catch((err) => console.error("Gagal mengunggah foto tambahan saat pembuatan buronan:", err));
+        }
       }
 
       router.push(`/buronan/${data.id}`);
@@ -102,36 +116,40 @@ export default function NewBuronanPage() {
         <form onSubmit={onSubmit} className="bento-cell flex flex-col gap-4">
           <ErrorText>{error}</ErrorText>
 
-          <Field label="Foto wajah (opsional, bisa ditambah nanti)">
-            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPhotoChange} />
-            {photo ? (
-              <div className="flex items-center gap-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={photo.previewUrl} alt="Pratinjau foto" className="w-16 h-16 rounded-xl object-cover border border-line" />
-                <div className="flex-1 min-w-0 text-[12px] text-muted">
-                  {photo.file.name} &middot; {photo.width}x{photo.height}
-                </div>
-                <button type="button" onClick={removePhoto} className="icon-badge bg-canvas hover:bg-line transition-colors shrink-0">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => fileRef.current?.click()}
-                className="flex items-center gap-3 bg-canvas border border-dashed border-line rounded-xl px-3.5 py-3 text-left hover:border-primary transition-colors"
-              >
-                <div className="icon-badge bg-surface shrink-0">
-                  <UserSearch className="w-[18px] h-[18px] text-muted" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-semibold flex items-center gap-1.5">
-                    <Upload className="w-3.5 h-3.5" /> Pilih foto
+          <Field label="Foto wajah (opsional, bisa ditambah nanti, bisa pilih beberapa)">
+            <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={onPhotoChange} />
+            {photos.length > 0 && (
+              <div className="flex flex-col gap-2 mb-2">
+                {photos.map((photo, i) => (
+                  <div key={photo.previewUrl} className="flex items-center gap-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={photo.previewUrl} alt="Pratinjau foto" className="w-16 h-16 rounded-xl object-cover border border-line" />
+                    <div className="flex-1 min-w-0 text-[12px] text-muted">
+                      {photo.file.name} &middot; {photo.width}x{photo.height}
+                      {i === 0 && <span className="text-primary font-semibold"> &middot; utama</span>}
+                    </div>
+                    <button type="button" onClick={() => removePhoto(i)} className="icon-badge bg-canvas hover:bg-line transition-colors shrink-0">
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
-                  <div className="text-[11.5px] text-muted">Wajah menghadap depan, minimum {MIN_PHOTO_SIZE}x{MIN_PHOTO_SIZE}px</div>
-                </div>
-              </button>
+                ))}
+              </div>
             )}
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="flex items-center gap-3 bg-canvas border border-dashed border-line rounded-xl px-3.5 py-3 text-left hover:border-primary transition-colors"
+            >
+              <div className="icon-badge bg-surface shrink-0">
+                <UserSearch className="w-[18px] h-[18px] text-muted" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[13px] font-semibold flex items-center gap-1.5">
+                  <Upload className="w-3.5 h-3.5" /> {photos.length > 0 ? "Tambah foto lagi" : "Pilih foto"}
+                </div>
+                <div className="text-[11.5px] text-muted">Wajah menghadap depan, minimum {MIN_PHOTO_SIZE}x{MIN_PHOTO_SIZE}px</div>
+              </div>
+            </button>
           </Field>
 
           <Field label="Nama lengkap">

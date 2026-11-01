@@ -41,15 +41,14 @@ export default function BuronanDetailPage() {
   }
 
   async function onUploadFoto(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
     setUploadError(null);
     setUploading(true);
     try {
       const formData = new FormData();
-      formData.append("foto", file);
-      formData.append("isPrimary", buronan?.fotos?.length ? "false" : "true");
-      await apiClient.post(`/buronan/${id}/foto`, formData, {
+      Array.from(files).forEach((f) => formData.append("fotos", f));
+      await apiClient.post(`/buronan/${id}/foto/bulk`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       queryClient.invalidateQueries({ queryKey: ["buronan", id] });
@@ -124,10 +123,10 @@ export default function BuronanDetailPage() {
             </Select>
 
             <ErrorText>{uploadError}</ErrorText>
-            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onUploadFoto} />
+            <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={onUploadFoto} />
             <GhostButton type="button" onClick={() => fileRef.current?.click()} disabled={uploading}>
               <Upload className="w-4 h-4" />
-              {uploading ? "Mengunggah & mendaftarkan wajah..." : "Tambah Foto Wajah"}
+              {uploading ? "Mengunggah & mendaftarkan wajah..." : "Tambah Foto Wajah (bisa pilih beberapa)"}
             </GhostButton>
 
             <div className="h-px bg-line" />

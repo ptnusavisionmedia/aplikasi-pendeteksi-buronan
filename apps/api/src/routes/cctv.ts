@@ -37,6 +37,22 @@ async function startDetection(feedId: string, urlStream: string): Promise<void> 
   await startCctvFeed(feedId, liveRtspUrl(feedId));
 }
 
+/**
+ * Re-arms every ACTIVE feed's detection-engine capture loop on API boot. The loop only lives in
+ * detection-engine's process memory, so a plain restart of either process (deploy, crash, dev
+ * server reload) silently drops it while the feed still shows ACTIVE/"Terhubung" in the
+ * dashboard — Cek Koneksi and the status badge test the camera/DB, not whether anything is
+ * actually consuming its stream, so live detection can go dark with zero visible signal.
+ */
+export async function armActiveCctvFeeds(): Promise<void> {
+  const feeds = await prisma.cCTVFeed.findMany({ where: { status: "ACTIVE" } });
+  for (const feed of feeds) {
+    await startDetection(feed.id, feed.urlStream).catch((err) =>
+      console.error(`Gagal mengaktifkan ulang deteksi untuk feed ${feed.id}:`, err)
+    );
+  }
+}
+
 const createFeedSchema = z.object({
   nama: z.string().min(1),
   lokasi: z.string().min(1),
