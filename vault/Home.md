@@ -36,6 +36,7 @@ Platform deteksi wajah berbasis AI yang menghubungkan jaringan CCTV publik/swast
 - [[07-Guides/Panduan Setup Development|Panduan Setup Development]] — cara menjalankan seluruh stack di lokal (infra, env, migrasi, troubleshooting)
 - [[07-Guides/Panduan Install Flutter|Panduan Install Flutter]] — cara install Flutter SDK di Windows
 - [[07-Guides/Cara Kerja Aplikasi|Cara Kerja Aplikasi]] — alur end-to-end tiap fitur, dipetakan ke file kode asli
+- [[07-Guides/Tips dan Trik Pemakaian Aplikasi|Tips & Trik Pemakaian Aplikasi]] — tips praktis dari pengalaman langsung: role/login, setup CCTV (RTSP vs webcam dev), threshold deteksi, build/jalankan production, gotcha Windows/PowerShell
 
 ### Istilah
 - [[Glossary]] — Daftar istilah domain (DPO, confidence score, dll)
