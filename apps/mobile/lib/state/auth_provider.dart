@@ -1,4 +1,6 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../core/api_client.dart';
 import '../core/secure_storage.dart';
 import '../models/user.dart';
 
@@ -19,13 +21,33 @@ class AuthState {
 }
 
 class AuthNotifier extends StateNotifier<AuthState> {
-  AuthNotifier() : super(const AuthState()) {
+  final Ref ref;
+
+  AuthNotifier(this.ref) : super(const AuthState()) {
     _restore();
   }
 
+  // Sebelumnya hanya memulihkan `token` dari secure storage dan tidak pernah mengisi `user` lagi
+  // setelah app di-restart — padahal `isAuthenticated` butuh keduanya non-null. Akibatnya setelah
+  // restart, token sebenarnya masih valid tapi `isAuthenticated` selalu false, jadi menu "Profil"
+  // (yang membaca `isAuthenticated` untuk memutuskan buka /profil atau /login) selalu melempar ke
+  // layar login — terasa seperti "langsung logout" padahal sesi aslinya masih ada. Sekarang token
+  // yang tersimpan dipakai untuk GET /auth/me dan mengisi ulang `user`; kalau tokennya sudah tidak
+  // valid (kedaluwarsa dll), baru benar-benar dianggap logout dan dihapus dari storage.
   Future<void> _restore() async {
     final token = await SecureStorage.readToken();
-    state = AuthState(token: token, loading: false);
+    if (token == null) {
+      state = const AuthState(loading: false);
+      return;
+    }
+    try {
+      final dio = ref.read(dioProvider);
+      final response = await dio.get('/auth/me', options: Options(headers: {'Authorization': 'Bearer $token'}));
+      state = AuthState(token: token, user: AppUser.fromJson(response.data as Map<String, dynamic>), loading: false);
+    } catch (_) {
+      await SecureStorage.clearToken();
+      state = const AuthState(loading: false);
+    }
   }
 
   void setSession(String token, AppUser user) {
@@ -39,4 +61,4 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 }
 
-final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) => AuthNotifier());
+final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) => AuthNotifier(ref));
