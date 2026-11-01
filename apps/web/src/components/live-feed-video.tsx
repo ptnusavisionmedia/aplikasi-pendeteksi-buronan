@@ -54,7 +54,40 @@ export function LiveFeedVideo({
     let pc: RTCPeerConnection | null = null;
     let whepSessionUrl: string | null = null;
     let cancelled = false;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let attempt = 0;
     const video = videoRef.current;
+
+    // Sama seperti Mode Fokus (cctv/live/[id]/page.tsx) — tanpa ini, kartu live di daftar CCTV
+    // diam saja setelah koneksi putus di tengah jalan, membuat video terasa "ketinggalan" sampai
+    // operator refresh halaman manual.
+    const MAX_AUTO_RETRIES = 5;
+
+    function cleanupSession() {
+      hls?.destroy();
+      hls = null;
+      pc?.close();
+      pc = null;
+      if (whepSessionUrl) {
+        fetch(whepSessionUrl, { method: "DELETE" }).catch(() => {});
+        whepSessionUrl = null;
+      }
+    }
+
+    function scheduleReconnect() {
+      if (cancelled) return;
+      cleanupSession();
+      attempt += 1;
+      if (attempt > MAX_AUTO_RETRIES) {
+        setStatus("error");
+        return;
+      }
+      setStatus("connecting");
+      const delay = Math.min(1000 * 2 ** (attempt - 1), 8000);
+      reconnectTimer = setTimeout(() => {
+        if (!cancelled) connect();
+      }, delay);
+    }
 
     function playHls(hlsUrl: string) {
       if (!video) return;
@@ -64,11 +97,12 @@ export function LiveFeedVideo({
         hls.attachMedia(video);
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           if (cancelled) return;
+          attempt = 0;
           setStatus("live");
           video.play().catch(() => {});
         });
         hls.on(Hls.Events.ERROR, (_evt, errData) => {
-          if (errData.fatal && !cancelled) setStatus("error");
+          if (errData.fatal && !cancelled) scheduleReconnect();
         });
       } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
         video.src = hlsUrl;
@@ -136,7 +170,13 @@ export function LiveFeedVideo({
         });
 
         if (!gotFrame || cancelled) return false;
+        attempt = 0;
         setStatus("live");
+        pc.addEventListener("connectionstatechange", () => {
+          if (!cancelled && (pc?.connectionState === "failed" || pc?.connectionState === "disconnected")) {
+            scheduleReconnect();
+          }
+        });
         return true;
       } catch {
         return false;
@@ -162,16 +202,15 @@ export function LiveFeedVideo({
           playHls(data.hlsUrl);
         }
       } catch {
-        if (!cancelled) setStatus("error");
+        if (!cancelled) scheduleReconnect();
       }
     }
 
     connect();
     return () => {
       cancelled = true;
-      hls?.destroy();
-      pc?.close();
-      if (whepSessionUrl) fetch(whepSessionUrl, { method: "DELETE" }).catch(() => {});
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      cleanupSession();
     };
   }, [feedId]);
 

@@ -56,6 +56,7 @@ export default function CctvFocusPage() {
   const panelRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<Status>("connecting");
   const [error, setError] = useState<string | null>(null);
+  const [retryToken, setRetryToken] = useState(0);
   const [detection, setDetection] = useState<LiveDetection | null>(null);
   const [ptzError, setPtzError] = useState<string | null>(null);
   const [snapshotUrl, setSnapshotUrl] = useState<string | null>(null);
@@ -162,7 +163,44 @@ export default function CctvFocusPage() {
     let pc: RTCPeerConnection | null = null;
     let whepSessionUrl: string | null = null;
     let cancelled = false;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let attempt = 0;
     const video = videoRef.current;
+
+    // Sebelumnya tidak ada pemulihan otomatis sama sekali: sekali WHEP/HLS putus atau macet di
+    // tengah sesi (ICE disconnect, hiccup jaringan, error HLS fatal), Mode Fokus diam-diam
+    // berhenti update atau pindah ke layar error permanen — pengguna harus keluar-masuk halaman
+    // manual. Ini akar dari keluhan "stream sering ketinggalan dan tidak realtime". Sekarang
+    // dicoba sambung ulang otomatis dengan backoff, dan hanya menyerah ke status error permanen
+    // (dengan tombol Coba Lagi manual) setelah melewati batas percobaan.
+    const MAX_AUTO_RETRIES = 5;
+
+    function cleanupSession() {
+      hls?.destroy();
+      hls = null;
+      pc?.close();
+      pc = null;
+      if (whepSessionUrl) {
+        fetch(whepSessionUrl, { method: "DELETE" }).catch(() => {});
+        whepSessionUrl = null;
+      }
+    }
+
+    function scheduleReconnect(message: string) {
+      if (cancelled) return;
+      cleanupSession();
+      attempt += 1;
+      if (attempt > MAX_AUTO_RETRIES) {
+        setStatus("error");
+        setError(message);
+        return;
+      }
+      setStatus("connecting");
+      const delay = Math.min(1000 * 2 ** (attempt - 1), 8000);
+      reconnectTimer = setTimeout(() => {
+        if (!cancelled) connect();
+      }, delay);
+    }
 
     function playHls(hlsUrl: string) {
       if (!video) return;
@@ -176,13 +214,13 @@ export default function CctvFocusPage() {
         hls.attachMedia(video);
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           if (cancelled) return;
+          attempt = 0;
           setStatus("live");
           video.play().catch(() => {});
         });
         hls.on(Hls.Events.ERROR, (_evt, errData) => {
           if (errData.fatal && !cancelled) {
-            setStatus("error");
-            setError("Gagal memutar live stream — cek koneksi kamera atau coba lagi.");
+            scheduleReconnect("Koneksi live terputus berulang kali — cek jaringan kamera lalu coba lagi.");
           }
         });
       } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
@@ -268,7 +306,16 @@ export default function CctvFocusPage() {
         });
 
         if (!gotFrame || cancelled) return false;
+        attempt = 0;
         setStatus("live");
+        // A session that connected fine can still drop mid-stream (network blip, MediaMTX
+        // restart) — without this, the video just freezes on the last frame forever since
+        // nothing else observes the peer connection after this point.
+        pc.addEventListener("connectionstatechange", () => {
+          if (!cancelled && (pc?.connectionState === "failed" || pc?.connectionState === "disconnected")) {
+            scheduleReconnect("Koneksi live terputus berulang kali — cek jaringan kamera lalu coba lagi.");
+          }
+        });
         return true;
       } catch {
         return false;
@@ -295,21 +342,17 @@ export default function CctvFocusPage() {
           playHls(data.hlsUrl);
         }
       } catch (err) {
-        if (!cancelled) {
-          setStatus("error");
-          setError(apiErrorMessage(err, "Gagal menyiapkan live stream"));
-        }
+        if (!cancelled) scheduleReconnect(apiErrorMessage(err, "Gagal menyiapkan live stream — coba lagi."));
       }
     }
 
     connect();
     return () => {
       cancelled = true;
-      hls?.destroy();
-      pc?.close();
-      if (whepSessionUrl) fetch(whepSessionUrl, { method: "DELETE" }).catch(() => {});
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      cleanupSession();
     };
-  }, [id]);
+  }, [id, retryToken]);
 
   useEffect(() => {
     if (status !== "live" || !id) return;
@@ -431,8 +474,15 @@ export default function CctvFocusPage() {
           </div>
         )}
         {status === "error" && (
-          <div className="absolute inset-4 flex items-center justify-center text-center text-white text-[13.5px] bg-ink/90 rounded-xl px-6">
-            {error}
+          <div className="absolute inset-4 flex flex-col items-center justify-center gap-3 text-center text-white text-[13.5px] bg-ink/90 rounded-xl px-6">
+            <p>{error}</p>
+            <button
+              type="button"
+              onClick={() => setRetryToken((t) => t + 1)}
+              className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 font-semibold transition-colors"
+            >
+              Coba Lagi
+            </button>
           </div>
         )}
 

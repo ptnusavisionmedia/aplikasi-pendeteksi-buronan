@@ -165,29 +165,33 @@ detectionsRouter.post("/webhook", async (req, res) => {
   // FR-19: a high-confidence match no longer auto-escalates. It waits for an officer's
   // confirm/reject decision (see PATCH /:id/confirm|reject) before FR-14 Escalation can fire.
   const confidenceThreshold = await getConfidenceThreshold();
+
+  // Below ambang kecocokan (SystemSetting.detectionMatchThreshold, default 70%) — tidak disimpan
+  // ke riwayat deteksi sama sekali. Sebelumnya tetap dibuat sebagai DetectionEvent berstatus
+  // LOW_CONFIDENCE, membanjiri daftar Deteksi dengan hasil di bawah ambang yang tidak actionable
+  // (kamera live mengirim webhook tiap beberapa detik). Kotak overlay di Mode Fokus tidak
+  // terpengaruh — itu didorong dari live-detection cache di detection-engine, bukan dari tabel
+  // ini — jadi operator tetap melihat semua kecocokan real-time, hanya histori/evidence/
+  // notifikasi yang dibatasi ke kecocokan yang cukup yakin.
+  if (confidence < confidenceThreshold) {
+    return res.status(200).json({ skipped: true, reason: "confidence_below_threshold" });
+  }
+
   const event = await prisma.detectionEvent.create({
+    data: { cctvFeedId, buronanId, confidenceScore: confidence, status: "PENDING_CONFIRMATION", isLive: true },
+  });
+
+  await prisma.evidence.create({
     data: {
-      cctvFeedId,
-      buronanId,
-      confidenceScore: confidence,
-      status: confidence >= confidenceThreshold ? "PENDING_CONFIRMATION" : "LOW_CONFIDENCE",
-      isLive: true,
+      detectionEventId: event.id,
+      fileUrl: snapshotUrl,
+      retentionUntil: evidenceRetentionDate(),
     },
   });
 
-  if (confidence >= confidenceThreshold) {
-    await prisma.evidence.create({
-      data: {
-        detectionEventId: event.id,
-        fileUrl: snapshotUrl,
-        retentionUntil: evidenceRetentionDate(),
-      },
-    });
-
-    // FR-25: a dev/staging simulation feed (webcam) never reaches a real officer's inbox.
-    if (!isDevSimulation) {
-      await enqueueNotificationJob({ detectionEventId: event.id });
-    }
+  // FR-25: a dev/staging simulation feed (webcam) never reaches a real officer's inbox.
+  if (!isDevSimulation) {
+    await enqueueNotificationJob({ detectionEventId: event.id });
   }
 
   res.status(201).json({ detectionEventId: event.id });

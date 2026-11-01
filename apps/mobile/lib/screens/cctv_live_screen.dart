@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
@@ -80,9 +81,18 @@ class _HlsPlayer extends StatefulWidget {
   State<_HlsPlayer> createState() => _HlsPlayerState();
 }
 
+// Posisi pemutaran dicek tiap interval ini; kalau tidak maju sama sekali dua kali berturut-turut
+// (~_stallWatchdogInterval * 2) padahal video sedang play, dianggap macet/ketinggalan jauh dari
+// live edge dan controller dibuat ulang dari awal — ini perbaikan utama untuk keluhan "stream
+// sering ketinggalan dan tidak realtime": sebelumnya tidak ada pemulihan otomatis sama sekali
+// saat koneksi HLS macet, jadi video tetap menampilkan frame lama tanpa batas waktu.
+const _stallWatchdogInterval = Duration(seconds: 5);
+
 class _HlsPlayerState extends State<_HlsPlayer> {
   VideoPlayerController? _controller;
   String? _error;
+  Timer? _watchdog;
+  Duration? _lastPosition;
 
   @override
   void initState() {
@@ -91,20 +101,46 @@ class _HlsPlayerState extends State<_HlsPlayer> {
   }
 
   Future<void> _init() async {
+    // Live stream — TIDAK pernah di-loop. `setLooping(true)` sebelumnya di sini adalah bug:
+    // begitu pemutar mencapai ujung window segmen yang sudah di-buffer, ia melompat balik ke awal
+    // alih-alih menunggu segmen baru, sehingga video terlihat "ketinggalan"/memutar ulang konten
+    // lama padahal kameranya live.
     final controller = VideoPlayerController.networkUrl(Uri.parse(widget.hlsUrl));
     _controller = controller;
     try {
       await controller.initialize();
-      await controller.setLooping(true);
       await controller.play();
-      if (mounted) setState(() {});
+      if (mounted) {
+        _lastPosition = controller.value.position;
+        _watchdog?.cancel();
+        _watchdog = Timer.periodic(_stallWatchdogInterval, (_) => _checkStall());
+        setState(() {});
+      }
     } catch (err) {
       if (mounted) setState(() => _error = 'Gagal memutar video — kamera mungkin sedang tidak tersedia.');
     }
   }
 
+  void _checkStall() {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized || !mounted) return;
+    final position = controller.value.position;
+    final stalled = controller.value.isPlaying && position == _lastPosition;
+    _lastPosition = position;
+    if (stalled) _reconnect();
+  }
+
+  Future<void> _reconnect() async {
+    _watchdog?.cancel();
+    final old = _controller;
+    _controller = null;
+    await old?.dispose();
+    if (mounted) await _init();
+  }
+
   @override
   void dispose() {
+    _watchdog?.cancel();
     _controller?.dispose();
     super.dispose();
   }
