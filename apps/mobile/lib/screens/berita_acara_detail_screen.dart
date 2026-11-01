@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../core/api_client.dart';
@@ -71,7 +72,22 @@ class _DetailBody extends StatelessWidget {
                     style: const TextStyle(color: AppColors.muted, fontSize: 12),
                   ),
                   const SizedBox(height: 16),
-                  Text(item.isi, style: const TextStyle(fontSize: 14, height: 1.6)),
+                  MarkdownBody(
+                    data: item.isi,
+                    selectable: true,
+                    styleSheet: MarkdownStyleSheet(
+                      p: const TextStyle(fontSize: 14, height: 1.6),
+                      h1: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
+                      h2: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+                      h3: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                      blockquoteDecoration: BoxDecoration(
+                        color: AppColors.canvas,
+                        border: const Border(left: BorderSide(color: AppColors.primary, width: 3)),
+                      ),
+                      img: const TextStyle(fontSize: 14),
+                      a: const TextStyle(color: AppColors.primary, decoration: TextDecoration.underline),
+                    ),
+                  ),
                 ],
               ),
             ),

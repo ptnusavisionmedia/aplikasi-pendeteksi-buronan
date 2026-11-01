@@ -72,6 +72,20 @@ beritaAcaraRouter.get("/:id", optionalAuth, async (req, res) => {
   res.json(item);
 });
 
+// Dipanggil tombol "Sisipkan Gambar" di editor markdown CMS — mengunggah satu gambar lepas
+// (bukan foto sampul) dan mengembalikan URL-nya untuk disisipkan sebagai `![...](url)` di `isi`.
+beritaAcaraRouter.post(
+  "/media",
+  requireAuth,
+  requireRole(...OFFICER_ROLES),
+  upload.single("file"),
+  async (req, res) => {
+    if (!req.file) return res.status(400).json({ error: "File gambar wajib diisi" });
+    const url = await uploadEvidenceFile(req.file.buffer, req.file.originalname, req.file.mimetype);
+    res.status(201).json({ url });
+  }
+);
+
 const createSchema = z.object({
   judul: z.string().min(1),
   ringkasan: z.string().min(1),

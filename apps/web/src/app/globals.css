@@ -116,6 +116,42 @@
     font-variant-numeric: tabular-nums;
   }
 
+  /* Minimal markdown typography for the Berita Acara editor preview & public read view —
+     no @tailwindcss/typography plugin installed, so these are hand-rolled. */
+  .prose-berita :where(h1, h2, h3) {
+    font-weight: 800;
+    line-height: 1.25;
+    margin: 1em 0 0.4em;
+  }
+  .prose-berita h1 { font-size: 1.3em; }
+  .prose-berita h2 { font-size: 1.15em; }
+  .prose-berita h3 { font-size: 1.05em; }
+  .prose-berita p { margin: 0.6em 0; line-height: 1.65; }
+  .prose-berita a { color: var(--color-primary); text-decoration: underline; }
+  .prose-berita strong { font-weight: 700; }
+  .prose-berita ul, .prose-berita ol { margin: 0.6em 0; padding-left: 1.4em; }
+  .prose-berita ul { list-style: disc; }
+  .prose-berita ol { list-style: decimal; }
+  .prose-berita li { margin: 0.25em 0; }
+  .prose-berita blockquote {
+    border-left: 3px solid var(--color-primary);
+    padding-left: 0.9em;
+    margin: 0.8em 0;
+    color: var(--color-muted);
+  }
+  .prose-berita code {
+    background: var(--color-canvas);
+    border-radius: 0.3em;
+    padding: 0.1em 0.4em;
+    font-size: 0.9em;
+  }
+  .prose-berita img {
+    max-width: 100%;
+    border-radius: 0.75em;
+    margin: 0.8em 0;
+  }
+  .prose-berita hr { border-color: var(--color-line); margin: 1.2em 0; }
+
   .lucide {
     stroke-width: 1.75;
   }

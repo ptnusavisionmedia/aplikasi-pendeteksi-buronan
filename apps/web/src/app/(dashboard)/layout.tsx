@@ -16,6 +16,7 @@ import {
   Settings2,
   Menu,
   Newspaper,
+  ArrowLeft,
   X,
 } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
@@ -168,6 +169,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           >
             <Menu className="w-[18px] h-[18px]" />
           </button>
+          {pathname !== "/dashboard" && (
+            <button
+              onClick={() => router.back()}
+              aria-label="Kembali"
+              className="flex items-center gap-1.5 shrink-0 h-9 px-3 rounded-xl bg-canvas text-muted hover:text-ink text-[12.5px] font-semibold transition-colors"
+            >
+              <ArrowLeft className="w-[16px] h-[16px]" /> <span className="hidden sm:inline">Kembali</span>
+            </button>
+          )}
           <GlobalSearch />
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <Link href="/notifikasi" className="w-9 h-9 rounded-xl bg-canvas flex items-center justify-center text-muted hover:text-ink">

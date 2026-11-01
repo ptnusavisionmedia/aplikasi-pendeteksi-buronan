@@ -7,6 +7,7 @@ import clsx from "clsx";
 import { apiClient, apiErrorMessage } from "@/lib/api-client";
 import { useAuthStore } from "@/store/auth-store";
 import { Field, Input, Textarea, Select, PrimaryButton, GhostButton, ErrorText, Badge } from "@/components/form";
+import { MarkdownEditor } from "@/components/markdown-editor";
 import { Modal } from "@/components/modal";
 import { RetryImage } from "@/components/retry-image";
 import { SearchBar, Pagination } from "@/components/list-controls";
@@ -157,8 +158,8 @@ export default function BeritaAcaraPage() {
             <Field label="Ringkasan (ditampilkan di daftar)">
               <Textarea required rows={2} value={form.ringkasan} onChange={(e) => setForm({ ...form, ringkasan: e.target.value })} />
             </Field>
-            <Field label="Isi lengkap">
-              <Textarea required rows={6} value={form.isi} onChange={(e) => setForm({ ...form, isi: e.target.value })} />
+            <Field label="Isi lengkap (markdown)">
+              <MarkdownEditor value={form.isi} onChange={(isi) => setForm({ ...form, isi })} />
             </Field>
             <Field label="Foto (opsional)">
               <input ref={fileRef} type="file" accept="image/*" onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} className="text-[12.5px]" />
