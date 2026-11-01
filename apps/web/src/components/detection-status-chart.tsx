@@ -2,7 +2,6 @@
 
 import { useMemo } from "react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
-import type { DetectionEvent } from "@/lib/types";
 
 const STATUS_META: Record<string, { label: string; color: string }> = {
   CONFIRMED: { label: "Terkonfirmasi", color: "var(--color-coral)" },
@@ -27,18 +26,16 @@ function ChartTooltip({ active, payload }: { active?: boolean; payload?: { paylo
   );
 }
 
-/** Distribusi status deteksi (terkonfirmasi/menunggu/rendah/ditolak), donut chart via Recharts. */
-export function DetectionStatusChart({ detections }: { detections: DetectionEvent[] | undefined }) {
+/** Distribusi status deteksi (terkonfirmasi/menunggu/rendah/ditolak), donut chart via Recharts.
+ * `statusBreakdown` datang dari GET /detections/stats (dihitung server-side, bukan dari array
+ * ter-paginasi di client) agar tetap akurat. */
+export function DetectionStatusChart({ statusBreakdown }: { statusBreakdown: Record<string, number> | undefined }) {
   const data = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const d of detections ?? []) {
-      counts.set(d.status, (counts.get(d.status) ?? 0) + 1);
-    }
-    return Array.from(counts.entries()).map(([status, value]) => {
+    return Object.entries(statusBreakdown ?? {}).map(([status, value]) => {
       const meta = STATUS_META[status] ?? fallbackMeta(status);
       return { status, value, label: meta.label, color: meta.color };
     });
-  }, [detections]);
+  }, [statusBreakdown]);
 
   const total = data.reduce((sum, d) => sum + d.value, 0);
 

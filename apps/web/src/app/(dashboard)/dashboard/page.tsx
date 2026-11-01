@@ -3,24 +3,39 @@
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { UserX, ScanFace, Camera, Flag, TrendingUp, Siren } from "lucide-react";
+import { Area, AreaChart, ResponsiveContainer } from "recharts";
 import { apiClient } from "@/lib/api-client";
 import { useAuthStore } from "@/store/auth-store";
 import { Badge } from "@/components/form";
-import { DetectionsTrendChart } from "@/components/detections-trend-chart";
+import { DetectionsTrendChart, type TrendPoint } from "@/components/detections-trend-chart";
 import { DetectionStatusChart } from "@/components/detection-status-chart";
-import type { Buronan, CctvFeed, DetectionEvent, Report } from "@/lib/types";
+import type { PaginatedResult, CctvFeed, DetectionEvent } from "@/lib/types";
+
+interface DetectionStats {
+  total: number;
+  todayCount: number;
+  trend: TrendPoint[];
+  statusBreakdown: Record<string, number>;
+}
 
 export default function DashboardPage() {
   const user = useAuthStore((s) => s.user);
 
   const { data: buronanList } = useQuery({
     queryKey: ["buronan", "dashboard"],
-    queryFn: async () => (await apiClient.get<Buronan[]>("/buronan", { params: { status: "DPO_AKTIF" } })).data,
+    queryFn: async () =>
+      (await apiClient.get<PaginatedResult<unknown>>("/buronan", { params: { status: "DPO_AKTIF", limit: 1 } })).data,
   });
 
-  const { data: detections } = useQuery({
-    queryKey: ["detections", "dashboard"],
-    queryFn: async () => (await apiClient.get<DetectionEvent[]>("/detections")).data,
+  const { data: stats } = useQuery({
+    queryKey: ["detections", "stats"],
+    queryFn: async () => (await apiClient.get<DetectionStats>("/detections/stats")).data,
+  });
+
+  const { data: recent } = useQuery({
+    queryKey: ["detections", "dashboard-recent"],
+    queryFn: async () =>
+      (await apiClient.get<PaginatedResult<DetectionEvent>>("/detections", { params: { limit: 3 } })).data,
   });
 
   const { data: feeds } = useQuery({
@@ -31,13 +46,19 @@ export default function DashboardPage() {
   const { data: reports } = useQuery({
     queryKey: ["reports", "dashboard"],
     enabled: user?.role !== "MASYARAKAT",
-    queryFn: async () => (await apiClient.get<Report[]>("/reports")).data,
+    queryFn: async () => (await apiClient.get<PaginatedResult<unknown>>("/reports", { params: { limit: 1 } })).data,
   });
 
-  const today = new Date().toDateString();
-  const detectionsToday = detections?.filter((d) => new Date(d.detectedAt).toDateString() === today) ?? [];
+  const { data: escalationStats } = useQuery({
+    queryKey: ["escalations", "stats"],
+    queryFn: async () =>
+      (await apiClient.get<{ PENDING: number; DITINDAKLANJUTI: number; SELESAI: number; total: number }>(
+        "/escalations/stats"
+      )).data,
+  });
+
   const feedsOnline = feeds?.filter((f) => f.status === "ACTIVE").length ?? 0;
-  const recentDetections = (detections ?? []).slice(0, 3);
+  const recentDetections = recent?.items ?? [];
 
   return (
     <div>
@@ -56,15 +77,31 @@ export default function DashboardPage() {
         </Link>
       </div>
 
-      {/* Hero: ringkasan total deteksi paling menonjol, baris sendiri di atas */}
+      {/* Hero: ringkasan total deteksi paling menonjol, baris sendiri di atas, dengan sparkline
+          7 hari agar tidak hanya berupa angka polos. */}
       <div className="bento-cell bg-primary text-white flex items-center justify-between gap-6 mb-4">
         <div>
           <span className="text-[12.5px] font-semibold uppercase tracking-wide opacity-80">Total Deteksi Tercatat</span>
-          <div className="text-4xl font-extrabold tabular mt-1">{detections?.length ?? "–"}</div>
-          <div className="text-[12px] opacity-80 mt-1">{detectionsToday.length} deteksi hari ini</div>
+          <div className="text-4xl font-extrabold tabular mt-1">{stats?.total ?? "–"}</div>
+          <div className="text-[12px] opacity-80 mt-1">{stats?.todayCount ?? 0} deteksi hari ini</div>
         </div>
-        <div className="icon-badge bg-white/15 w-12 h-12">
-          <TrendingUp className="w-5 h-5" />
+        <div className="flex items-center gap-4">
+          <div className="w-28 h-12 shrink-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={stats?.trend ?? []} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="hero-sparkline-gradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="white" stopOpacity={0.55} />
+                    <stop offset="100%" stopColor="white" stopOpacity={0.05} />
+                  </linearGradient>
+                </defs>
+                <Area type="monotone" dataKey="count" stroke="white" strokeWidth={2} fill="url(#hero-sparkline-gradient)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="icon-badge bg-white/15 w-12 h-12">
+            <TrendingUp className="w-5 h-5" />
+          </div>
         </div>
       </div>
 
@@ -75,7 +112,7 @@ export default function DashboardPage() {
             <UserX className="text-primary w-[18px] h-[18px]" />
           </div>
           <div>
-            <div className="text-2xl font-extrabold tabular">{buronanList?.length ?? "–"}</div>
+            <div className="text-2xl font-extrabold tabular">{buronanList?.total ?? "–"}</div>
             <div className="text-[12px] text-muted">DPO Aktif</div>
           </div>
         </div>
@@ -85,7 +122,7 @@ export default function DashboardPage() {
             <ScanFace className="text-coral w-[18px] h-[18px]" />
           </div>
           <div>
-            <div className="text-2xl font-extrabold tabular">{detectionsToday.length}</div>
+            <div className="text-2xl font-extrabold tabular">{stats?.todayCount ?? 0}</div>
             <div className="text-[12px] text-muted">Deteksi hari ini</div>
           </div>
         </div>
@@ -108,12 +145,41 @@ export default function DashboardPage() {
             <Flag className="text-amber w-[18px] h-[18px]" />
           </div>
           <div>
-            <div className="text-2xl font-extrabold tabular">
-              {reports?.filter((r) => r.status === "MENUNGGU_VERIFIKASI").length ?? "–"}
-            </div>
+            <div className="text-2xl font-extrabold tabular">{reports?.total ?? "–"}</div>
             <div className="text-[12px] text-muted">Laporan menunggu</div>
           </div>
         </div>
+      </div>
+
+      {/* FR item 7: ringkasan status eskalasi (pending/ditindaklanjuti/selesai) */}
+      <div className="grid grid-cols-3 gap-4 mb-4">
+        <Link href="/eskalasi?status=PENDING" className="bento-cell flex items-center justify-between hover:border-amber transition-colors">
+          <div>
+            <div className="text-2xl font-extrabold tabular">{escalationStats?.PENDING ?? "–"}</div>
+            <div className="text-[12px] text-muted">Eskalasi pending</div>
+          </div>
+          <div className="icon-badge bg-amber-soft">
+            <Siren className="text-amber w-[18px] h-[18px]" />
+          </div>
+        </Link>
+        <Link href="/eskalasi?status=DITINDAKLANJUTI" className="bento-cell flex items-center justify-between hover:border-primary transition-colors">
+          <div>
+            <div className="text-2xl font-extrabold tabular">{escalationStats?.DITINDAKLANJUTI ?? "–"}</div>
+            <div className="text-[12px] text-muted">Ditindaklanjuti</div>
+          </div>
+          <div className="icon-badge bg-primary-soft">
+            <Siren className="text-primary w-[18px] h-[18px]" />
+          </div>
+        </Link>
+        <Link href="/eskalasi?status=SELESAI" className="bento-cell flex items-center justify-between hover:border-safe transition-colors">
+          <div>
+            <div className="text-2xl font-extrabold tabular">{escalationStats?.SELESAI ?? "–"}</div>
+            <div className="text-[12px] text-muted">Selesai</div>
+          </div>
+          <div className="icon-badge bg-canvas">
+            <Siren className="text-safe w-[18px] h-[18px]" />
+          </div>
+        </Link>
       </div>
 
       {/* Detail: deteksi terbaru di kiri (lebih luas), ringkasan aksi cepat di kanan */}
@@ -150,7 +216,7 @@ export default function DashboardPage() {
             <span className="text-[11.5px] text-muted">7 hari terakhir</span>
           </div>
           <div className="flex-1 flex items-center">
-            <DetectionsTrendChart detections={detections} />
+            <DetectionsTrendChart trend={stats?.trend} />
           </div>
         </div>
 
@@ -174,7 +240,7 @@ export default function DashboardPage() {
             <Badge tone="primary">{user?.role}</Badge>
           </div>
           <div className="flex-1 flex items-center">
-            <DetectionStatusChart detections={detections} />
+            <DetectionStatusChart statusBreakdown={stats?.statusBreakdown} />
           </div>
         </div>
       </div>

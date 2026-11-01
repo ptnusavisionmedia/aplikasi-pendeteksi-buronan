@@ -3,29 +3,41 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ScanFace, Upload, X } from "lucide-react";
+import { ScanFace, Trash2, Upload, X } from "lucide-react";
 import { apiClient, apiErrorMessage } from "@/lib/api-client";
-import { PrimaryButton, Badge } from "@/components/form";
+import { PrimaryButton, GhostButton, Badge } from "@/components/form";
 import { RetryImage } from "@/components/retry-image";
-import type { DetectionEvent } from "@/lib/types";
+import { SearchBar, Pagination } from "@/components/list-controls";
+import { ExportButtons } from "@/components/export-buttons";
+import { useAuthStore } from "@/store/auth-store";
+import type { DetectionEvent, PaginatedResult } from "@/lib/types";
 
 interface ManualCheckResult {
   matched: boolean;
   candidates: { buronanId: string; confidence: number }[];
 }
 
-/** Riwayat deteksi wajah lintas semua kamera, plus pemeriksaan manual lewat upload foto. */
+const HIGH_CONFIDENCE = 0.7;
+
+/** Riwayat deteksi wajah lintas semua kamera, ditampilkan sebagai card foto + persentase
+ * kemiripan, plus pemeriksaan manual lewat upload foto. */
 export default function DeteksiPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+  const user = useAuthStore((s) => s.user);
   const [checking, setChecking] = useState(false);
   const [checkResult, setCheckResult] = useState<ManualCheckResult | null>(null);
   const [checkError, setCheckError] = useState<string | null>(null);
+  const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
+  const [clearing, setClearing] = useState(false);
 
-  const { data: detections } = useQuery({
-    queryKey: ["detections"],
-    queryFn: async () => (await apiClient.get<DetectionEvent[]>("/detections")).data,
+  const { data } = useQuery({
+    queryKey: ["detections", "list", { q, page }],
+    queryFn: async () =>
+      (await apiClient.get<PaginatedResult<DetectionEvent>>("/detections", { params: { q: q || undefined, page, limit: 24 } })).data,
   });
+  const detections = data?.items ?? [];
 
   async function onManualCheck(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -49,17 +61,52 @@ export default function DeteksiPage() {
     }
   }
 
+  async function onClearData() {
+    if (!confirm("Hapus SEMUA riwayat deteksi secara permanen? Tindakan ini tidak dapat dibatalkan.")) return;
+    setClearing(true);
+    try {
+      await apiClient.delete("/detections/clear");
+      setPage(1);
+      queryClient.invalidateQueries({ queryKey: ["detections"] });
+    } catch (err) {
+      setCheckError(apiErrorMessage(err, "Gagal menghapus data"));
+    } finally {
+      setClearing(false);
+    }
+  }
+
+  const exportRows = detections.map((d) => [
+    d.buronan?.nama ?? "Tidak dikenali",
+    d.cctvFeed?.lokasi ?? "Upload manual",
+    `${Math.round(d.confidenceScore * 100)}%`,
+    d.status,
+    new Date(d.detectedAt).toLocaleString("id-ID"),
+  ]);
+
   return (
     <div>
-      <div className="flex items-end justify-between mb-4">
+      <div className="flex items-end justify-between mb-4 gap-4 flex-wrap">
         <div>
           <h1 className="text-[22px] font-extrabold tracking-tight">Deteksi</h1>
-          <p className="text-muted text-[13px] mt-1">{detections?.length ?? 0} riwayat deteksi</p>
+          <p className="text-muted text-[13px] mt-1">{data?.total ?? 0} riwayat deteksi</p>
         </div>
-        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onManualCheck} />
-        <PrimaryButton type="button" onClick={() => fileRef.current?.click()} disabled={checking}>
-          <Upload className="w-4 h-4" /> {checking ? "Memeriksa..." : "Periksa Manual"}
-        </PrimaryButton>
+        <div className="flex items-center gap-2">
+          {user?.role === "ADMIN" && (
+            <GhostButton type="button" onClick={onClearData} disabled={clearing} className="text-coral">
+              <Trash2 className="w-4 h-4" /> {clearing ? "Menghapus..." : "Bersihkan Data"}
+            </GhostButton>
+          )}
+          <ExportButtons
+            title="Riwayat Deteksi"
+            filenameBase="riwayat-deteksi"
+            headers={["Nama", "Lokasi", "Kemiripan", "Status", "Waktu"]}
+            rows={exportRows}
+          />
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onManualCheck} />
+          <PrimaryButton type="button" onClick={() => fileRef.current?.click()} disabled={checking}>
+            <Upload className="w-4 h-4" /> {checking ? "Memeriksa..." : "Periksa Manual"}
+          </PrimaryButton>
+        </div>
       </div>
 
       {checkError && (
@@ -88,38 +135,51 @@ export default function DeteksiPage() {
         </div>
       )}
 
-      <div>
-        <h2 className="font-bold text-[16px] mb-3">Riwayat Deteksi</h2>
-        <div className="flex flex-col gap-2">
-          {detections?.map((d) => {
-            const fotoUtama = d.buronan?.fotos?.find((f) => f.isPrimary) ?? d.buronan?.fotos?.[0];
-            return (
-            <Link key={d.id} href={`/deteksi/${d.id}`} className="bento-cell flex items-center gap-3 hover:border-primary transition-colors">
-              {fotoUtama ? (
-                <RetryImage
-                  src={fotoUtama.urlFoto}
-                  alt={d.buronan?.nama ?? "Buronan"}
-                  className="w-9 h-9 rounded-lg object-cover shrink-0"
-                />
-              ) : (
-                <div className="w-9 h-9 rounded-lg bg-canvas flex items-center justify-center text-muted shrink-0">
-                  <ScanFace className="w-4 h-4" />
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <div className="text-[13px] font-semibold truncate">
-                  {d.buronan?.nama ?? "Tidak dikenali"} &middot; {d.cctvFeed?.lokasi ?? "Upload manual"}
-                </div>
-                <div className="text-[11.5px] text-muted">{new Date(d.detectedAt).toLocaleString("id-ID")}</div>
-              </div>
-              <Badge tone={d.status === "CONFIRMED" ? "coral" : d.status === "LOW_CONFIDENCE" ? "amber" : "muted"}>{d.status}</Badge>
-              <span className="text-[11px] font-bold tabular">{Math.round(d.confidenceScore * 100)}%</span>
-            </Link>
-            );
-          })}
-          {detections?.length === 0 && <p className="text-[12.5px] text-muted">Belum ada riwayat deteksi.</p>}
-        </div>
+      <div className="mb-4">
+        <SearchBar value={q} onChange={(v) => { setQ(v); setPage(1); }} placeholder="Cari nama buronan atau kamera..." />
       </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {detections.map((d) => {
+          const fotoUtama = d.buronan?.fotos?.find((f) => f.isPrimary) ?? d.buronan?.fotos?.[0];
+          const pct = Math.round(d.confidenceScore * 100);
+          const isHighConfidence = d.confidenceScore >= HIGH_CONFIDENCE;
+          return (
+            <Link
+              key={d.id}
+              href={`/deteksi/${d.id}`}
+              className="bento-cell flex flex-col gap-2 p-3 hover:border-primary transition-colors"
+            >
+              <div className="relative aspect-square rounded-lg overflow-hidden bg-canvas">
+                {fotoUtama ? (
+                  <RetryImage src={fotoUtama.urlFoto} alt={d.buronan?.nama ?? "Buronan"} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-muted">
+                    <ScanFace className="w-6 h-6" />
+                  </div>
+                )}
+                {isHighConfidence && (
+                  <span className="absolute top-1.5 right-1.5 bg-coral text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">
+                    {pct}%
+                  </span>
+                )}
+              </div>
+              <div className="min-w-0">
+                <div className="text-[12.5px] font-semibold truncate">{d.buronan?.nama ?? "Tidak dikenali"}</div>
+                <div className="text-[11px] text-muted truncate">{d.cctvFeed?.lokasi ?? "Upload manual"}</div>
+              </div>
+              <div className="flex items-center justify-between">
+                <Badge tone={d.status === "CONFIRMED" ? "coral" : d.status === "LOW_CONFIDENCE" ? "amber" : "muted"}>{d.status}</Badge>
+                {!isHighConfidence && <span className="text-[11px] font-bold tabular text-muted">{pct}%</span>}
+              </div>
+              <div className="text-[10.5px] text-muted">{new Date(d.detectedAt).toLocaleString("id-ID")}</div>
+            </Link>
+          );
+        })}
+      </div>
+      {detections.length === 0 && <p className="text-[12.5px] text-muted mt-4">Belum ada riwayat deteksi.</p>}
+
+      <Pagination page={data?.page ?? 1} totalPages={data?.totalPages ?? 1} total={data?.total ?? 0} onPageChange={setPage} />
     </div>
   );
 }

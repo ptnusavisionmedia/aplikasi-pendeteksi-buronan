@@ -2,20 +2,12 @@
 
 import { useMemo } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import type { DetectionEvent } from "@/lib/types";
 
 const DAY_LABEL = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 
-function lastNDays(n: number): Date[] {
-  const days: Date[] = [];
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  for (let i = n - 1; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    days.push(d);
-  }
-  return days;
+export interface TrendPoint {
+  date: string;
+  count: number;
 }
 
 function ChartTooltip({ active, payload }: { active?: boolean; payload?: { payload: { label: string; count: number } }[] }) {
@@ -28,21 +20,12 @@ function ChartTooltip({ active, payload }: { active?: boolean; payload?: { paylo
   );
 }
 
-/** Tren deteksi 7 hari terakhir, dirender lewat Recharts. */
-export function DetectionsTrendChart({ detections }: { detections: DetectionEvent[] | undefined }) {
-  const days = useMemo(() => lastNDays(7), []);
+/** Tren deteksi 7 hari terakhir, dirender lewat Recharts. `trend` datang dari GET /detections/stats
+ * (dihitung server-side) agar tetap akurat meski /detections sudah dipaginasi. */
+export function DetectionsTrendChart({ trend }: { trend: TrendPoint[] | undefined }) {
   const data = useMemo(
-    () =>
-      days.map((day) => {
-        const next = new Date(day);
-        next.setDate(next.getDate() + 1);
-        const count = (detections ?? []).filter((d) => {
-          const t = new Date(d.detectedAt).getTime();
-          return t >= day.getTime() && t < next.getTime();
-        }).length;
-        return { label: DAY_LABEL[day.getDay()], count };
-      }),
-    [days, detections]
+    () => (trend ?? []).map((p) => ({ label: DAY_LABEL[new Date(p.date).getDay()], count: p.count })),
+    [trend]
   );
 
   return (

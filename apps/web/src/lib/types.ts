@@ -1,3 +1,11 @@
+export interface PaginatedResult<T> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export type Role = "ADMIN" | "APARAT" | "KEAMANAN_SWASTA" | "INSTANSI_HUKUM" | "MASYARAKAT";
 
 export type BuronanStatus = "DPO_AKTIF" | "TERTANGKAP" | "DICABUT";
@@ -86,6 +94,11 @@ export interface Notification {
   detectionEvent?: DetectionEvent;
 }
 
+export interface Instansi {
+  id: string;
+  nama: string;
+}
+
 export interface Escalation {
   id: string;
   detectionEventId: string;
@@ -95,6 +108,8 @@ export interface Escalation {
   status: EscalationStatus;
   createdAt: string;
   detectionEvent?: DetectionEvent;
+  instansiTujuan?: Instansi;
+  dibuatOleh?: { id: string; nama: string; email: string; role: Role };
 }
 
 export interface Report {

@@ -12,6 +12,7 @@ import { writeAuditLog } from "../services/audit-log";
 import { env } from "../env";
 import { evidenceRetentionDate, uploadEvidenceFile } from "../services/storage";
 import { getOrCreateSettings } from "./settings";
+import { parsePagination, paginatedResult } from "../lib/pagination";
 
 export const detectionsRouter = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
@@ -246,34 +247,97 @@ detectionsRouter.patch("/:id/reject", requireAuth, requireRole(...OFFICER_ROLES)
 });
 
 detectionsRouter.get("/", requireAuth, async (req, res) => {
-  const { wilayah, from, to, includeDevSimulation } = req.query as {
+  const { wilayah, from, to, includeDevSimulation, q } = req.query as {
     wilayah?: string;
     from?: string;
     to?: string;
     includeDevSimulation?: string;
+    q?: string;
+  };
+  const pagination = parsePagination(req.query as Record<string, unknown>);
+
+  // FR-25: dev/staging webcam simulation feeds are hidden from the production dashboard
+  // unless explicitly asked for. Events with no CCTV feed at all (community reports, manual
+  // upload-check) have nothing to exclude and must stay visible — `is: { sourceType: ... }`
+  // on this optional relation would otherwise drop every one of them, since it requires a
+  // *matching* related row, not merely the absence of a DEV_SIMULATION one.
+  const where = {
+    ...(wilayah ? { cctvFeed: { wilayah } } : {}),
+    ...(includeDevSimulation === "true"
+      ? {}
+      : { OR: [{ cctvFeedId: null }, { cctvFeed: { sourceType: { not: "DEV_SIMULATION" as const } } }] }),
+    ...(from || to
+      ? { detectedAt: { gte: from ? new Date(from) : undefined, lte: to ? new Date(to) : undefined } }
+      : {}),
+    ...(q
+      ? {
+          AND: [
+            {
+              OR: [
+                { buronan: { nama: { contains: q, mode: "insensitive" as const } } },
+                { cctvFeed: { nama: { contains: q, mode: "insensitive" as const } } },
+              ],
+            },
+          ],
+        }
+      : {}),
   };
 
-  const events = await prisma.detectionEvent.findMany({
-    where: {
-      ...(wilayah ? { cctvFeed: { wilayah } } : {}),
-      // FR-25: dev/staging webcam simulation feeds are hidden from the production dashboard
-      // unless explicitly asked for. Events with no CCTV feed at all (community reports, manual
-      // upload-check) have nothing to exclude and must stay visible — `is: { sourceType: ... }`
-      // on this optional relation would otherwise drop every one of them, since it requires a
-      // *matching* related row, not merely the absence of a DEV_SIMULATION one.
-      ...(includeDevSimulation === "true"
-        ? {}
-        : { OR: [{ cctvFeedId: null }, { cctvFeed: { sourceType: { not: "DEV_SIMULATION" } } }] }),
-      ...(from || to
-        ? { detectedAt: { gte: from ? new Date(from) : undefined, lte: to ? new Date(to) : undefined } }
-        : {}),
-    },
-    include: { buronan: { include: { fotos: true } }, cctvFeed: true, evidence: true },
-    orderBy: { detectedAt: "desc" },
-    take: 100,
-  });
+  const [events, total] = await Promise.all([
+    prisma.detectionEvent.findMany({
+      where,
+      include: { buronan: { include: { fotos: true } }, cctvFeed: true, evidence: true },
+      orderBy: { detectedAt: "desc" },
+      skip: pagination.skip,
+      take: pagination.take,
+    }),
+    prisma.detectionEvent.count({ where }),
+  ]);
 
-  res.json(events);
+  res.json(paginatedResult(events, total, pagination));
+});
+
+// Dashboard aggregates (hero total, 7-day trend, status breakdown) — computed server-side so the
+// dashboard doesn't need an unbounded detections fetch to stay accurate once /detections is paginated.
+detectionsRouter.get("/stats", requireAuth, async (req, res) => {
+  const { wilayah } = req.query as { wilayah?: string };
+  const where = {
+    ...(wilayah ? { cctvFeed: { wilayah } } : {}),
+    OR: [{ cctvFeedId: null }, { cctvFeed: { sourceType: { not: "DEV_SIMULATION" as const } } }],
+  };
+
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+  sevenDaysAgo.setHours(0, 0, 0, 0);
+
+  const [total, statusCounts, recentEvents] = await Promise.all([
+    prisma.detectionEvent.count({ where }),
+    prisma.detectionEvent.groupBy({ by: ["status"], where, _count: { status: true } }),
+    prisma.detectionEvent.findMany({
+      where: { ...where, detectedAt: { gte: sevenDaysAgo } },
+      select: { detectedAt: true },
+    }),
+  ]);
+
+  const today = new Date().toDateString();
+  const todayCount = recentEvents.filter((e) => e.detectedAt.toDateString() === today).length;
+
+  const trendByDay = new Map<string, number>();
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(sevenDaysAgo);
+    d.setDate(d.getDate() + i);
+    trendByDay.set(d.toDateString(), 0);
+  }
+  for (const e of recentEvents) {
+    const key = e.detectedAt.toDateString();
+    if (trendByDay.has(key)) trendByDay.set(key, (trendByDay.get(key) ?? 0) + 1);
+  }
+  const trend = Array.from(trendByDay.entries()).map(([date, count]) => ({ date, count }));
+
+  const statusBreakdown: Record<string, number> = {};
+  for (const row of statusCounts) statusBreakdown[row.status] = row._count.status;
+
+  res.json({ total, todayCount, trend, statusBreakdown });
 });
 
 detectionsRouter.get("/:id", requireAuth, async (req, res) => {
@@ -289,4 +353,29 @@ detectionsRouter.get("/:id/evidence", requireAuth, async (req, res) => {
   const evidence = await prisma.evidence.findUnique({ where: { detectionEventId: req.params.id } });
   if (!evidence) return res.status(404).json({ error: "Evidence tidak ditemukan" });
   res.json(evidence);
+});
+
+// Bulk wipe, requested explicitly when moving Deteksi to the card UI (old test/stale rows cluttering
+// the new view). Children have no ON DELETE CASCADE in the schema, so clear them first, in a
+// transaction, so a failure midway never leaves the tables half-cleared.
+detectionsRouter.delete("/clear", requireAuth, requireRole("ADMIN"), async (req, res) => {
+  const countBefore = await prisma.detectionEvent.count();
+
+  await prisma.$transaction([
+    prisma.appeal.deleteMany({}),
+    prisma.notification.deleteMany({}),
+    prisma.escalation.deleteMany({}),
+    prisma.evidence.deleteMany({}),
+    prisma.detectionEvent.deleteMany({}),
+  ]);
+
+  await writeAuditLog({
+    userId: req.user!.id,
+    action: "CLEAR_ALL_DETECTIONS",
+    entityType: "DetectionEvent",
+    entityId: "bulk",
+    detail: { countDeleted: countBefore },
+  });
+
+  res.json({ countDeleted: countBefore });
 });

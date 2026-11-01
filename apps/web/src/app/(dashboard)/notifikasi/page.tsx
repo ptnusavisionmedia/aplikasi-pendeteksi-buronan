@@ -1,32 +1,43 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { Bell, ScanFace } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import { Badge } from "@/components/form";
-import type { Notification } from "@/lib/types";
+import { SearchBar, Pagination } from "@/components/list-controls";
+import type { Notification, PaginatedResult } from "@/lib/types";
 
 export default function NotifikasiPage() {
+  const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
+
   const { data, isLoading } = useQuery({
-    queryKey: ["notifications"],
-    queryFn: async () => (await apiClient.get<Notification[]>("/notifications")).data,
+    queryKey: ["notifications", { q, page }],
+    queryFn: async () =>
+      (await apiClient.get<PaginatedResult<Notification>>("/notifications", { params: { q: q || undefined, page, limit: 20 } })).data,
   });
+  const notifications = data?.items ?? [];
 
   return (
     <div>
       <h1 className="text-[22px] font-extrabold tracking-tight mb-1">Notifikasi</h1>
-      <p className="text-muted text-[13px] mb-6">{data?.length ?? 0} notifikasi untuk Anda</p>
+      <p className="text-muted text-[13px] mb-4">{data?.total ?? 0} notifikasi untuk Anda</p>
+
+      <div className="mb-4">
+        <SearchBar value={q} onChange={(v) => { setQ(v); setPage(1); }} placeholder="Cari nama buronan..." />
+      </div>
 
       <div className="flex flex-col gap-2">
         {isLoading && <p className="text-[13px] text-muted">Memuat...</p>}
-        {!isLoading && data?.length === 0 && (
+        {!isLoading && notifications.length === 0 && (
           <div className="bento-cell flex flex-col items-center justify-center py-10 text-muted">
             <Bell className="w-6 h-6 mb-2" />
             <p className="text-[13px]">Belum ada notifikasi.</p>
           </div>
         )}
-        {data?.map((n) => (
+        {notifications.map((n) => (
           <Link
             key={n.id}
             href={n.detectionEvent ? `/deteksi/${n.detectionEventId}` : "#"}
@@ -45,6 +56,8 @@ export default function NotifikasiPage() {
           </Link>
         ))}
       </div>
+
+      <Pagination page={data?.page ?? 1} totalPages={data?.totalPages ?? 1} total={data?.total ?? 0} onPageChange={setPage} />
     </div>
   );
 }

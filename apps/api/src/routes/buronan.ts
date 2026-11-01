@@ -8,6 +8,7 @@ import { deleteEmbeddings, enrollFace } from "../services/detection-engine-clien
 import { isEnrollmentComplete, validatePhotoQuality } from "../services/photo-quality";
 import { prisma } from "../services/prisma";
 import { uploadEvidenceFile } from "../services/storage";
+import { parsePagination, paginatedResult } from "../lib/pagination";
 
 export const buronanRouter = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -57,24 +58,32 @@ buronanRouter.post(
 
 buronanRouter.get("/", requireAuth, async (req, res) => {
   const { q, status } = req.query as { q?: string; status?: string };
+  const pagination = parsePagination(req.query as Record<string, unknown>);
 
-  const buronan = await prisma.buronan.findMany({
-    where: {
-      ...(status ? { status: status as any } : {}),
-      ...(q
-        ? {
-            OR: [
-              { nama: { contains: q, mode: "insensitive" } },
-              { nomorKasus: { contains: q, mode: "insensitive" } },
-            ],
-          }
-        : {}),
-    },
-    include: { fotos: { where: { isPrimary: true }, take: 1 } },
-    orderBy: { createdAt: "desc" },
-  });
+  const where = {
+    ...(status ? { status: status as any } : {}),
+    ...(q
+      ? {
+          OR: [
+            { nama: { contains: q, mode: "insensitive" as const } },
+            { nomorKasus: { contains: q, mode: "insensitive" as const } },
+          ],
+        }
+      : {}),
+  };
 
-  res.json(buronan);
+  const [buronan, total] = await Promise.all([
+    prisma.buronan.findMany({
+      where,
+      include: { fotos: { where: { isPrimary: true }, take: 1 } },
+      orderBy: { createdAt: "desc" },
+      skip: pagination.skip,
+      take: pagination.take,
+    }),
+    prisma.buronan.count({ where }),
+  ]);
+
+  res.json(paginatedResult(buronan, total, pagination));
 });
 
 buronanRouter.get("/:id", requireAuth, async (req, res) => {
@@ -149,6 +158,53 @@ buronanRouter.patch(
     });
 
     res.json(buronan);
+  }
+);
+
+// Bulk-add training photos: no multi-angle metadata required (angle defaults to FRONTAL), meant
+// purely to grow the embedding set for a buronan that's already enrolled — distinct from
+// POST /:id/foto below, which enforces the FR-21 multi-angle enrollment flow.
+buronanRouter.post(
+  "/:id/foto/bulk",
+  requireAuth,
+  requireRole("ADMIN", "INSTANSI_HUKUM"),
+  upload.array("fotos", 10),
+  async (req, res) => {
+    const files = (req.files as Express.Multer.File[] | undefined) ?? [];
+    if (files.length === 0) return res.status(400).json({ error: "Minimal satu file foto wajib diunggah" });
+
+    const buronan = await prisma.buronan.findUnique({ where: { id: req.params.id } });
+    if (!buronan) return res.status(404).json({ error: "Buronan tidak ditemukan" });
+
+    const results: Array<{ id: string; urlFoto: string } | { error: string; filename: string }> = [];
+    for (const file of files) {
+      const fotoUrl = await uploadEvidenceFile(file.buffer, file.originalname, file.mimetype);
+      try {
+        const enrollResult = await enrollFace({ buronanId: buronan.id, fotoUrl });
+        const foto = await prisma.fotoBuronan.create({
+          data: { buronanId: buronan.id, urlFoto: fotoUrl, qdrantPointId: enrollResult.qdrantPointId, angle: "FRONTAL" },
+        });
+        results.push({ id: foto.id, urlFoto: foto.urlFoto });
+      } catch (err) {
+        results.push({ error: `Gagal memproses foto: ${(err as Error).message}`, filename: file.originalname });
+      }
+    }
+
+    const allFotos = await prisma.fotoBuronan.findMany({ where: { buronanId: buronan.id }, select: { angle: true } });
+    const enrollmentComplete = isEnrollmentComplete(allFotos);
+    if (enrollmentComplete !== buronan.enrollmentComplete) {
+      await prisma.buronan.update({ where: { id: buronan.id }, data: { enrollmentComplete } });
+    }
+
+    await writeAuditLog({
+      userId: req.user!.id,
+      action: "ADD_BURONAN_FOTO_BULK",
+      entityType: "Buronan",
+      entityId: buronan.id,
+      detail: { count: files.length, succeeded: results.filter((r) => "id" in r).length },
+    });
+
+    res.status(201).json({ results, enrollmentComplete });
   }
 );
 

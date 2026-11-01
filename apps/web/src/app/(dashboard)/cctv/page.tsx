@@ -449,7 +449,7 @@ export default function CctvPage() {
               </div>
 
               {feed.status === "ACTIVE" ? (
-                <LiveFeedVideo feedId={feed.id} mirror={feed.mirror} className="rounded-lg border border-line w-full aspect-video" />
+                <LiveFeedVideo feedId={feed.id} mirror={feed.mirror} showDetection className="rounded-lg border border-line w-full aspect-video" />
               ) : (
                 check?.result?.ok &&
                 check.result.snapshotBase64 && (

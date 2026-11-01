@@ -4,8 +4,17 @@ import { requireAuth } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { writeAuditLog } from "../services/audit-log";
 import { prisma } from "../services/prisma";
+import { parsePagination, paginatedResult } from "../lib/pagination";
 
 export const escalationsRouter = Router();
+
+/** Same role-based row visibility as GET / below, factored out so /stats and the list endpoint
+ * can never drift apart on who gets to see which escalations. */
+function visibilityWhere(user: Express.Request["user"]) {
+  return user!.role === "ADMIN"
+    ? undefined
+    : { OR: [{ dibuatOlehId: user!.id }, { instansiTujuanId: user!.instansiId ?? "" }] };
+}
 
 const createEscalationSchema = z.object({
   detectionEventId: z.string().uuid(),
@@ -52,15 +61,52 @@ escalationsRouter.post(
 );
 
 escalationsRouter.get("/", requireAuth, async (req, res) => {
-  const escalations = await prisma.escalation.findMany({
-    where:
-      req.user!.role === "ADMIN"
-        ? undefined
-        : { OR: [{ dibuatOlehId: req.user!.id }, { instansiTujuanId: req.user!.instansiId ?? "" }] },
-    include: { detectionEvent: { include: { buronan: true } }, instansiTujuan: true },
-    orderBy: { createdAt: "desc" },
+  const { q } = req.query as { q?: string };
+  const pagination = parsePagination(req.query as Record<string, unknown>);
+  const visibility = visibilityWhere(req.user);
+
+  const where = {
+    ...(visibility ?? {}),
+    ...(q
+      ? {
+          AND: [
+            {
+              OR: [
+                { detectionEvent: { is: { buronan: { nama: { contains: q, mode: "insensitive" as const } } } } },
+                { instansiTujuan: { is: { nama: { contains: q, mode: "insensitive" as const } } } },
+              ],
+            },
+          ],
+        }
+      : {}),
+  };
+
+  const [escalations, total] = await Promise.all([
+    prisma.escalation.findMany({
+      where,
+      include: { detectionEvent: { include: { buronan: true } }, instansiTujuan: true },
+      orderBy: { createdAt: "desc" },
+      skip: pagination.skip,
+      take: pagination.take,
+    }),
+    prisma.escalation.count({ where }),
+  ]);
+  res.json(paginatedResult(escalations, total, pagination));
+});
+
+escalationsRouter.get("/stats", requireAuth, async (req, res) => {
+  const where = visibilityWhere(req.user);
+
+  const counts = await prisma.escalation.groupBy({
+    by: ["status"],
+    where,
+    _count: { status: true },
   });
-  res.json(escalations);
+
+  const byStatus = { PENDING: 0, DITINDAKLANJUTI: 0, SELESAI: 0 };
+  for (const row of counts) byStatus[row.status] = row._count.status;
+
+  res.json({ ...byStatus, total: byStatus.PENDING + byStatus.DITINDAKLANJUTI + byStatus.SELESAI });
 });
 
 escalationsRouter.get("/:id", requireAuth, async (req, res) => {

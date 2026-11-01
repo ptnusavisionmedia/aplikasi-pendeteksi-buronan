@@ -8,6 +8,7 @@ import { writeAuditLog } from "../services/audit-log";
 import { detectFace } from "../services/detection-engine-client";
 import { prisma } from "../services/prisma";
 import { uploadEvidenceFile } from "../services/storage";
+import { parsePagination, paginatedResult } from "../lib/pagination";
 
 export const reportsRouter = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024 } });
@@ -74,19 +75,40 @@ const listReportsQuerySchema = z.object({
   // Defaults to the pending-verification queue (the dashboard's original behavior); pass
   // status=ALL to see every report regardless of status, or a specific ReportStatus to filter.
   status: z.enum(["ALL", "MENUNGGU_VERIFIKASI", "VALID", "TIDAK_VALID", "INVESTIGASI_LANJUTAN"]).optional(),
+  q: z.string().optional(),
+  page: z.string().optional(),
+  limit: z.string().optional(),
 });
 
 reportsRouter.get("/", requireAuth, requireRole("ADMIN", "APARAT", "KEAMANAN_SWASTA"), async (req, res) => {
   const parsed = listReportsQuerySchema.safeParse(req.query);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
   const status = parsed.data.status ?? "MENUNGGU_VERIFIKASI";
+  const pagination = parsePagination(req.query as Record<string, unknown>);
 
-  const reports = await prisma.report.findMany({
-    where: status === "ALL" ? undefined : { status },
-    include: { detectionEvents: { include: { buronan: true } } },
-    orderBy: { createdAt: "desc" },
-  });
-  res.json(reports);
+  const where = {
+    ...(status === "ALL" ? {} : { status }),
+    ...(parsed.data.q
+      ? {
+          OR: [
+            { lokasi: { contains: parsed.data.q, mode: "insensitive" as const } },
+            { deskripsi: { contains: parsed.data.q, mode: "insensitive" as const } },
+          ],
+        }
+      : {}),
+  };
+
+  const [reports, total] = await Promise.all([
+    prisma.report.findMany({
+      where,
+      include: { detectionEvents: { include: { buronan: true } } },
+      orderBy: { createdAt: "desc" },
+      skip: pagination.skip,
+      take: pagination.take,
+    }),
+    prisma.report.count({ where }),
+  ]);
+  res.json(paginatedResult(reports, total, pagination));
 });
 
 reportsRouter.get(

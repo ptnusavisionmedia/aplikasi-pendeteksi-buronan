@@ -7,6 +7,16 @@ api: yes
 apiAddress: :9997
 hls: yes
 hlsAddress: :8888
+# Low-latency HLS tuning for the live card thumbnails on /cctv (which, unlike Mode Fokus,
+# always use HLS — see apps/web/src/components/live-feed-video.tsx). Shorter segments/parts mean
+# less buffering delay before a new segment is playable, at the cost of slightly more overhead
+# per segment; this is the HLS-side half of the "video terasa delay" fix (the other half is WHEP,
+# which Mode Fokus and the live cards both now prefer — see hlsVariant below only applies to the
+# HLS fallback path).
+hlsVariant: lowLatency
+hlsSegmentDuration: 1s
+hlsPartDuration: 200ms
+hlsSegmentCount: 7
 webrtc: yes
 webrtcAddress: :8889
 
