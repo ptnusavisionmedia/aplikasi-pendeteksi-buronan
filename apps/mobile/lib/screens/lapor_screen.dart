@@ -27,9 +27,9 @@ class _LaporScreenState extends ConsumerState<LaporScreen> {
   String? _error;
   String? _ticketId;
 
-  Future<void> _pickPhoto() async {
+  Future<void> _pickPhoto(ImageSource source) async {
     final picker = ImagePicker();
-    final file = await picker.pickImage(source: ImageSource.camera, imageQuality: 85);
+    final file = await picker.pickImage(source: source, imageQuality: 85);
     if (file == null) return;
     final bytes = await file.readAsBytes();
     setState(() {
@@ -143,7 +143,7 @@ class _LaporScreenState extends ConsumerState<LaporScreen> {
               const SizedBox(height: 12),
             ],
             GestureDetector(
-              onTap: _pickPhoto,
+              onTap: () => _pickPhoto(ImageSource.camera),
               child: Container(
                 width: double.infinity,
                 height: 128,
@@ -162,12 +162,18 @@ class _LaporScreenState extends ConsumerState<LaporScreen> {
                         children: [
                           Icon(Icons.camera_alt_outlined, color: AppColors.muted, size: 24),
                           SizedBox(height: 6),
-                          Text('Ambil foto / unggah dari galeri', style: TextStyle(color: AppColors.muted, fontSize: 12.5)),
+                          Text('Ambil foto dari kamera', style: TextStyle(color: AppColors.muted, fontSize: 12.5)),
                         ],
                       ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 6),
+            TextButton.icon(
+              onPressed: () => _pickPhoto(ImageSource.gallery),
+              icon: const Icon(Icons.photo_library_outlined, size: 18),
+              label: const Text('Pilih dari galeri'),
+            ),
+            const SizedBox(height: 10),
             Row(
               children: [
                 Expanded(

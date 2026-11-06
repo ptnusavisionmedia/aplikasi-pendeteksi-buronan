@@ -34,7 +34,7 @@ class ProfilScreen extends ConsumerWidget {
     }
 
     final user = auth.user!;
-    final initials = user.nama.trim().split(RegExp(r'\s+')).map((p) => p[0]).take(2).join().toUpperCase();
+    final initials = user.initials;
 
     return Scaffold(
       appBar: AppBar(leading: const AppBackButton(), title: const Text('Profil')),

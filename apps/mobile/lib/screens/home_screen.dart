@@ -41,7 +41,7 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authProvider);
     final beritaAsync = ref.watch(homeBeritaAcaraProvider);
-    final initials = auth.user?.nama.trim().split(RegExp(r'\s+')).map((p) => p[0]).take(2).join().toUpperCase() ?? '?';
+    final initials = auth.user?.initials ?? '?';
 
     return Scaffold(
       body: SafeArea(

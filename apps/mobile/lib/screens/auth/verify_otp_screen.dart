@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -33,7 +34,9 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
         'otp': _otpController.text.trim(),
       });
       final token = response.data['token'] as String;
-      final me = await dio.get('/auth/me');
+      // authProvider belum punya token (setSession dipanggil setelah ini), jadi interceptor
+      // dioProvider tidak akan melampirkan Authorization — kirim manual, sama seperti login_screen.
+      final me = await dio.get('/auth/me', options: Options(headers: {'Authorization': 'Bearer $token'}));
       ref.read(authProvider.notifier).setSession(token, AppUser.fromJson(me.data as Map<String, dynamic>));
       if (!mounted) return;
       context.go('/home');

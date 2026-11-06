@@ -134,6 +134,7 @@ class _HlsPlayerState extends State<_HlsPlayer> {
     _watchdog?.cancel();
     final old = _controller;
     _controller = null;
+    if (mounted) setState(() {});
     await old?.dispose();
     if (mounted) await _init();
   }
