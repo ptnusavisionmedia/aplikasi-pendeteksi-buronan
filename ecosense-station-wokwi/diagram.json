@@ -1,0 +1,80 @@
+{
+  "version": 1,
+  "author": "EcoSense Station",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": 0, "left": 0, "attrs": {} },
+
+    { "type": "wokwi-dht22", "id": "dht1", "top": -140, "left": -260, "attrs": {} },
+    { "type": "wokwi-resistor", "id": "r_dht_pullup", "top": -160, "left": -150, "attrs": { "value": "10000" }, "rotate": 90 },
+
+    { "type": "wokwi-hc-sr04", "id": "us1", "top": -260, "left": 40, "attrs": {} },
+    { "type": "wokwi-resistor", "id": "r_echo_series", "top": -180, "left": 80, "attrs": { "value": "10000" }, "rotate": 90 },
+    { "type": "wokwi-resistor", "id": "r_echo_gnd", "top": -140, "left": 110, "attrs": { "value": "10000" }, "rotate": 90 },
+
+    { "type": "wokwi-potentiometer", "id": "pot_ph", "top": -260, "left": 260, "attrs": { "value": "50" } },
+    { "type": "wokwi-resistor", "id": "r_ph_series", "top": -180, "left": 300, "attrs": { "value": "10000" }, "rotate": 90 },
+    { "type": "wokwi-resistor", "id": "r_ph_gnd", "top": -140, "left": 330, "attrs": { "value": "10000" }, "rotate": 90 },
+
+    { "type": "wokwi-potentiometer", "id": "pot_turb", "top": -260, "left": 480, "attrs": { "value": "50" } },
+    { "type": "wokwi-resistor", "id": "r_turb_series", "top": -180, "left": 520, "attrs": { "value": "10000" }, "rotate": 90 },
+    { "type": "wokwi-resistor", "id": "r_turb_gnd", "top": -140, "left": 550, "attrs": { "value": "10000" }, "rotate": 90 },
+
+    { "type": "wokwi-pushbutton", "id": "btn_flow", "top": 40, "left": 480, "attrs": { "color": "blue" } },
+    { "type": "wokwi-resistor", "id": "r_flow_pullup", "top": 0, "left": 520, "attrs": { "value": "10000" }, "rotate": 90 },
+
+    { "type": "wokwi-lcd1602", "id": "lcd1", "top": 120, "left": -260, "attrs": { "pins": "i2c", "address": "0x27" } },
+
+    { "type": "wokwi-led", "id": "led1", "top": 40, "left": -40, "attrs": { "color": "red" } },
+    { "type": "wokwi-resistor", "id": "r_led", "top": 10, "left": -40, "attrs": { "value": "220" }, "rotate": 90 },
+
+    { "type": "wokwi-buzzer", "id": "buzzer1", "top": 100, "left": 220, "attrs": { "volume": "0.1" } }
+  ],
+  "connections": [
+    [ "esp:3V3", "dht1:VCC", "red", [ "v20" ] ],
+    [ "esp:GND.1", "dht1:GND", "black", [ "v30" ] ],
+    [ "dht1:SDA", "esp:D4", "green", [ "v0" ] ],
+    [ "dht1:SDA", "r_dht_pullup:1", "green", [ "v0" ] ],
+    [ "r_dht_pullup:2", "esp:3V3", "red", [ "v0" ] ],
+
+    [ "esp:5V", "us1:VCC", "red", [ "v20" ] ],
+    [ "esp:GND.2", "us1:GND", "black", [ "v30" ] ],
+    [ "esp:D5", "us1:TRIG", "yellow", [ "v0" ] ],
+    [ "us1:ECHO", "r_echo_series:1", "blue", [ "v0" ] ],
+    [ "r_echo_series:2", "r_echo_gnd:1", "blue", [ "v0" ] ],
+    [ "r_echo_series:2", "esp:D18", "blue", [ "v0" ] ],
+    [ "r_echo_gnd:2", "esp:GND.2", "black", [ "v0" ] ],
+
+    [ "esp:5V", "pot_ph:VCC", "red", [ "v20" ] ],
+    [ "esp:GND.1", "pot_ph:GND", "black", [ "v30" ] ],
+    [ "pot_ph:SIG", "r_ph_series:1", "orange", [ "v0" ] ],
+    [ "r_ph_series:2", "r_ph_gnd:1", "orange", [ "v0" ] ],
+    [ "r_ph_series:2", "esp:34", "orange", [ "v0" ] ],
+    [ "r_ph_gnd:2", "esp:GND.1", "black", [ "v0" ] ],
+
+    [ "esp:5V", "pot_turb:VCC", "red", [ "v20" ] ],
+    [ "esp:GND.1", "pot_turb:GND", "black", [ "v30" ] ],
+    [ "pot_turb:SIG", "r_turb_series:1", "purple", [ "v0" ] ],
+    [ "r_turb_series:2", "r_turb_gnd:1", "purple", [ "v0" ] ],
+    [ "r_turb_series:2", "esp:35", "purple", [ "v0" ] ],
+    [ "r_turb_gnd:2", "esp:GND.1", "black", [ "v0" ] ],
+
+    [ "esp:3V3", "r_flow_pullup:1", "red", [ "v0" ] ],
+    [ "r_flow_pullup:2", "esp:D27", "cyan", [ "v0" ] ],
+    [ "r_flow_pullup:2", "btn_flow:1.l", "cyan", [ "v0" ] ],
+    [ "btn_flow:2.l", "esp:GND.2", "black", [ "v0" ] ],
+
+    [ "esp:3V3", "lcd1:VCC", "red", [ "v20" ] ],
+    [ "esp:GND.1", "lcd1:GND", "black", [ "v30" ] ],
+    [ "esp:D21", "lcd1:SDA", "green", [ "v0" ] ],
+    [ "esp:D22", "lcd1:SCL", "yellow", [ "v0" ] ],
+
+    [ "esp:D23", "r_led:1", "magenta", [ "v0" ] ],
+    [ "r_led:2", "led1:A", "magenta", [ "v0" ] ],
+    [ "led1:C", "esp:GND.2", "black", [ "v0" ] ],
+
+    [ "esp:D19", "buzzer1:1", "magenta", [ "v0" ] ],
+    [ "buzzer1:2", "esp:GND.2", "black", [ "v0" ] ]
+  ],
+  "dependencies": {}
+}
