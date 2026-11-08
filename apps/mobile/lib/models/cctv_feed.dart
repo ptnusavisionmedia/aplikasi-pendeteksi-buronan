@@ -8,16 +8,21 @@
 /// `POST /cctv-feeds/:id/live` (same MediaMTX relay the web dashboard's Mode Fokus uses), not
 /// from this list payload. This mirrors apps/web/src/lib/types.ts `CctvFeed`, deliberately
 /// dropping every field only the web dashboard's management/PTZ UI needs: `urlStream`,
-/// `ownerId`, `lat`/`lng`, `sourceType`, `ptzSupported`, `onvifPort`, `mirror` (web-only video
-/// correction). Keep this list in sync whenever a new management-only field is added to the
-/// backend model, so it's clear an omission here is intentional rather than mobile having
-/// fallen behind.
+/// `ownerId`, `lat`/`lng`, `sourceType`, `ptzSupported`, `onvifPort`. Keep this list in sync
+/// whenever a new management-only field is added to the backend model, so it's clear an
+/// omission here is intentional rather than mobile having fallen behind.
+///
+/// `mirror` is the one exception: it's not a management field, it's a display-time correction
+/// (some cameras ship pre-flipped) needed to render the live video AND its detection bounding
+/// boxes correctly together — see vault/03-Decisions/2026-11-08 - CCTV Live Mobile - Bounding
+/// Box dan Kartu Live.md.
 class CctvFeed {
   final String id;
   final String nama;
   final String lokasi;
   final String wilayah;
   final String status;
+  final bool mirror;
   final DateTime createdAt;
 
   CctvFeed({
@@ -26,6 +31,7 @@ class CctvFeed {
     required this.lokasi,
     required this.wilayah,
     required this.status,
+    required this.mirror,
     required this.createdAt,
   });
 
@@ -37,6 +43,7 @@ class CctvFeed {
         lokasi: json['lokasi'] as String? ?? '-',
         wilayah: json['wilayah'] as String? ?? '-',
         status: json['status'] as String? ?? 'OFFLINE',
+        mirror: json['mirror'] as bool? ?? false,
         createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
       );
     } catch (err) {

@@ -20,10 +20,16 @@ export const notificationWorker = new Worker<NotificationJobData>(
       where: wilayah ? { wilayahScope: wilayah } : undefined,
     });
 
+    const title = `Deteksi Kecocokan: ${event.buronan?.nama ?? "DPO"}`;
+    const body = `${Math.round(event.confidenceScore * 100)}% kecocokan di ${event.cctvFeed?.lokasi ?? "lokasi tidak diketahui"}`;
+
     for (const recipient of recipients) {
       const notification = await prisma.notification.create({
         data: {
           userId: recipient.id,
+          type: "DETECTION_MATCH",
+          title,
+          body,
           detectionEventId: event.id,
           channel: "PUSH",
           status: "PENDING",

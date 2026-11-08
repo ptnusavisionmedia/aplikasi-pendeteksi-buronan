@@ -59,6 +59,17 @@ enum NotificationStatus {
   FAILED
 }
 
+// DETECTION_MATCH tetap dibuat lewat notification-worker.ts (fan-out per wilayah CCTV feed, lihat
+// jobs/notification-worker.ts). Tiga lainnya dibuat sinkron lewat services/notifications.ts
+// (broadcastNotification) langsung dari route handler yang relevan — tidak lewat BullMQ karena
+// cuma insert DB, tidak ada pengiriman eksternal nyata yang perlu retry/backoff.
+enum NotificationType {
+  DETECTION_MATCH
+  BURONAN_BARU
+  BURONAN_TERTANGKAP
+  BERITA_ACARA_BARU
+}
+
 enum EscalationStatus {
   PENDING
   DITINDAKLANJUTI
@@ -133,6 +144,7 @@ model Buronan {
   instansiPenerbit Instansi          @relation(fields: [instansiPenerbitId], references: [id])
   fotos            FotoBuronan[]
   detectionEvents  DetectionEvent[]
+  notifications    Notification[]
 
   @@index([status])
   @@map("buronan")
@@ -250,15 +262,28 @@ model Evidence {
 model Notification {
   id               String              @id @default(uuid())
   userId           String
-  detectionEventId String
+  // Default DETECTION_MATCH supaya baris lama (sebelum kolom ini ada) tetap valid tanpa backfill.
+  type             NotificationType    @default(DETECTION_MATCH)
+  // Nullable: DETECTION_MATCH merender pesannya dari relasi detectionEvent/buronan/cctvFeed di
+  // client (perilaku lama, tetap dipertahankan), sementara 3 tipe broadcast lain mengisi title/body
+  // langsung di sini karena tidak selalu punya detectionEvent untuk dijadikan sumber teks.
+  title            String?
+  body             String?
+  detectionEventId String?
+  buronanId        String?
+  beritaAcaraId    String?
   channel          NotificationChannel
   status           NotificationStatus  @default(PENDING)
+  isRead           Boolean             @default(false)
   sentAt           DateTime?
   createdAt        DateTime            @default(now())
 
-  user           User           @relation(fields: [userId], references: [id])
-  detectionEvent DetectionEvent @relation(fields: [detectionEventId], references: [id])
+  user           User            @relation(fields: [userId], references: [id])
+  detectionEvent DetectionEvent? @relation(fields: [detectionEventId], references: [id])
+  buronan        Buronan?        @relation(fields: [buronanId], references: [id])
+  beritaAcara    BeritaAcara?    @relation(fields: [beritaAcaraId], references: [id])
 
+  @@index([userId, isRead])
   @@map("notifications")
 }
 
@@ -311,7 +336,8 @@ model BeritaAcara {
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 
-  penulis User @relation(fields: [penulisId], references: [id])
+  penulis       User           @relation(fields: [penulisId], references: [id])
+  notifications Notification[]
 
   @@index([status, publishedAt])
   @@map("berita_acara")

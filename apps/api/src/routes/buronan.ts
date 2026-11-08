@@ -5,6 +5,7 @@ import { requireAuth } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { writeAuditLog } from "../services/audit-log";
 import { deleteEmbeddings, enrollFace } from "../services/detection-engine-client";
+import { broadcastNotification } from "../services/notifications";
 import { isEnrollmentComplete, validatePhotoQuality } from "../services/photo-quality";
 import { prisma } from "../services/prisma";
 import { uploadEvidenceFile } from "../services/storage";
@@ -50,6 +51,13 @@ buronanRouter.post(
       action: "CREATE_BURONAN",
       entityType: "Buronan",
       entityId: buronan.id,
+    });
+
+    await broadcastNotification({
+      type: "BURONAN_BARU",
+      title: "Buronan Baru Terdaftar",
+      body: `${buronan.nama} (#${buronan.nomorKasus}) ditambahkan ke Daftar Pencarian Orang.`,
+      buronanId: buronan.id,
     });
 
     res.status(201).json(buronan);
@@ -144,6 +152,9 @@ buronanRouter.patch(
     const parsed = updateStatusSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
 
+    const existing = await prisma.buronan.findUnique({ where: { id: req.params.id } });
+    if (!existing) return res.status(404).json({ error: "Buronan tidak ditemukan" });
+
     const buronan = await prisma.buronan.update({
       where: { id: req.params.id },
       data: { status: parsed.data.status },
@@ -156,6 +167,17 @@ buronanRouter.patch(
       entityId: buronan.id,
       detail: parsed.data,
     });
+
+    // Hanya kirim notifikasi "tertangkap" pada transisi SEBENARNYA ke TERTANGKAP (bukan PATCH
+    // berulang yang statusnya sudah TERTANGKAP), supaya warga tidak dibanjiri notifikasi duplikat.
+    if (parsed.data.status === "TERTANGKAP" && existing.status !== "TERTANGKAP") {
+      await broadcastNotification({
+        type: "BURONAN_TERTANGKAP",
+        title: "Buronan Tertangkap",
+        body: `${buronan.nama} (#${buronan.nomorKasus}) telah berhasil ditangkap. Terima kasih atas kewaspadaan bersama.`,
+        buronanId: buronan.id,
+      });
+    }
 
     res.json(buronan);
   }

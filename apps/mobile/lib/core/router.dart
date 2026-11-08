@@ -1,12 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../models/berita_acara.dart';
+import '../models/cctv_feed.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
 import '../screens/auth/verify_otp_screen.dart';
 import '../screens/bantuan_screen.dart';
 import '../screens/berita_acara_detail_screen.dart';
 import '../screens/berita_acara_screen.dart';
+import '../screens/buronan_detail_screen.dart';
 import '../screens/buronan_screen.dart';
 import '../screens/cctv_live_screen.dart';
 import '../screens/cctv_screen.dart';
@@ -36,15 +38,30 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/cctv', builder: (context, state) => const CctvScreen()),
       GoRoute(
         path: '/cctv/:id/live',
-        builder: (context, state) => CctvLiveScreen(
-          feedId: state.pathParameters['id']!,
-          feedNama: state.extra as String? ?? 'CCTV',
-        ),
+        builder: (context, state) {
+          final extra = state.extra;
+          final feed = extra is CctvFeed
+              ? extra
+              : CctvFeed(
+                  id: state.pathParameters['id']!,
+                  nama: 'CCTV',
+                  lokasi: '-',
+                  wilayah: '-',
+                  status: 'ACTIVE',
+                  mirror: false,
+                  createdAt: DateTime.now(),
+                );
+          return CctvLiveScreen(feed: feed);
+        },
       ),
       GoRoute(path: '/status', builder: (context, state) => const StatusScreen()),
       GoRoute(path: '/profil', builder: (context, state) => const ProfilScreen()),
       GoRoute(path: '/notifikasi', builder: (context, state) => const NotifikasiScreen()),
       GoRoute(path: '/buronan', builder: (context, state) => const BuronanScreen()),
+      GoRoute(
+        path: '/buronan/:id',
+        builder: (context, state) => BuronanDetailScreen(id: state.pathParameters['id']!),
+      ),
       GoRoute(path: '/bantuan', builder: (context, state) => const BantuanScreen()),
       GoRoute(path: '/berita-acara', builder: (context, state) => const BeritaAcaraScreen()),
       GoRoute(

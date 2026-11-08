@@ -7,6 +7,7 @@ import '../core/theme.dart';
 import '../models/cctv_feed.dart';
 import '../state/auth_provider.dart';
 import '../widgets/back_button.dart';
+import '../widgets/live_feed_player.dart';
 
 /// Read-only: mobile only ever GETs /cctv-feeds. Adding, editing or
 /// deactivating a feed stays admin-only on the web dashboard.
@@ -107,6 +108,11 @@ class CctvScreen extends ConsumerWidget {
   }
 }
 
+/// Kartu CCTV — sama polanya dengan grid card di dashboard web (apps/web/src/app/(dashboard)/
+/// cctv/page.tsx): header ikon+badge status, nama/lokasi, thumbnail live (dengan kotak deteksi),
+/// lalu tombol "Mode Fokus" untuk layar penuh. Tidak ada tombol kelola (Edit/Hapus/Cek
+/// Koneksi/Aktifkan-Nonaktifkan) — itu tetap eksklusif dashboard web, lihat
+/// vault/03-Decisions/2026-10-30 - Monitoring CCTV Read-Only di Mobile.md.
 class _CctvCard extends StatelessWidget {
   final CctvFeed feed;
 
@@ -118,49 +124,66 @@ class _CctvCard extends StatelessWidget {
     final badgeBg = isActive ? AppColors.primarySoft : AppColors.canvas;
     final badgeText = isActive ? AppColors.primaryInk : AppColors.muted;
 
-    final card = BentoCell(
+    return BentoCell(
       padding: const EdgeInsets.all(12),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(color: AppColors.canvas, borderRadius: BorderRadius.circular(12)),
-            child: Icon(isActive ? Icons.play_circle_outline : Icons.videocam_outlined, color: AppColors.ink, size: 20),
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(color: AppColors.canvas, borderRadius: BorderRadius.circular(12)),
+                child: Icon(Icons.videocam_outlined, color: AppColors.ink, size: 18),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(color: badgeBg, borderRadius: BorderRadius.circular(20)),
+                child: Text(feed.status, style: TextStyle(color: badgeText, fontWeight: FontWeight.w700, fontSize: 10.5)),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(feed.nama, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5), overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 2),
-                Text('${feed.lokasi} · ${feed.wilayah}',
-                    style: const TextStyle(color: AppColors.muted, fontSize: 11.5), overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 2),
-                Text(
-                  isActive ? 'Ketuk untuk lihat live' : 'Terdaftar ${DateFormat('dd MMM yyyy').format(feed.createdAt)}',
-                  style: TextStyle(color: isActive ? AppColors.primaryInk : AppColors.muted, fontSize: 10.5, fontWeight: isActive ? FontWeight.w600 : FontWeight.normal),
-                ),
-              ],
+          const SizedBox(height: 10),
+          Text(feed.nama, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5), overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 2),
+          Text('${feed.lokasi} · ${feed.wilayah}',
+              style: const TextStyle(color: AppColors.muted, fontSize: 11.5), overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 10),
+          if (isActive)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: SizedBox(
+                height: 170,
+                width: double.infinity,
+                child: LiveFeedPlayer(feedId: feed.id, mirror: feed.mirror, showDetection: true, compact: true),
+              ),
+            )
+          else
+            Text(
+              'Terdaftar ${DateFormat('dd MMM yyyy').format(feed.createdAt)}',
+              style: const TextStyle(color: AppColors.muted, fontSize: 10.5),
             ),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(color: badgeBg, borderRadius: BorderRadius.circular(20)),
-            child: Text(feed.status, style: TextStyle(color: badgeText, fontWeight: FontWeight.w700, fontSize: 10.5)),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              if (isActive)
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => context.push('/cctv/${feed.id}/live', extra: feed),
+                    icon: const Icon(Icons.open_in_full, size: 15),
+                    label: const Text('Mode Fokus'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ],
       ),
-    );
-
-    if (!isActive) return card;
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(20),
-      onTap: () => context.push('/cctv/${feed.id}/live', extra: feed.nama),
-      child: card,
     );
   }
 }

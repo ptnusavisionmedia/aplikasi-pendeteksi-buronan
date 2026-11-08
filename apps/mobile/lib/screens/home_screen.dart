@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +8,7 @@ import '../core/theme.dart';
 import '../models/berita_acara.dart';
 import '../state/auth_provider.dart';
 import '../widgets/retry_image.dart';
+import 'notifikasi_screen.dart' show unreadNotificationCountProvider;
 
 final homeBeritaAcaraProvider = FutureProvider.autoDispose<List<BeritaAcara>>((ref) async {
   final dio = ref.read(dioProvider);
@@ -70,10 +72,10 @@ class HomeScreen extends ConsumerWidget {
                           ],
                         ),
                       ),
-                      _HeaderIconButton(
-                        icon: Icons.notifications_outlined,
-                        onTap: () => context.push(auth.isAuthenticated ? '/notifikasi' : '/login'),
-                      ),
+                      if (auth.isAuthenticated)
+                        const _NotificationBellButton()
+                      else
+                        _HeaderIconButton(icon: Icons.notifications_outlined, onTap: () => context.push('/login')),
                       const SizedBox(width: 8),
                       InkWell(
                         onTap: () => context.push(auth.isAuthenticated ? '/profil' : '/login'),
@@ -91,8 +93,13 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
 
+              const SliverPadding(
+                padding: EdgeInsets.fromLTRB(16, 14, 16, 0),
+                sliver: SliverToBoxAdapter(child: _SponsorBanner()),
+              ),
+
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                 sliver: SliverToBoxAdapter(
                   child: Row(
                     children: _navIcons
@@ -207,6 +214,162 @@ class HomeScreen extends ConsumerWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+// Belum ada sumber data sponsor dari backend (lihat decision record 2026-11-08), jadi daftar
+// gambar masih statis dari assets/sponsor/ — kalau nanti ada endpoint sponsor, ganti ini dengan
+// provider yang fetch dari API, bentuk _SponsorBanner di bawah tidak perlu berubah.
+const _sponsorImages = [
+  'assets/sponsor/Jalan Pulang Masih Terbuka.png',
+  'assets/sponsor/Sigap Buronan_ Kenali, Jangan Panik.png',
+  'assets/sponsor/Sigap Buronan_ Teknologi dan Privasi.png',
+];
+
+const _sponsorAutoSlideInterval = Duration(seconds: 4);
+
+/// Carousel banner sponsor/poster di bagian atas Home, di bawah header dan di atas grid navigasi
+/// ikon — supaya grid navigasi tidak langsung menempel ke header (permintaan pengguna). Geser
+/// otomatis tiap beberapa detik, dan tetap bisa digeser manual oleh pengguna (PageView bawaan);
+/// geseran manual membatalkan sementara linimasa otomatis lalu melanjutkannya dari posisi baru,
+/// supaya tidak "menyentak" balik ke slide sebelumnya begitu pengguna selesai menggeser.
+class _SponsorBanner extends StatefulWidget {
+  const _SponsorBanner();
+
+  @override
+  State<_SponsorBanner> createState() => _SponsorBannerState();
+}
+
+class _SponsorBannerState extends State<_SponsorBanner> {
+  final _controller = PageController();
+  Timer? _timer;
+  int _page = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _startAutoSlide();
+  }
+
+  void _startAutoSlide() {
+    _timer?.cancel();
+    _timer = Timer.periodic(_sponsorAutoSlideInterval, (_) {
+      if (!mounted || !_controller.hasClients) return;
+      final next = (_page + 1) % _sponsorImages.length;
+      _controller.animateToPage(next, duration: const Duration(milliseconds: 450), curve: Curves.easeOutCubic);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_sponsorImages.isEmpty) return const SizedBox.shrink();
+
+    // 16:9 supaya tinggi mengikuti lebar layar secara proporsional, pas dengan rasio aset poster
+    // di assets/sponsor/ — bukan tinggi tetap yang bisa memotong/menyisakan ruang kosong di gambar.
+    return AspectRatio(
+      aspectRatio: 16 / 9,
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              decoration: BoxDecoration(color: AppColors.canvas, border: Border.all(color: AppColors.line)),
+              child: NotificationListener<ScrollNotification>(
+                // Geseran manual oleh pengguna juga memicu ScrollNotification dari PageView,
+                // jadi linimasa otomatis di-restart dari sini supaya tidak langsung "melompat"
+                // ke slide berikutnya tepat setelah pengguna berhenti menggeser.
+                onNotification: (notification) {
+                  if (notification is ScrollEndNotification) _startAutoSlide();
+                  return false;
+                },
+                child: PageView.builder(
+                  controller: _controller,
+                  itemCount: _sponsorImages.length,
+                  onPageChanged: (i) => setState(() => _page = i),
+                  itemBuilder: (context, index) => Image.asset(
+                    _sponsorImages[index],
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      color: AppColors.canvas,
+                      alignment: Alignment.center,
+                      child: Icon(Icons.image_outlined, color: AppColors.muted.withValues(alpha: 0.8), size: 20),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          if (_sponsorImages.length > 1)
+            Positioned(
+              bottom: 6,
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(
+                  _sponsorImages.length,
+                  (i) => AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: const EdgeInsets.symmetric(horizontal: 2),
+                    width: i == _page ? 14 : 5,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: (i == _page ? Colors.white : Colors.white70).withValues(alpha: i == _page ? 0.95 : 0.6),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Ikon lonceng + titik merah kalau ada notifikasi belum dibaca — dipisah dari _HeaderIconButton
+/// (yang dipakai untuk kondisi belum login) karena perlu watch unreadNotificationCountProvider.
+class _NotificationBellButton extends ConsumerWidget {
+  const _NotificationBellButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unreadAsync = ref.watch(unreadNotificationCountProvider);
+    final hasUnread = unreadAsync.maybeWhen(data: (count) => count > 0, orElse: () => false);
+
+    return InkWell(
+      onTap: () => context.push('/notifikasi'),
+      borderRadius: BorderRadius.circular(20),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(color: AppColors.canvas, borderRadius: BorderRadius.circular(20)),
+            child: const Icon(Icons.notifications_outlined, size: 18, color: AppColors.ink),
+          ),
+          if (hasUnread)
+            Positioned(
+              top: -1,
+              right: -1,
+              child: Container(
+                width: 11,
+                height: 11,
+                decoration: BoxDecoration(color: AppColors.coral, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 1.5)),
+              ),
+            ),
+        ],
       ),
     );
   }

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>EcoSense Station — Motion Graphics ASCII</title>
+<style>
+  :root{
+    --bg-page: #02040a;
+    --panel: #0a1420;
+    --accent: #39ff6a;
+    --text: #cfe8ff;
+  }
+  *{ box-sizing: border-box; }
+  html,body{
+    margin:0; padding:0;
+    background: var(--bg-page);
+    color: var(--text);
+    font-family: "Courier New", monospace;
+    display:flex; flex-direction:column; align-items:center;
+    min-height:100vh;
+  }
+  h1{
+    font-size: 16px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    margin: 18px 0 10px;
+    text-transform: uppercase;
+  }
+  #stageWrap{
+    width: min(92vw, 1280px);
+    aspect-ratio: 16/9;
+    background:#000;
+    border: 1px solid #1c3a2a;
+    box-shadow: 0 0 40px rgba(57,255,106,0.08);
+    position: relative;
+  }
+  canvas{
+    width: 100%;
+    height: 100%;
+    display:block;
+  }
+  #controls{
+    display:flex; align-items:center; gap:16px;
+    margin: 14px 0 26px;
+  }
+  button{
+    background: #0f1e14;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: "Courier New", monospace;
+    font-size: 14px;
+    padding: 8px 18px;
+    cursor: pointer;
+    letter-spacing: 1px;
+  }
+  button:hover{ background: var(--accent); color:#001a08; }
+  #timeDisplay{
+    font-size: 13px;
+    color: #7fd1ff;
+    min-width: 110px;
+  }
+  #progressBar{
+    width: 260px;
+    height: 6px;
+    background: #10202a;
+    border: 1px solid #1c3a2a;
+    position: relative;
+  }
+  #progressFill{
+    position:absolute; top:0; left:0; height:100%;
+    background: var(--accent);
+    width:0%;
+  }
+  details{
+    width: min(92vw, 1280px);
+    margin-bottom: 40px;
+    background: var(--panel);
+    border: 1px solid #1c3a2a;
+    padding: 14px 18px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  summary{ cursor:pointer; color: var(--accent); font-size:14px; margin-bottom:8px;}
+  code{ color:#ffe46b; }
+</style>
+</head>
+<body>
+
+<h1>&gt; EcoSense Station — Motion Graphics Preview</h1>
+
+<div id="stageWrap">
+  <canvas id="stage" width="1920" height="1080"></canvas>
+</div>
+
+<div id="controls">
+  <button id="btnReplay">⟲ Putar Ulang</button>
+  <div id="timeDisplay">00.0s / 00.0s</div>
+  <div id="progressBar"><div id="progressFill"></div></div>
+</div>
+
+<details>
+  <summary>Petunjuk merekam video (MP4)</summary>
+  <p>Proyek ini hanya memutar animasi di browser, tidak membuat file video secara otomatis. Berikut dua cara mudah merekam hasilnya menjadi MP4:</p>
+  <p><strong>Cara 1 — Screen recorder (paling mudah)</strong></p>
+  <ol>
+    <li>Buka <code>index.html</code> di browser, perbesar jendela browser (atau mode fullscreen / F11).</li>
+    <li>Gunakan aplikasi perekam layar: Windows &rarr; <code>Win + G</code> (Xbox Game Bar) atau <code>Win + Shift + S</code> variasi, bisa juga pakai OBS Studio (gratis, hasil lebih rapi).</li>
+    <li>Klik tombol <code>Putar Ulang</code> lalu mulai rekam dari frame pertama hingga animasi selesai (±53 detik).</li>
+    <li>Simpan hasil rekaman sebagai <code>.mp4</code> (OBS: atur "Recording Format" ke mp4 di Settings &rarr; Output).</li>
+  </ol>
+  <p><strong>Cara 2 — Ekspor frame otomatis dengan ffmpeg (lebih presisi)</strong></p>
+  <ol>
+    <li>Install <a href="https://ffmpeg.org" target="_blank" rel="noopener">ffmpeg</a> di komputer.</li>
+    <li>Buka console browser (F12) saat <code>index.html</code> terbuka, lalu jalankan skrip kecil untuk menangkap setiap frame canvas sebagai PNG berurutan ke folder unduhan (skrip capture manual, lihat komentar di <code>script.js</code> bagian <code>// EXPORT FRAME (opsional)</code>).</li>
+    <li>Gabungkan seluruh frame PNG menjadi video dengan perintah:
+      <br><code>ffmpeg -framerate 30 -i frame_%04d.png -c:v libx264 -pix_fmt yuv420p ecosense_video.mp4</code>
+    </li>
+  </ol>
+  <p>Cara 1 sudah cukup untuk kebutuhan presentasi singkat.</p>
+</details>
+
+<script src="script.js"></script>
+</body>
+</html>

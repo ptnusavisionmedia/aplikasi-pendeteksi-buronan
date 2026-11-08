@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../core/api_client.dart';
 import '../core/theme.dart';
 import '../models/buronan.dart';
@@ -130,7 +131,7 @@ class _BuronanCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tone = _ancamanTone[item.tingkatAncaman] ?? (AppColors.canvas, AppColors.muted);
-    return BentoCell(
+    final card = BentoCell(
       padding: const EdgeInsets.all(10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -158,6 +159,12 @@ class _BuronanCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: () => context.push('/buronan/${item.id}'),
+      child: card,
     );
   }
 }

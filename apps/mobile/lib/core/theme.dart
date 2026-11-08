@@ -19,6 +19,9 @@ class AppColors {
 
   static const amber = Color(0xFFC6860F);
   static const amberSoft = Color(0xFFFAF0DA);
+
+  static const safe = Color(0xFF1C9A5B);
+  static const safeSoft = Color(0xFFE1F5EA);
 }
 
 ThemeData buildAppTheme() {

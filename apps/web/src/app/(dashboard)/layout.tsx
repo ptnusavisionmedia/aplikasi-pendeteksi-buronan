@@ -18,6 +18,7 @@ import {
   Newspaper,
   ArrowLeft,
   X,
+  Users,
 } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
 import { GlobalSearch } from "@/components/global-search";
@@ -39,6 +40,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/eskalasi", label: "Eskalasi", icon: Siren, roles: ["ADMIN", "APARAT", "KEAMANAN_SWASTA"] },
   { href: "/laporan", label: "Laporan Masyarakat", icon: Flag, roles: ["ADMIN", "APARAT", "KEAMANAN_SWASTA"] },
   { href: "/berita-acara", label: "Berita Acara", icon: Newspaper, roles: ["ADMIN", "APARAT", "KEAMANAN_SWASTA"] },
+  { href: "/pengguna", label: "Pengguna", icon: Users, roles: ["ADMIN"] },
   { href: "/pengaturan", label: "Pengaturan", icon: Settings2 },
 ];
 

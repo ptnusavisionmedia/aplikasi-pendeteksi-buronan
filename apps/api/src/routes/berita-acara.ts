@@ -4,6 +4,7 @@ import { z } from "zod";
 import { optionalAuth, requireAuth } from "../middleware/auth";
 import { requireRole } from "../middleware/rbac";
 import { writeAuditLog } from "../services/audit-log";
+import { broadcastNotification } from "../services/notifications";
 import { prisma } from "../services/prisma";
 import { uploadEvidenceFile } from "../services/storage";
 import { parsePagination, paginatedResult } from "../lib/pagination";
@@ -125,6 +126,15 @@ beritaAcaraRouter.post(
       detail: { judul: item.judul, status: item.status },
     });
 
+    if (item.status === "TERBIT") {
+      await broadcastNotification({
+        type: "BERITA_ACARA_BARU",
+        title: "Berita Acara Baru",
+        body: item.judul,
+        beritaAcaraId: item.id,
+      });
+    }
+
     res.status(201).json(item);
   }
 );
@@ -167,6 +177,15 @@ beritaAcaraRouter.patch(
       entityId: item.id,
       detail: parsed.data,
     });
+
+    if (becameTerbit) {
+      await broadcastNotification({
+        type: "BERITA_ACARA_BARU",
+        title: "Berita Acara Baru",
+        body: item.judul,
+        beritaAcaraId: item.id,
+      });
+    }
 
     res.json(item);
   }

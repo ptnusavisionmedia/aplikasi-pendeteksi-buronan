@@ -32,6 +32,7 @@ export interface User {
   instansiId: string | null;
   wilayahScope: string | null;
   isVerified: boolean;
+  createdAt?: string;
 }
 
 export interface FotoBuronan {
@@ -91,15 +92,25 @@ export interface DetectionEvent {
   evidence?: Evidence | null;
 }
 
+export type NotificationType = "DETECTION_MATCH" | "BURONAN_BARU" | "BURONAN_TERTANGKAP" | "BERITA_ACARA_BARU";
+
 export interface Notification {
   id: string;
   userId: string;
-  detectionEventId: string;
+  type: NotificationType;
+  title: string | null;
+  body: string | null;
+  detectionEventId: string | null;
+  buronanId: string | null;
+  beritaAcaraId: string | null;
   channel: string;
   status: string;
+  isRead: boolean;
   sentAt: string | null;
   createdAt: string;
-  detectionEvent?: DetectionEvent;
+  detectionEvent?: DetectionEvent | null;
+  buronan?: Buronan | null;
+  beritaAcara?: BeritaAcara | null;
 }
 
 export interface Instansi {

@@ -50,7 +50,7 @@ services:
       - minio_data:/s3mockroot
     ports:
       - "9000:9090"
-      - "9001:9191"
+      - "9091:9191"
 
   # RTSP->HLS relay for the web dashboard's "Mode Fokus" live view. apps/api registers a
   # path per CCTV feed via the API port (9997); the web <video> player fetches HLS segments
