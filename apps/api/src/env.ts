@@ -14,6 +14,9 @@ export const env = {
   redisUrl: process.env.REDIS_URL ?? "redis://localhost:6379",
   jwtSecret: required("JWT_SECRET"),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? "24h",
+  // Public base URL this API is reachable at (browser/mobile-facing). Used to build URLs for
+  // things the API proxies on the client's behalf, e.g. /evidence/:objectName photo streaming.
+  publicUrl: process.env.PUBLIC_API_URL ?? `http://localhost:${process.env.PORT ?? 4000}`,
   detectionEngineUrl: process.env.DETECTION_ENGINE_URL ?? "http://localhost:8000",
   detectionEngineApiKey: process.env.DETECTION_ENGINE_API_KEY ?? "",
   mediamtx: {

@@ -8,6 +8,7 @@ import { buronanRouter } from "./routes/buronan";
 import { cctvRouter } from "./routes/cctv";
 import { detectionsRouter } from "./routes/detections";
 import { escalationsRouter } from "./routes/escalations";
+import { evidenceRouter } from "./routes/evidence";
 import { instansiRouter } from "./routes/instansi";
 import { notificationsRouter } from "./routes/notifications";
 import { reportsRouter } from "./routes/reports";
@@ -34,6 +35,7 @@ app.use("/appeals", appealsRouter);
 app.use("/settings", settingsRouter);
 app.use("/search", searchRouter);
 app.use("/berita-acara", beritaAcaraRouter);
+app.use("/evidence", evidenceRouter);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);

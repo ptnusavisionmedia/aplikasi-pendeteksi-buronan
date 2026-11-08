@@ -23,10 +23,11 @@ export async function uploadEvidenceFile(buffer: Buffer, originalName: string, c
     "Content-Type": contentType,
   });
 
-  // Dev bucket is publicly readable (s3mock default), so a direct URL works without signing.
-  // A private production bucket should use getEvidenceUrl() (presigned) instead.
-  const scheme = env.minio.useSSL ? "https" : "http";
-  return `${scheme}://${env.minio.endpoint}:${env.minio.port}/${env.minio.bucket}/${objectName}`;
+  // Served through the API's own /evidence/:objectName proxy rather than a direct MinIO URL:
+  // MinIO/S3Mock only listens on this host's internal network, and its bucket has no auth of its
+  // own (see ensureEvidenceBucket) — proxying through the API means the object storage never has
+  // to be exposed publicly itself, only the already-public API is.
+  return `${env.publicUrl}/evidence/${objectName}`;
 }
 
 export function evidenceRetentionDate(fromDate = new Date()) {

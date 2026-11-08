@@ -141,9 +141,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <button
             aria-label="Tutup menu"
             onClick={() => setMobileNavOpen(false)}
-            className="absolute inset-0 bg-black/40"
+            className="absolute inset-0 bg-ink/50"
           />
-          <aside className="glass relative w-[260px] max-w-[80vw] h-full p-5 flex flex-col rounded-none">
+          {/* Solid surface, not .glass: unlike the desktop sidebar (which only ever floats over
+              the plain canvas background), this drawer stacks directly on top of real page
+              content, so translucency let that content show through and made the nav unreadable. */}
+          <aside className="relative w-[260px] max-w-[80vw] h-full p-5 flex flex-col rounded-none bg-surface shadow-pop">
             <button
               onClick={() => setMobileNavOpen(false)}
               aria-label="Tutup menu"
