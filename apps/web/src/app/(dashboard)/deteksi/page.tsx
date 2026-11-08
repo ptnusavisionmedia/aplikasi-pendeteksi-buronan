@@ -140,7 +140,7 @@ export default function DeteksiPage() {
         <SearchBar value={q} onChange={(v) => { setQ(v); setPage(1); }} placeholder="Cari nama buronan atau kamera..." />
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="flex flex-wrap gap-3">
         {detections.map((d) => {
           // Tampilkan foto hasil capture kamera saat deteksi (evidence), bukan foto database
           // buronan — evidence baru akurat menunjukkan kondisi/angle nyata saat tertangkap kamera.
@@ -151,7 +151,7 @@ export default function DeteksiPage() {
             <Link
               key={d.id}
               href={`/deteksi/${d.id}`}
-              className="bento-cell flex flex-col gap-2 p-3 hover:border-primary transition-colors"
+              className="bento-cell w-[164px] shrink-0 flex flex-col gap-2 p-3 hover:border-primary transition-colors"
             >
               <div className="relative aspect-square rounded-lg overflow-hidden bg-canvas">
                 {fotoCapture ? (

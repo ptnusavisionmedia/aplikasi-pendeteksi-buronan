@@ -105,16 +105,16 @@ export default function BuronanListPage() {
         </Select>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {isLoading && <p className="text-[13px] text-muted col-span-full">Memuat data...</p>}
+      <div className="flex flex-wrap gap-3">
+        {isLoading && <p className="text-[13px] text-muted w-full">Memuat data...</p>}
         {!isLoading && buronanList.length === 0 && (
-          <div className="bento-cell col-span-full flex flex-col items-center justify-center py-10 text-muted">
+          <div className="bento-cell w-full flex flex-col items-center justify-center py-10 text-muted">
             <UserSearch className="w-6 h-6 mb-2" />
             <p className="text-[13px]">Tidak ada data buronan.</p>
           </div>
         )}
         {buronanList.map((b) => (
-          <div key={b.id} className="bento-cell flex flex-col gap-2 p-3">
+          <div key={b.id} className="bento-cell w-[164px] shrink-0 flex flex-col gap-2 p-3">
             <div className="w-full aspect-square rounded-lg bg-canvas overflow-hidden flex items-center justify-center text-muted">
               {b.fotos?.[0]?.urlFoto ? (
                 <RetryImage src={b.fotos[0].urlFoto} alt={b.nama} className="w-full h-full object-cover" />

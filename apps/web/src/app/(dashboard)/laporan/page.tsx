@@ -72,16 +72,16 @@ export default function LaporanPage() {
         <SearchBar value={q} onChange={(v) => { setQ(v); setPage(1); }} placeholder="Cari lokasi atau deskripsi..." />
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {isLoading && <p className="text-[13px] text-muted col-span-full">Memuat...</p>}
+      <div className="flex flex-wrap gap-3">
+        {isLoading && <p className="text-[13px] text-muted w-full">Memuat...</p>}
         {!isLoading && reports.length === 0 && (
-          <div className="bento-cell col-span-full flex flex-col items-center justify-center py-10 text-muted">
+          <div className="bento-cell w-full flex flex-col items-center justify-center py-10 text-muted">
             <Flag className="w-6 h-6 mb-2" />
             <p className="text-[13px]">Tidak ada laporan untuk status ini.</p>
           </div>
         )}
         {reports.map((report) => (
-          <div key={report.id} className="bento-cell flex flex-col gap-2 p-3">
+          <div key={report.id} className="bento-cell w-[164px] shrink-0 flex flex-col gap-2 p-3">
             <div className="w-full aspect-square rounded-lg bg-canvas overflow-hidden">
               <RetryImage src={report.fotoUrl} alt="Laporan" className="w-full h-full object-cover" />
             </div>
